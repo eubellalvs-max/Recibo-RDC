@@ -1,4 +1,13 @@
-import { Empresa, Usuario, Documento, SistemaConfig, TipoDocumento, DadosRdc } from './types';
+import {
+  Empresa,
+  Usuario,
+  Documento,
+  SistemaConfig,
+  TipoDocumento,
+  DadosRdc,
+  TipoGastoConfig,
+  TipoDocConfig,
+} from './types';
 import { valorPorExtenso } from './extenso';
 
 const STORAGE_KEYS = {
@@ -9,6 +18,21 @@ const STORAGE_KEYS = {
   CURRENT_USER: 'recibos_rdc_current_user_v1',
 };
 
+export const DEFAULT_TIPOS_GASTO: TipoGastoConfig[] = [
+  { id: 'tg-1', codigo: 1, nome: 'Alimentação', descricao: 'Despesas com refeições, almoço, jantar e lanches' },
+  { id: 'tg-2', codigo: 2, nome: 'Combustível', descricao: 'Abastecimento de veículos oficiais ou locados' },
+  { id: 'tg-3', codigo: 3, nome: 'Condução', descricao: 'Táxi, Uber, 99, transporte público e estacionamento' },
+  { id: 'tg-4', codigo: 4, nome: 'Hospedagem', descricao: 'Diárias de hotel, pousada e taxas de turismo' },
+  { id: 'tg-5', codigo: 5, nome: 'Passagens', descricao: 'Passagens aéreas, terrestres e taxas de embarque' },
+  { id: 'tg-6', codigo: 6, nome: 'Outros gastos', descricao: 'Material de escritório, cópias, encadernações e taxas diversas' },
+];
+
+export const DEFAULT_TIPOS_DOC: TipoDocConfig[] = [
+  { id: 'td-1', codigo: 'Rec', nome: 'Recibo', descricao: 'Recibo de pagamento ou quitação' },
+  { id: 'td-2', codigo: 'Nf', nome: 'Nota Fiscal', descricao: 'Nota fiscal eletrônica (NFe, NFCe ou NFSe)' },
+  { id: 'td-3', codigo: 'CF', nome: 'Cupom Fiscal', descricao: 'Cupom fiscal / SAT' },
+];
+
 export const INITIAL_CONFIG: SistemaConfig = {
   nome_organizacao: 'ABEAS - Associação Brasileira de Educação Agrícola Superior',
   sigla_organizacao: 'ABEAS',
@@ -18,6 +42,8 @@ export const INITIAL_CONFIG: SistemaConfig = {
   proximo_rdc_num: 125,
   incluir_segunda_via: true,
   mensagem_rodape: 'Documento emitido eletronicamente pelo Sistema Oficial de Recibos e RDC.',
+  tipos_gasto: DEFAULT_TIPOS_GASTO,
+  tipos_doc: DEFAULT_TIPOS_DOC,
 };
 
 export const INITIAL_EMPRESAS: Empresa[] = [
@@ -219,6 +245,7 @@ export const INITIAL_DOCUMENTOS: Documento[] = [
     status: 'emitido',
     created_at: '2026-09-25T08:45:00.000Z',
     rdc_detalhes: {
+      linha_gasto: 'viagem',
       data_pedido: '2026-09-20',
       numero_pedido: '2026/089',
       local_partida: 'Brasília/DF',
@@ -439,6 +466,7 @@ export const StorageService = {
     cidade_emissao?: string;
     observacoes?: string;
     usuario: Usuario;
+    logo_url?: string;
     rdc_detalhes?: DadosRdc;
   }): Documento {
     const config = this.getConfig();
@@ -476,6 +504,7 @@ export const StorageService = {
       usuario_nome: params.usuario.nome,
       status: 'emitido',
       created_at: new Date().toISOString(),
+      logo_url: params.logo_url,
       rdc_detalhes: params.rdc_detalhes,
     };
 
@@ -497,12 +526,101 @@ export const StorageService = {
 
   // --- Configurações ---
   getConfig(): SistemaConfig {
-    return getLocalStorageItem<SistemaConfig>(STORAGE_KEYS.CONFIG, INITIAL_CONFIG);
+    const cfg = getLocalStorageItem<SistemaConfig>(STORAGE_KEYS.CONFIG, INITIAL_CONFIG);
+    let mudou = false;
+    if (!cfg.tipos_gasto || cfg.tipos_gasto.length === 0) {
+      cfg.tipos_gasto = [...DEFAULT_TIPOS_GASTO];
+      mudou = true;
+    }
+    if (!cfg.tipos_doc || cfg.tipos_doc.length === 0) {
+      cfg.tipos_doc = [...DEFAULT_TIPOS_DOC];
+      mudou = true;
+    }
+    if (mudou && typeof window !== 'undefined') {
+      setLocalStorageItem(STORAGE_KEYS.CONFIG, cfg);
+    }
+    return cfg;
   },
 
   saveConfig(config: SistemaConfig): SistemaConfig {
+    if (!config.tipos_gasto || config.tipos_gasto.length === 0) {
+      config.tipos_gasto = [...DEFAULT_TIPOS_GASTO];
+    }
+    if (!config.tipos_doc || config.tipos_doc.length === 0) {
+      config.tipos_doc = [...DEFAULT_TIPOS_DOC];
+    }
     setLocalStorageItem(STORAGE_KEYS.CONFIG, config);
     return config;
+  },
+
+  // --- Tipos de Gasto na RDC ---
+  getTiposGasto(): TipoGastoConfig[] {
+    return this.getConfig().tipos_gasto || DEFAULT_TIPOS_GASTO;
+  },
+
+  saveTipoGasto(item: TipoGastoConfig): TipoGastoConfig[] {
+    const config = this.getConfig();
+    const list = config.tipos_gasto ? [...config.tipos_gasto] : [...DEFAULT_TIPOS_GASTO];
+    const index = list.findIndex((tg) => tg.id === item.id);
+    if (index >= 0) {
+      list[index] = item;
+    } else {
+      list.push(item);
+    }
+    // Ordenar por código crescente
+    list.sort((a, b) => a.codigo - b.codigo);
+    config.tipos_gasto = list;
+    this.saveConfig(config);
+    return list;
+  },
+
+  deleteTipoGasto(id: string): TipoGastoConfig[] {
+    const config = this.getConfig();
+    const list = (config.tipos_gasto || DEFAULT_TIPOS_GASTO).filter((tg) => tg.id !== id);
+    config.tipos_gasto = list;
+    this.saveConfig(config);
+    return list;
+  },
+
+  resetTiposGastoPadrao(): TipoGastoConfig[] {
+    const config = this.getConfig();
+    config.tipos_gasto = [...DEFAULT_TIPOS_GASTO];
+    this.saveConfig(config);
+    return config.tipos_gasto;
+  },
+
+  // --- Tipos de Doc na RDC ---
+  getTiposDoc(): TipoDocConfig[] {
+    return this.getConfig().tipos_doc || DEFAULT_TIPOS_DOC;
+  },
+
+  saveTipoDoc(item: TipoDocConfig): TipoDocConfig[] {
+    const config = this.getConfig();
+    const list = config.tipos_doc ? [...config.tipos_doc] : [...DEFAULT_TIPOS_DOC];
+    const index = list.findIndex((td) => td.id === item.id);
+    if (index >= 0) {
+      list[index] = item;
+    } else {
+      list.push(item);
+    }
+    config.tipos_doc = list;
+    this.saveConfig(config);
+    return list;
+  },
+
+  deleteTipoDoc(id: string): TipoDocConfig[] {
+    const config = this.getConfig();
+    const list = (config.tipos_doc || DEFAULT_TIPOS_DOC).filter((td) => td.id !== id);
+    config.tipos_doc = list;
+    this.saveConfig(config);
+    return list;
+  },
+
+  resetTiposDocPadrao(): TipoDocConfig[] {
+    const config = this.getConfig();
+    config.tipos_doc = [...DEFAULT_TIPOS_DOC];
+    this.saveConfig(config);
+    return config.tipos_doc;
   },
 
   // --- Sessão Atual ---

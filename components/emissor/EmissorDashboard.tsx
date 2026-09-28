@@ -4,7 +4,7 @@ import React from 'react';
 import { Usuario, Documento, Empresa } from '@/lib/types';
 import { StorageService } from '@/lib/storage';
 import { formatarMoeda, formatarDataBr, mascaraCnpj } from '@/lib/masks';
-import { FileText, PlusCircle, ArrowUpRight, Eye, Printer, FolderOpen } from 'lucide-react';
+import { FileText, PlusCircle, ArrowUpRight, Eye, Printer, FolderOpen, Building2 } from 'lucide-react';
 
 interface EmissorDashboardProps {
   currentUser: Usuario;
@@ -12,6 +12,7 @@ interface EmissorDashboardProps {
   onOpenNovoRdc: () => void;
   onVisualizarDocumento: (doc: Documento) => void;
   onVerTodosDocumentos: () => void;
+  onIrParaEmpresas?: () => void;
 }
 
 export function EmissorDashboard({
@@ -20,6 +21,7 @@ export function EmissorDashboard({
   onOpenNovoRdc,
   onVisualizarDocumento,
   onVerTodosDocumentos,
+  onIrParaEmpresas,
 }: EmissorDashboardProps) {
   const todosDocs = StorageService.getDocumentos();
   const empresas = StorageService.getEmpresas();
@@ -56,7 +58,17 @@ export function EmissorDashboard({
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
+          {onIrParaEmpresas && (
+            <button
+              onClick={onIrParaEmpresas}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-800 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg transition-colors shadow-2xs"
+            >
+              <Building2 className="w-3.5 h-3.5 text-slate-600" />
+              <span>Cadastrar Empresas ({empresas.length})</span>
+            </button>
+          )}
+
           <button
             onClick={onVerTodosDocumentos}
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg transition-colors shadow-2xs"
@@ -67,13 +79,13 @@ export function EmissorDashboard({
         </div>
       </div>
 
-      {/* Cards de Ação Principal: O que você deseja emitir? */}
+      {/* Cards de Ação Principal: O que você deseja emitir ou cadastrar? */}
       <div>
         <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
-          O que você deseja emitir hoje?
+          O que você deseja emitir ou gerenciar hoje?
         </h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Card Novo Recibo */}
           <button
             onClick={onOpenNovoRecibo}
@@ -92,7 +104,7 @@ export function EmissorDashboard({
                 RECIBO
               </h3>
               <p className="text-xs text-slate-500 mt-1">
-                Comprovante padrão de quitação e prestação de serviços com preenchimento por extenso automático.
+                Comprovante padrão com logotipo da empresa emissora, numeração sequencial e extenso automático.
               </p>
             </div>
           </button>
@@ -115,10 +127,35 @@ export function EmissorDashboard({
                 RDC
               </h3>
               <p className="text-xs text-slate-500 mt-1">
-                Recibo de Débito, Despesas Condominiais e Rateios com especificação de competência mensal.
+                Prestação de contas de viagem ou despesas corporativas gerais no modelo oficial ABEAS.
               </p>
             </div>
           </button>
+
+          {/* Card Cadastro de Empresa */}
+          {onIrParaEmpresas && (
+            <button
+              onClick={onIrParaEmpresas}
+              className="group text-left p-6 bg-white hover:bg-slate-50 border border-slate-200 hover:border-amber-300 rounded-xl transition-all shadow-xs hover:shadow-sm flex flex-col justify-between"
+            >
+              <div className="flex items-start justify-between mb-4">
+                <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center text-2xl font-bold group-hover:scale-105 transition-transform">
+                  🏢
+                </div>
+                <span className="text-xs font-semibold text-amber-700 flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
+                  Cadastrar <ArrowUpRight className="w-3.5 h-3.5" />
+                </span>
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900 group-hover:text-amber-900">
+                  EMPRESAS
+                </h3>
+                <p className="text-xs text-slate-500 mt-1">
+                  Cadastre empresas emissoras ou pagadoras e anexe o logo oficial para sair nos recibos.
+                </p>
+              </div>
+            </button>
+          )}
         </div>
       </div>
 

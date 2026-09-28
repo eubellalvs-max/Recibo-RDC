@@ -98,20 +98,20 @@ export function Navbar({
         ) : (
           <>
             <button
+              onClick={() => onSelectTab('empresas')}
+              className={`transition-colors hover:text-slate-900 ${
+                currentTab === 'empresas' ? 'text-slate-900 font-semibold' : ''
+              }`}
+            >
+              Empresas
+            </button>
+            <button
               onClick={() => onSelectTab('meus-documentos')}
               className={`transition-colors hover:text-slate-900 ${
                 currentTab === 'meus-documentos' ? 'text-slate-900 font-semibold' : ''
               }`}
             >
               Meus Documentos
-            </button>
-            <button
-              onClick={() => onSelectTab('empresas-consulta')}
-              className={`transition-colors hover:text-slate-900 ${
-                currentTab === 'empresas-consulta' ? 'text-slate-900 font-semibold' : ''
-              }`}
-            >
-              Consultar Empresas
             </button>
           </>
         )}

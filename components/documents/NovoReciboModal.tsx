@@ -5,7 +5,7 @@ import { Empresa, Usuario, Documento } from '@/lib/types';
 import { StorageService } from '@/lib/storage';
 import { valorPorExtenso } from '@/lib/extenso';
 import { formatarMoeda, dataHojeIso, mascaraCnpj } from '@/lib/masks';
-import { X, FileText, Check, AlertCircle, Building2 } from 'lucide-react';
+import { X, FileText, Check, AlertCircle, Building2, Upload, Image as ImageIcon, Trash2 } from 'lucide-react';
 
 interface NovoReciboModalProps {
   isOpen: boolean;
@@ -37,6 +37,19 @@ export function NovoReciboModal({
     return permitidas[0]?.id || '';
   });
 
+  const [logoUrl, setLogoUrl] = useState<string>(() => {
+    const all = StorageService.getEmpresas().filter((e) => e.status === 'ativa');
+    const permitidas = all.filter((e) => {
+      if (e.tipo !== 'emissora' && e.tipo !== 'ambas') return false;
+      if (currentUser.perfil === 'admin') return true;
+      if (!currentUser.empresas_permitidas || currentUser.empresas_permitidas.length === 0) {
+        return true;
+      }
+      return currentUser.empresas_permitidas.includes(e.id);
+    });
+    return permitidas[0]?.logo_url || '';
+  });
+
   const [empresaDestinatariaId, setEmpresaDestinatariaId] = useState<string>(() => {
     const all = StorageService.getEmpresas().filter((e) => e.status === 'ativa');
     const destinatarias = all.filter(
@@ -56,6 +69,34 @@ export function NovoReciboModal({
   });
   const [observacoes, setObservacoes] = useState('');
   const [erro, setErro] = useState<string | null>(null);
+  const [salvando, setSalvando] = useState(false);
+
+  const handleEmissoraChange = (id: string) => {
+    setEmpresaEmissoraId(id);
+    const selected = empresas.find((e) => e.id === id);
+    if (selected && selected.logo_url) {
+      setLogoUrl(selected.logo_url);
+    }
+  };
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      setErro('A imagem da logo deve ter no máximo 2MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const result = event.target?.result as string;
+      if (result) {
+        setLogoUrl(result);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   // Atualização em tempo real do valor por extenso
   const handleValorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -75,7 +116,7 @@ export function NovoReciboModal({
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErro(null);
 
@@ -115,6 +156,7 @@ export function NovoReciboModal({
         cidade_emissao: cidadeEmissao.trim(),
         observacoes: observacoes.trim() || undefined,
         usuario: currentUser,
+        logo_url: logoUrl.trim() || undefined,
       });
 
       onSuccess(doc);
@@ -182,7 +224,7 @@ export function NovoReciboModal({
               </label>
               <select
                 value={empresaEmissoraId}
-                onChange={(e) => setEmpresaEmissoraId(e.target.value)}
+                onChange={(e) => handleEmissoraChange(e.target.value)}
                 className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none"
               >
                 <option value="">Selecione uma empresa emissora...</option>
@@ -220,6 +262,71 @@ export function NovoReciboModal({
                   CNPJ: {mascaraCnpj(empresaDestinatariaObj.cnpj)} · {empresaDestinatariaObj.cidade}/{empresaDestinatariaObj.uf}
                 </div>
               )}
+            </div>
+          </div>
+
+          {/* Campo para anexar o Logo da Empresa Emissora para o Recibo */}
+          <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <label className="block text-xs font-semibold text-slate-800">
+                  Logo da Empresa Emissora <span className="font-normal text-slate-500">(impresso no recibo)</span>
+                </label>
+                <span className="text-[11px] text-slate-500">
+                  Carregado automaticamente da empresa emissora ou anexado especificamente para este recibo.
+                </span>
+              </div>
+              {logoUrl && (
+                <button
+                  type="button"
+                  onClick={() => setLogoUrl('')}
+                  className="text-[11px] text-red-600 hover:text-red-700 hover:underline flex items-center gap-1 font-medium"
+                >
+                  <Trash2 className="w-3 h-3" />
+                  <span>Remover Logo</span>
+                </button>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-center pt-1">
+              <div className="sm:col-span-2 flex flex-col sm:flex-row items-center gap-2">
+                <label className="w-full sm:w-auto shrink-0 flex items-center justify-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-xs font-medium text-slate-700 cursor-pointer shadow-2xs transition-colors">
+                  <Upload className="w-3.5 h-3.5 text-slate-500" />
+                  <span>{logoUrl ? 'Alterar Logo / Imagem' : 'Anexar Logo da Empresa'}</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoUpload}
+                    className="hidden"
+                  />
+                </label>
+
+                <div className="w-full">
+                  <input
+                    type="url"
+                    value={logoUrl}
+                    onChange={(e) => setLogoUrl(e.target.value)}
+                    placeholder="Ou cole a URL da imagem da logo..."
+                    className="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-lg text-slate-800 outline-none focus:border-slate-800"
+                  />
+                </div>
+              </div>
+
+              {/* Preview Thumbnail */}
+              <div className="flex items-center justify-center h-12 bg-white border border-slate-200 rounded-lg p-1">
+                {logoUrl ? (
+                  <img
+                    src={logoUrl}
+                    alt="Logo Empresa"
+                    className="max-h-10 max-w-full object-contain"
+                  />
+                ) : (
+                  <div className="flex items-center gap-1 text-[11px] text-slate-400">
+                    <ImageIcon className="w-4 h-4" />
+                    <span>Sem logo</span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 

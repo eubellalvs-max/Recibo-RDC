@@ -15,6 +15,9 @@ import {
   X,
   Check,
   AlertCircle,
+  Upload,
+  Image as ImageIcon,
+  Trash2,
 } from 'lucide-react';
 
 interface EmpresasManagementProps {
@@ -49,10 +52,30 @@ export function EmpresasManagement({ currentUser, readOnly = false }: EmpresasMa
   const [telefone, setTelefone] = useState('');
   const [tipo, setTipo] = useState<TipoEmpresa>('ambas');
   const [status, setStatus] = useState<StatusEmpresa>('ativa');
+  const [logoUrl, setLogoUrl] = useState<string>('');
   const [erroForm, setErroForm] = useState<string | null>(null);
 
   const recarregarEmpresas = () => {
     setEmpresas(StorageService.getEmpresas());
+  };
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      setErroForm('A imagem da logo deve ter no máximo 2MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const result = event.target?.result as string;
+      if (result) {
+        setLogoUrl(result);
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
   const abrirNovo = () => {
@@ -73,6 +96,7 @@ export function EmpresasManagement({ currentUser, readOnly = false }: EmpresasMa
     setTelefone('');
     setTipo('ambas');
     setStatus('ativa');
+    setLogoUrl('');
     setErroForm(null);
     setModalAberto(true);
   };
@@ -95,6 +119,7 @@ export function EmpresasManagement({ currentUser, readOnly = false }: EmpresasMa
     setTelefone(emp.telefone || '');
     setTipo(emp.tipo);
     setStatus(emp.status);
+    setLogoUrl(emp.logo_url || '');
     setErroForm(null);
     setModalAberto(true);
   };
@@ -137,6 +162,7 @@ export function EmpresasManagement({ currentUser, readOnly = false }: EmpresasMa
       telefone: mascaraTelefone(telefone) || undefined,
       tipo,
       status,
+      logo_url: logoUrl.trim() || undefined,
       created_at: empresaEditando ? empresaEditando.created_at : new Date().toISOString(),
     };
 
@@ -147,11 +173,8 @@ export function EmpresasManagement({ currentUser, readOnly = false }: EmpresasMa
 
   const handleAlternarStatus = (emp: Empresa) => {
     const novoStatus: StatusEmpresa = emp.status === 'ativa' ? 'inativa' : 'ativa';
-    const acaoTexto = novoStatus === 'ativa' ? 'ativar' : 'inativar';
-    if (window.confirm(`Deseja realmente ${acaoTexto} a empresa "${emp.nome_fantasia || emp.razao_social}"?`)) {
-      StorageService.saveEmpresa({ ...emp, status: novoStatus });
-      recarregarEmpresas();
-    }
+    StorageService.saveEmpresa({ ...emp, status: novoStatus });
+    recarregarEmpresas();
   };
 
   // Filtragem
@@ -296,15 +319,30 @@ export function EmpresasManagement({ currentUser, readOnly = false }: EmpresasMa
                         !isAtiva ? 'opacity-60 bg-slate-50/50' : ''
                       }`}
                     >
-                      <td className="px-4 py-3 max-w-[240px]">
-                        <div className="font-semibold text-slate-900 truncate">
-                          {emp.razao_social}
-                        </div>
-                        {emp.nome_fantasia && (
-                          <div className="text-[11px] text-slate-500 truncate">
-                            {emp.nome_fantasia}
+                      <td className="px-4 py-3 max-w-[280px]">
+                        <div className="flex items-center gap-2.5">
+                          {emp.logo_url ? (
+                            <img
+                              src={emp.logo_url}
+                              alt={emp.nome_fantasia || emp.razao_social}
+                              className="w-8 h-8 rounded border border-slate-200 object-contain bg-white shrink-0 p-0.5"
+                            />
+                          ) : (
+                            <div className="w-8 h-8 rounded bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-500 shrink-0">
+                              <Building2 className="w-4 h-4" />
+                            </div>
+                          )}
+                          <div className="min-w-0">
+                            <div className="font-semibold text-slate-900 truncate">
+                              {emp.razao_social}
+                            </div>
+                            {emp.nome_fantasia && (
+                              <div className="text-[11px] text-slate-500 truncate">
+                                {emp.nome_fantasia}
+                              </div>
+                            )}
                           </div>
-                        )}
+                        </div>
                       </td>
                       <td className="px-4 py-3 font-mono text-slate-700 whitespace-nowrap">
                         {emp.cnpj}
@@ -591,6 +629,75 @@ export function EmpresasManagement({ currentUser, readOnly = false }: EmpresasMa
                     placeholder="(00) 0000-0000"
                     className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none"
                   />
+                </div>
+              </div>
+
+              {/* Anexo de Logotipo da Empresa */}
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-800 mb-0.5">
+                    Logo da Empresa (para Recibos e Documentos)
+                  </label>
+                  <p className="text-[11px] text-slate-500">
+                    Anexe o logotipo da empresa para sair impresso automaticamente no cabeçalho dos recibos.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+                  <div>
+                    <label className="flex flex-col items-center justify-center p-3 border-2 border-dashed border-slate-300 hover:border-slate-800 rounded-lg cursor-pointer bg-white transition-colors">
+                      <Upload className="w-5 h-5 text-slate-500 mb-1" />
+                      <span className="text-xs font-semibold text-slate-800">
+                        Clique para anexar imagem
+                      </span>
+                      <span className="text-[10px] text-slate-400 mt-0.5">
+                        PNG, JPG ou SVG (máx. 2MB)
+                      </span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleLogoUpload}
+                        className="hidden"
+                      />
+                    </label>
+
+                    <div className="mt-2">
+                      <span className="text-[10px] text-slate-400 block mb-0.5">Ou cole o link da imagem (URL):</span>
+                      <input
+                        type="url"
+                        value={logoUrl}
+                        onChange={(e) => setLogoUrl(e.target.value)}
+                        placeholder="https://exemplo.com/logo.png"
+                        className="w-full px-2.5 py-1 text-xs bg-white border border-slate-200 rounded text-slate-900 outline-none focus:border-slate-800"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Pré-visualização da Logo */}
+                  <div className="flex flex-col items-center justify-center p-3 bg-white border border-slate-200 rounded-lg min-h-[96px]">
+                    {logoUrl ? (
+                      <div className="relative group flex flex-col items-center">
+                        <img
+                          src={logoUrl}
+                          alt="Pré-visualização do Logo"
+                          className="max-h-16 max-w-full object-contain mb-2"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setLogoUrl('')}
+                          className="text-[11px] text-red-600 hover:text-red-800 hover:underline flex items-center gap-1"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                          <span>Remover Logo</span>
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="text-center text-slate-400">
+                        <ImageIcon className="w-6 h-6 mx-auto mb-1 stroke-1" />
+                        <span className="text-[11px]">Nenhuma logo anexada</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 

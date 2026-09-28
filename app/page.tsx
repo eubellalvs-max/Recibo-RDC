@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Usuario, Documento } from '@/lib/types';
 import { StorageService } from '@/lib/storage';
 import { LoginView } from '@/components/auth/LoginView';
@@ -51,16 +51,6 @@ export default function Home() {
     setCurrentTab('dashboard');
   };
 
-  const handleSwitchProfileDemo = (novoPerfil: 'admin' | 'emissor') => {
-    const usuarios = StorageService.getUsuarios();
-    const target = usuarios.find((u) => u.perfil === novoPerfil);
-    if (target) {
-      StorageService.setCurrentUser(target);
-      setCurrentUser(target);
-      setCurrentTab('dashboard');
-    }
-  };
-
   const handleEmissaoSucesso = (doc: Documento) => {
     setModalReciboAberto(false);
     setModalRdcAberto(false);
@@ -89,27 +79,34 @@ export default function Home() {
 
   const isAdmin = currentUser.perfil === 'admin';
 
+  const handleSelectTab = (tab: string) => {
+    if (!isAdmin && ['usuarios', 'emissores', 'configuracoes'].includes(tab)) {
+      setCurrentTab('dashboard');
+      return;
+    }
+    setCurrentTab(tab);
+  };
+
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col font-sans text-slate-900">
       {/* Top Bar seguindo o Top Bar Contract */}
       <Navbar
         user={currentUser}
         currentTab={currentTab}
-        onSelectTab={setCurrentTab}
+        onSelectTab={handleSelectTab}
         onOpenNovoRecibo={() => setModalReciboAberto(true)}
         onOpenNovoRdc={() => setModalRdcAberto(true)}
         onLogout={handleLogout}
       />
 
       <div className="flex-1 flex overflow-hidden">
-        {/* Barra Lateral com suporte a troca de perfil demonstrativa */}
+        {/* Barra Lateral com navegação estrita por perfil */}
         <Sidebar
           user={currentUser}
           currentTab={currentTab}
-          onSelectTab={setCurrentTab}
+          onSelectTab={handleSelectTab}
           onOpenNovoRecibo={() => setModalReciboAberto(true)}
           onOpenNovoRdc={() => setModalRdcAberto(true)}
-          onSwitchProfileDemo={handleSwitchProfileDemo}
         />
 
         {/* Área de Conteúdo Principal */}
@@ -130,16 +127,17 @@ export default function Home() {
                 onOpenNovoRdc={() => setModalRdcAberto(true)}
                 onVisualizarDocumento={(doc) => setDocVisualizando(doc)}
                 onVerTodosDocumentos={() => setCurrentTab('meus-documentos')}
+                onIrParaEmpresas={() => setCurrentTab('empresas')}
               />
             )
           )}
 
-          {currentTab === 'empresas' && isAdmin && (
+          {currentTab === 'empresas' && (
             <EmpresasManagement currentUser={currentUser} />
           )}
 
           {currentTab === 'empresas-consulta' && (
-            <EmpresasManagement currentUser={currentUser} readOnly />
+            <EmpresasManagement currentUser={currentUser} />
           )}
 
           {currentTab === 'usuarios' && isAdmin && (

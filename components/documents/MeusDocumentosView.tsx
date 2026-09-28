@@ -83,7 +83,7 @@ export function MeusDocumentosView({
   };
 
   const handleCancelar = (id: string) => {
-    if (window.confirm('Tem certeza que deseja cancelar este documento? Esta ação não pode ser desfeita.')) {
+    if (typeof window !== 'undefined' && window.confirm('Deseja realmente cancelar este documento? Esta ação não pode ser desfeita.')) {
       StorageService.cancelarDocumento(id);
       setDocumentos(StorageService.getDocumentos());
     }

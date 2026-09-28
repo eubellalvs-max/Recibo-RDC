@@ -6,7 +6,7 @@ export interface Usuario {
   id: string;
   nome: string;
   login: string;
-  senha?: string;
+  senha: string;
   email: string;
   perfil: UserRole;
   empresa_id?: string;
@@ -37,6 +37,7 @@ export interface Empresa {
   telefone?: string;
   tipo: TipoEmpresa;
   status: StatusEmpresa;
+  logo_url?: string; // Logo da empresa (Data URL base64 ou URL de imagem)
   created_at: string;
 }
 
@@ -44,18 +45,35 @@ export type TipoDocumento = 'recibo' | 'rdc';
 
 export type StatusDocumento = 'emitido' | 'cancelado';
 
-export type NaturezaGastoId = 1 | 2 | 3 | 4 | 5 | 6;
+export type NaturezaGastoId = number;
+
+export interface TipoGastoConfig {
+  id: string;
+  codigo: number; // Ex: 1, 2, 3...
+  nome: string; // Ex: "Alimentação", "Combustível", "Condução"
+  descricao?: string;
+}
+
+export interface TipoDocConfig {
+  id: string;
+  codigo: string; // Ex: 'Rec', 'Nf', 'CF', 'Fat'
+  nome: string; // Ex: 'Recibo', 'Nota Fiscal', 'Cupom Fiscal'
+  descricao?: string;
+}
 
 export interface ItemGastoRdc {
   id: string;
-  tipo_gasto: NaturezaGastoId; // 1: Alimentação, 2: Combustível, 3: Condução, 4: Hospedagem, 5: Passagens, 6: Outros gastos
-  tipo_doc: 'Rec' | 'Nf'; // Recibo ou Nota Fiscal
+  tipo_gasto: number; // Código do tipo de gasto (1, 2, 3, etc.)
+  tipo_doc: string; // Sigla/código do tipo de documento ('Rec', 'Nf', etc.)
   descricao: string; // Fornecedor - observação das despesas - número documento
   valor: number;
 }
 
 export interface DadosRdc {
-  // Informações do Solicitante da viagem
+  // Linha de despesa / gastos
+  linha_gasto?: 'viagem' | 'corporativa' | 'ambas'; // Viagem ou Despesas Corporativas
+
+  // Informações do Solicitante (Viagem ou Despesas Corporativas)
   data_pedido: string;
   numero_pedido: string;
   local_partida: string;
@@ -107,6 +125,7 @@ export interface Documento {
   usuario_nome?: string;
   status: StatusDocumento;
   created_at: string;
+  logo_url?: string; // Logo específico da empresa emissora vinculado ao documento
   rdc_detalhes?: DadosRdc; // Dados estruturados da RDC oficial
 }
 
@@ -119,4 +138,6 @@ export interface SistemaConfig {
   proximo_rdc_num: number;
   incluir_segunda_via: boolean;
   mensagem_rodape: string;
+  tipos_gasto?: TipoGastoConfig[]; // Tipos / natureza de gastos configuráveis da RDC
+  tipos_doc?: TipoDocConfig[]; // Tipos de documento configuráveis da RDC
 }

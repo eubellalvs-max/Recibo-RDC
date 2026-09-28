@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Documento, Empresa, NaturezaGastoId } from '@/lib/types';
+import { Documento, Empresa, TipoGastoConfig, TipoDocConfig } from '@/lib/types';
 import { StorageService } from '@/lib/storage';
 import { formatarMoeda, mascaraCnpj, mascaraCpf, formatarDataBr } from '@/lib/masks';
 import { dataPorExtenso } from '@/lib/extenso';
@@ -43,17 +43,25 @@ export function DocumentViewerModal({
   const handleCopyText = () => {
     let texto = '';
     if (isRdc && rdc) {
+      const linhaTexto =
+        rdc.linha_gasto === 'corporativa'
+          ? 'Despesas Corporativas'
+          : rdc.linha_gasto === 'ambas'
+          ? 'Viagem & Despesas Corporativas'
+          : 'Despesas de Viagem';
+
       texto = `
 ==================================================
 ASSOCIAÇÃO BRASILEIRA DE ENTIDADES DE ASSISTÊNCIA SOCIAL - ABEAS
 PRESTAÇÃO DE CONTAS E REEMBOLSO DE DESPESAS CORPORATIVA - RDC
-Nº ${documento.numero}
+Nº ${documento.numero} [${linhaTexto}]
 ==================================================
-Informações do Solicitante da viagem:
+Informações do Solicitante da Viagem ou Despesas Corporativas:
+Linha de Gastos: ${linhaTexto}
 Data do pedido: ${formatarDataBr(rdc.data_pedido)} | N.º Pedido: ${rdc.numero_pedido}
-Local de partida: ${rdc.local_partida} | Destino: ${rdc.destino}
+Local de partida/Origem: ${rdc.local_partida} | Destino/Unidade: ${rdc.destino}
 Nome - Solicitante: ${rdc.nome_solicitante} | Nº CPF: ${rdc.cpf_solicitante} | Setor/Função: ${rdc.setor_funcao}
-Objetivo da viagem: ${rdc.objetivo_viagem}
+Objetivo: ${rdc.objetivo_viagem}
 
 Informações bancária e financeira:
 Valor solicitado: ${formatarMoeda(rdc.valor_solicitado)} | Banco: ${rdc.nome_banco} | Agência: ${rdc.agencia} | Conta: ${rdc.conta} (${rdc.tipo_conta})
@@ -93,20 +101,18 @@ Emissor: ${emissora?.razao_social || 'Empresa Emissora'}
     setTimeout(() => setCopiado(false), 2500);
   };
 
-  // Se for RDC, calcula totais por categoria
-  const totalPorNatureza: Record<NaturezaGastoId, number> = {
-    1: 0,
-    2: 0,
-    3: 0,
-    4: 0,
-    5: 0,
-    6: 0,
-  };
+  const tiposGasto: TipoGastoConfig[] = config.tipos_gasto || StorageService.getTiposGasto();
+  const tiposDoc: TipoDocConfig[] = config.tipos_doc || StorageService.getTiposDoc();
+
+  // Se for RDC, calcula totais por categoria dinamicamente
+  const totalPorNatureza: Record<number, number> = {};
+  tiposGasto.forEach((tg) => {
+    totalPorNatureza[tg.codigo] = 0;
+  });
   if (rdc?.itens) {
     rdc.itens.forEach((it) => {
-      if (it.tipo_gasto >= 1 && it.tipo_gasto <= 6) {
-        totalPorNatureza[it.tipo_gasto] = (totalPorNatureza[it.tipo_gasto] || 0) + (Number(it.valor) || 0);
-      }
+      const cod = Number(it.tipo_gasto);
+      totalPorNatureza[cod] = (totalPorNatureza[cod] || 0) + (Number(it.valor) || 0);
     });
   }
 
@@ -213,10 +219,17 @@ Emissor: ${emissora?.razao_social || 'Empresa Emissora'}
                 </div>
               </div>
 
-              {/* SEÇÃO 1: Informações do Solicitante da viagem */}
+              {/* SEÇÃO 1: Informações do Solicitante da Viagem ou Despesas Corporativas */}
               <div className="border border-slate-800 mb-3">
-                <div className="bg-slate-100/80 px-2 py-1 text-center font-bold text-[11px] border-b border-slate-800 uppercase tracking-wide">
-                  Informações do Solicitante da viagem:
+                <div className="bg-slate-100/80 px-2 py-1 flex items-center justify-between font-bold text-[11px] border-b border-slate-800 uppercase tracking-wide">
+                  <span>Informações do Solicitante da Viagem ou Despesas Corporativas:</span>
+                  <span className="text-[10px] font-semibold text-slate-700 bg-white px-1.5 py-0.2 border border-slate-400 rounded">
+                    {rdc.linha_gasto === 'corporativa'
+                      ? 'Despesas Corporativas'
+                      : rdc.linha_gasto === 'ambas'
+                      ? 'Viagem & Corporativa'
+                      : 'Despesas de Viagem'}
+                  </span>
                 </div>
                 <div className="p-2 space-y-1.5 text-[11px]">
                   <div className="grid grid-cols-2 gap-4">
@@ -232,11 +245,15 @@ Emissor: ${emissora?.razao_social || 'Empresa Emissora'}
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <span className="font-semibold">Local de partida: </span>
+                      <span className="font-semibold">
+                        {rdc.linha_gasto === 'corporativa' ? 'Local / Origem Corporativa: ' : 'Local de partida: '}
+                      </span>
                       <span className="underline decoration-slate-400">{rdc.local_partida}</span>
                     </div>
                     <div>
-                      <span className="font-semibold">Destino: </span>
+                      <span className="font-semibold">
+                        {rdc.linha_gasto === 'corporativa' ? 'Destino / Unidade Beneficiada: ' : 'Destino: '}
+                      </span>
                       <span className="underline decoration-slate-400">{rdc.destino}</span>
                     </div>
                   </div>
@@ -257,7 +274,9 @@ Emissor: ${emissora?.razao_social || 'Empresa Emissora'}
                   </div>
 
                   <div>
-                    <span className="font-semibold">Objetivo da viagem: </span>
+                    <span className="font-semibold">
+                      {rdc.linha_gasto === 'corporativa' ? 'Objetivo das despesas corporativas: ' : 'Objetivo da viagem / despesas: '}
+                    </span>
                     <span className="underline decoration-slate-400">{rdc.objetivo_viagem}</span>
                   </div>
                 </div>
@@ -366,72 +385,31 @@ Emissor: ${emissora?.razao_social || 'Empresa Emissora'}
                     </tr>
                   </thead>
                   <tbody>
-                    <tr className="border-b border-slate-300">
-                      <td className="border-r border-slate-800 px-2 py-0.5 text-center font-semibold">
-                        Rec: Recibo
-                      </td>
-                      <td className="border-r border-slate-800 px-2 py-0.5">
-                        1 Alimentação
-                      </td>
-                      <td className="px-2 py-0.5 text-right font-mono">
-                        {formatarMoeda(totalPorNatureza[1])}
-                      </td>
-                    </tr>
-                    <tr className="border-b border-slate-300">
-                      <td className="border-r border-slate-800 px-2 py-0.5 text-center font-semibold">
-                        Nf: Nota Fiscal
-                      </td>
-                      <td className="border-r border-slate-800 px-2 py-0.5">
-                        2 Combustível
-                      </td>
-                      <td className="px-2 py-0.5 text-right font-mono">
-                        {formatarMoeda(totalPorNatureza[2])}
-                      </td>
-                    </tr>
-                    <tr className="border-b border-slate-300">
-                      <td className="border-r border-slate-800 px-2 py-0.5 text-center text-slate-400">
-                        -
-                      </td>
-                      <td className="border-r border-slate-800 px-2 py-0.5">
-                        3 Condução
-                      </td>
-                      <td className="px-2 py-0.5 text-right font-mono">
-                        {formatarMoeda(totalPorNatureza[3])}
-                      </td>
-                    </tr>
-                    <tr className="border-b border-slate-300">
-                      <td className="border-r border-slate-800 px-2 py-0.5 text-center text-slate-400">
-                        -
-                      </td>
-                      <td className="border-r border-slate-800 px-2 py-0.5">
-                        4 Hospedagem
-                      </td>
-                      <td className="px-2 py-0.5 text-right font-mono">
-                        {formatarMoeda(totalPorNatureza[4])}
-                      </td>
-                    </tr>
-                    <tr className="border-b border-slate-300">
-                      <td className="border-r border-slate-800 px-2 py-0.5 text-center text-slate-400">
-                        -
-                      </td>
-                      <td className="border-r border-slate-800 px-2 py-0.5">
-                        5 Passagens
-                      </td>
-                      <td className="px-2 py-0.5 text-right font-mono">
-                        {formatarMoeda(totalPorNatureza[5])}
-                      </td>
-                    </tr>
-                    <tr className="border-b border-slate-800">
-                      <td className="border-r border-slate-800 px-2 py-0.5 text-center text-slate-400">
-                        -
-                      </td>
-                      <td className="border-r border-slate-800 px-2 py-0.5">
-                        6 Outros gastos
-                      </td>
-                      <td className="px-2 py-0.5 text-right font-mono">
-                        {formatarMoeda(totalPorNatureza[6])}
-                      </td>
-                    </tr>
+                    {Array.from({ length: Math.max(tiposGasto.length, tiposDoc.length) }).map((_, idx) => {
+                      const tg = tiposGasto[idx];
+                      const td = tiposDoc[idx];
+                      const isLast = idx === Math.max(tiposGasto.length, tiposDoc.length) - 1;
+                      return (
+                        <tr
+                          key={tg ? `tg-${tg.id || tg.codigo}` : `td-${td.id || td.codigo}`}
+                          className={isLast ? 'border-b border-slate-800' : 'border-b border-slate-300'}
+                        >
+                          <td className="border-r border-slate-800 px-2 py-0.5 text-center font-semibold">
+                            {td ? `${td.codigo}: ${td.nome}` : <span className="text-slate-400">-</span>}
+                          </td>
+                          <td className="border-r border-slate-800 px-2 py-0.5">
+                            {tg ? `${tg.codigo} ${tg.nome}` : <span className="text-slate-400">-</span>}
+                          </td>
+                          <td className="px-2 py-0.5 text-right font-mono">
+                            {tg ? (
+                              formatarMoeda(totalPorNatureza[tg.codigo] || 0)
+                            ) : (
+                              <span className="text-slate-400">-</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
 
                     {/* Linhas de Fechamento Financeiro */}
                     <tr className="border-b border-slate-800 font-bold bg-slate-50">
@@ -513,19 +491,30 @@ Emissor: ${emissora?.razao_social || 'Empresa Emissora'}
               </div>
             </div>
           ) : (
-            /* RECIBO PADRÃO TRADICIONAL */
-            <div className="print-sheet bg-white border border-slate-300 shadow-sm p-8 md:p-12 max-w-2xl w-full text-slate-900 font-serif leading-relaxed text-sm">
+            /* RECIBO PADRÃO TRADICIONAL COM FONTE PADRÃO DO SISTEMA */
+            <div className="print-sheet bg-white border border-slate-300 shadow-sm p-8 md:p-12 max-w-2xl w-full text-slate-900 font-sans leading-relaxed text-sm">
               <div className="text-center pb-6 border-b border-slate-300">
-                <div className="text-xs uppercase tracking-widest text-slate-500 font-sans font-semibold mb-1">
-                  {config.nome_organizacao || 'ABEAS - Associação Brasileira de Educação Agrícola Superior'}
+                {/* Logo da Empresa Emissora (se cadastrado na empresa ou anexado no recibo) */}
+                {(documento.logo_url || emissora?.logo_url) && (
+                  <div className="flex justify-center mb-3">
+                    <img
+                      src={documento.logo_url || emissora?.logo_url}
+                      alt={emissora?.nome_fantasia || emissora?.razao_social || 'Logo da Empresa'}
+                      className="max-h-16 max-w-[240px] object-contain"
+                    />
+                  </div>
+                )}
+
+                <div className="text-xs uppercase tracking-widest text-slate-500 font-semibold mb-1">
+                  {emissora?.nome_fantasia || emissora?.razao_social || config.nome_organizacao || 'ABEAS'}
                 </div>
-                <h1 className="text-xl md:text-2xl font-bold tracking-tight text-slate-900 font-sans uppercase">
+                <h1 className="text-xl md:text-2xl font-bold tracking-tight text-slate-900 uppercase">
                   RECIBO
                 </h1>
                 <div className="text-sm font-semibold text-slate-700 font-mono mt-1">
                   Nº {documento.numero}
                 </div>
-                <div className="text-[11px] text-slate-400 font-sans mt-0.5">
+                <div className="text-[11px] text-slate-400 mt-0.5">
                   {via === '1' ? '1ª VIA - DESTINATÁRIO' : '2ª VIA - EMISSOR / ARQUIVO'}
                 </div>
               </div>

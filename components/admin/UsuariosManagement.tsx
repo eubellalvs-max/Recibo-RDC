@@ -35,15 +35,15 @@ export function UsuariosManagement({ currentUser }: UsuariosManagementProps) {
   // Modal de Redefinir Senha
   const [modalSenhaAberto, setModalSenhaAberto] = useState(false);
   const [usuarioRedefinir, setUsuarioRedefinir] = useState<Usuario | null>(null);
-  const [novaSenha, setNovaSenha] = useState('');
-  const [confirmarNovaSenha, setConfirmarNovaSenha] = useState('');
+  const [novaSenha, setNovaSenha] = useState('123');
+  const [confirmarNovaSenha, setConfirmarNovaSenha] = useState('123');
 
   // Formulário de Usuário
   const [nome, setNome] = useState('');
   const [login, setLogin] = useState('');
   const [email, setEmail] = useState('');
-  const [senha, setSenha] = useState('');
-  const [confirmarSenha, setConfirmarSenha] = useState('');
+  const [senha, setSenha] = useState('123');
+  const [confirmarSenha, setConfirmarSenha] = useState('123');
   const [perfil, setPerfil] = useState<UserRole>('emissor');
   const [empresaId, setEmpresaId] = useState('');
   const [status, setStatus] = useState<UserStatus>('ativo');
@@ -72,8 +72,8 @@ export function UsuariosManagement({ currentUser }: UsuariosManagementProps) {
     setNome(usr.nome);
     setLogin(usr.login);
     setEmail(usr.email);
-    setSenha('');
-    setConfirmarSenha('');
+    setSenha(usr.senha);
+    setConfirmarSenha(usr.senha);
     setPerfil(usr.perfil);
     setEmpresaId(usr.empresa_id || '');
     setStatus(usr.status);
@@ -98,10 +98,9 @@ export function UsuariosManagement({ currentUser }: UsuariosManagementProps) {
       return;
     }
 
-    // Se estiver criando novo, valida senha
     if (!usuarioEditando) {
       if (!senha.trim()) {
-        setErroForm('A senha é obrigatória para novo usuário.');
+        setErroForm('A senha é obrigatória.');
         return;
       }
       if (senha !== confirmarSenha) {
@@ -130,8 +129,8 @@ export function UsuariosManagement({ currentUser }: UsuariosManagementProps) {
 
   const abrirRedefinirSenha = (usr: Usuario) => {
     setUsuarioRedefinir(usr);
-    setNovaSenha('');
-    setConfirmarNovaSenha('');
+    setNovaSenha('123');
+    setConfirmarNovaSenha('123');
     setErroForm(null);
     setModalSenhaAberto(true);
   };
@@ -153,21 +152,16 @@ export function UsuariosManagement({ currentUser }: UsuariosManagementProps) {
       });
       recarregarUsuarios();
       setModalSenhaAberto(false);
-      alert('Senha redefinida com sucesso!');
     }
   };
 
   const handleAlternarStatus = (usr: Usuario) => {
     if (usr.id === currentUser.id) {
-      alert('Você não pode inativar o usuário atualmente conectado.');
       return;
     }
     const novoStatus: UserStatus = usr.status === 'ativo' ? 'inativo' : 'ativo';
-    const acaoTexto = novoStatus === 'ativo' ? 'ativar' : 'inativar';
-    if (window.confirm(`Deseja realmente ${acaoTexto} o usuário "${usr.nome}"?`)) {
-      StorageService.saveUsuario({ ...usr, status: novoStatus });
-      recarregarUsuarios();
-    }
+    StorageService.saveUsuario({ ...usr, status: novoStatus });
+    recarregarUsuarios();
   };
 
   const usuariosFiltrados = usuarios.filter((usr) => {
@@ -435,7 +429,7 @@ export function UsuariosManagement({ currentUser }: UsuariosManagementProps) {
                 </div>
               </div>
 
-              {/* Senhas (apenas para novo usuário ou alteração opcional) */}
+              {/* Senhas */}
               {!usuarioEditando && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>

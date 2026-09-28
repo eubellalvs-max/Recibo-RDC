@@ -1,7 +1,15 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Empresa, Usuario, Documento, ItemGastoRdc, NaturezaGastoId } from '@/lib/types';
+import {
+  Empresa,
+  Usuario,
+  Documento,
+  ItemGastoRdc,
+  NaturezaGastoId,
+  TipoGastoConfig,
+  TipoDocConfig,
+} from '@/lib/types';
 import { StorageService } from '@/lib/storage';
 import { valorPorExtenso } from '@/lib/extenso';
 import { dataHojeIso, mascaraCnpj, mascaraCpf, formatarMoeda } from '@/lib/masks';
@@ -45,7 +53,10 @@ export function NovoRdcModal({
     return destinatarias[0]?.id || all[0]?.id || '';
   });
 
-  // 1. Informações do Solicitante da viagem
+  // Linha de Gastos da RDC (Viagem, Despesas Corporativas ou Ambas)
+  const [linhaGasto, setLinhaGasto] = useState<'viagem' | 'corporativa' | 'ambas'>('viagem');
+
+  // 1. Informações do Solicitante da viagem ou despesas corporativas
   const [dataPedido, setDataPedido] = useState<string>(() => dataHojeIso());
   const [numeroPedido, setNumeroPedido] = useState<string>('2026/089');
   const [localPartida, setLocalPartida] = useState<string>('Brasília/DF');
@@ -113,27 +124,26 @@ export function NovoRdcModal({
     },
   ]);
 
+  const [tiposGasto] = useState<TipoGastoConfig[]>(() => StorageService.getTiposGasto());
+  const [tiposDoc] = useState<TipoDocConfig[]>(() => StorageService.getTiposDoc());
+
   // Assinaturas
   const [assinaturaProfissional, setAssinaturaProfissional] = useState(currentUser.nome);
   const [diretoriaDireta, setDiretoriaDireta] = useState('Carlos Eduardo Silva');
   const [contabilFinanceiro, setContabilFinanceiro] = useState('Setor Contábil / Financeiro ABEAS');
 
   const [erro, setErro] = useState<string | null>(null);
+  const [salvando, setSalvando] = useState(false);
 
   // Cálculos dinâmicos em tempo real
   const totalDespesas = itens.reduce((acc, curr) => acc + (Number(curr.valor) || 0), 0);
-  const totalPorNatureza: Record<NaturezaGastoId, number> = {
-    1: 0,
-    2: 0,
-    3: 0,
-    4: 0,
-    5: 0,
-    6: 0,
-  };
+  const totalPorNatureza: Record<number, number> = {};
+  tiposGasto.forEach((tg) => {
+    totalPorNatureza[tg.codigo] = 0;
+  });
   itens.forEach((it) => {
-    if (it.tipo_gasto >= 1 && it.tipo_gasto <= 6) {
-      totalPorNatureza[it.tipo_gasto] = (totalPorNatureza[it.tipo_gasto] || 0) + (Number(it.valor) || 0);
-    }
+    const cod = Number(it.tipo_gasto);
+    totalPorNatureza[cod] = (totalPorNatureza[cod] || 0) + (Number(it.valor) || 0);
   });
 
   // Saldo devolução/ressarcimento:
@@ -152,10 +162,12 @@ export function NovoRdcModal({
   };
 
   const handleAddItem = () => {
+    const primeiroGasto = tiposGasto[0]?.codigo || 1;
+    const primeiroDoc = tiposDoc[0]?.codigo || 'Rec';
     const novoItem: ItemGastoRdc = {
       id: `item-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-      tipo_gasto: 1,
-      tipo_doc: 'Nf',
+      tipo_gasto: primeiroGasto,
+      tipo_doc: primeiroDoc,
       descricao: '',
       valor: 0,
     };
@@ -183,7 +195,7 @@ export function NovoRdcModal({
     );
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErro(null);
 
@@ -229,6 +241,7 @@ export function NovoRdcModal({
         observacoes: `Solicitante: ${nomeSolicitante} | N.º Pedido: ${numeroPedido} | Saldo: ${saldoDevolucao < 0 ? `A ressarcir ${formatarMoeda(valorARessarcir)}` : `A devolver ${formatarMoeda(saldoDevolucao)}`}`,
         usuario: currentUser,
         rdc_detalhes: {
+          linha_gasto: linhaGasto,
           data_pedido: dataPedido,
           numero_pedido: numeroPedido,
           local_partida: localPartida,
@@ -298,11 +311,54 @@ export function NovoRdcModal({
             </div>
           )}
 
-          {/* 1. SEÇÃO: Informações do Solicitante da Viagem */}
-          <div className="border border-slate-200 rounded-xl p-4 bg-white space-y-3">
-            <div className="text-xs font-bold text-slate-900 uppercase tracking-wide border-b border-slate-100 pb-2 flex items-center justify-between">
-              <span>Informações do Solicitante da viagem</span>
-              <span className="text-[11px] font-normal text-slate-400">Campos Obrigatórios *</span>
+          {/* 1. SEÇÃO: Informações do Solicitante da Viagem ou Despesas Corporativas */}
+          <div className="border border-slate-200 rounded-xl p-4 bg-white space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+              <div>
+                <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wide">
+                  INFORMAÇÕES DO SOLICITANTE DA VIAGEM OU DESPESAS CORPORATIVAS
+                </h3>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  Esta RDC pode registrar despesas com viagens técnicas, despesas corporativas gerais ou ambas as linhas.
+                </p>
+              </div>
+
+              {/* Seletor de Linha de Gastos */}
+              <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-lg shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setLinhaGasto('viagem')}
+                  className={`px-2.5 py-1 rounded text-[11px] font-semibold transition-colors ${
+                    linhaGasto === 'viagem'
+                      ? 'bg-white text-slate-900 shadow-2xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  ✈️ Viagem
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLinhaGasto('corporativa')}
+                  className={`px-2.5 py-1 rounded text-[11px] font-semibold transition-colors ${
+                    linhaGasto === 'corporativa'
+                      ? 'bg-white text-slate-900 shadow-2xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  🏢 Despesas Corporativas
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLinhaGasto('ambas')}
+                  className={`px-2.5 py-1 rounded text-[11px] font-semibold transition-colors ${
+                    linhaGasto === 'ambas'
+                      ? 'bg-white text-slate-900 shadow-2xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  🌐 Ambas
+                </button>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -335,28 +391,28 @@ export function NovoRdcModal({
 
               <div>
                 <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                  Local de partida *
+                  {linhaGasto === 'corporativa' ? 'Local / Origem Corporativa *' : 'Local de partida *'}
                 </label>
                 <input
                   type="text"
                   required
                   value={localPartida}
                   onChange={(e) => setLocalPartida(e.target.value)}
-                  placeholder="Ex: Brasília/DF"
+                  placeholder={linhaGasto === 'corporativa' ? 'Ex: Sede Brasília/DF' : 'Ex: Brasília/DF'}
                   className="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none"
                 />
               </div>
 
               <div>
                 <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                  Destino *
+                  {linhaGasto === 'corporativa' ? 'Destino / Unidade Beneficiada *' : 'Destino *'}
                 </label>
                 <input
                   type="text"
                   required
                   value={destino}
                   onChange={(e) => setDestino(e.target.value)}
-                  placeholder="Ex: São Paulo/SP"
+                  placeholder={linhaGasto === 'corporativa' ? 'Ex: Sede / Departamento Local' : 'Ex: São Paulo/SP'}
                   className="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none"
                 />
               </div>
@@ -411,14 +467,20 @@ export function NovoRdcModal({
 
             <div>
               <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                Objetivo da viagem *
+                {linhaGasto === 'corporativa'
+                  ? 'Objetivo das despesas corporativas *'
+                  : 'Objetivo da viagem / despesas corporativas *'}
               </label>
               <textarea
                 rows={2}
                 required
                 value={objetivoViagem}
                 onChange={(e) => setObjetivoViagem(e.target.value)}
-                placeholder="Ex: Realização de auditoria técnica in loco, reuniões estratégicas com conselho fiscal e levantamento contábil..."
+                placeholder={
+                  linhaGasto === 'corporativa'
+                    ? 'Ex: Aquisição de insumos de escritório, suprimento de fundos para materiais técnicos e reuniões corporativas...'
+                    : 'Ex: Realização de auditoria técnica in loco, reuniões estratégicas com conselho fiscal e levantamento contábil...'
+                }
                 className="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none"
               />
             </div>
@@ -562,16 +624,15 @@ export function NovoRdcModal({
                         <select
                           value={item.tipo_gasto}
                           onChange={(e) =>
-                            handleItemChange(item.id, 'tipo_gasto', parseInt(e.target.value) as NaturezaGastoId)
+                            handleItemChange(item.id, 'tipo_gasto', parseInt(e.target.value) || 1)
                           }
                           className="w-full px-2 py-1 text-xs bg-slate-50 border border-slate-200 rounded outline-none"
                         >
-                          <option value={1}>1 Alimentação</option>
-                          <option value={2}>2 Combustível</option>
-                          <option value={3}>3 Condução</option>
-                          <option value={4}>4 Hospedagem</option>
-                          <option value={5}>5 Passagens</option>
-                          <option value={6}>6 Outros gastos</option>
+                          {tiposGasto.map((tg) => (
+                            <option key={tg.id} value={tg.codigo}>
+                              {tg.codigo} {tg.nome}
+                            </option>
+                          ))}
                         </select>
                       </td>
 
@@ -581,8 +642,11 @@ export function NovoRdcModal({
                           onChange={(e) => handleItemChange(item.id, 'tipo_doc', e.target.value)}
                           className="w-full px-2 py-1 text-xs bg-slate-50 border border-slate-200 rounded outline-none font-medium"
                         >
-                          <option value="Rec">Rec (Recibo)</option>
-                          <option value="Nf">Nf (Nota Fiscal)</option>
+                          {tiposDoc.map((td) => (
+                            <option key={td.id} value={td.codigo}>
+                              {td.codigo} ({td.nome})
+                            </option>
+                          ))}
                         </select>
                       </td>
 
@@ -649,32 +713,19 @@ export function NovoRdcModal({
                   <span>Natureza dos gastos</span>
                   <span>Total gastos</span>
                 </div>
-                <div className="flex justify-between text-slate-600">
-                  <span>1 Alimentação</span>
-                  <span className="font-mono font-medium">{formatarMoeda(totalPorNatureza[1])}</span>
-                </div>
-                <div className="flex justify-between text-slate-600">
-                  <span>2 Combustível</span>
-                  <span className="font-mono font-medium">{formatarMoeda(totalPorNatureza[2])}</span>
-                </div>
-                <div className="flex justify-between text-slate-600">
-                  <span>3 Condução</span>
-                  <span className="font-mono font-medium">{formatarMoeda(totalPorNatureza[3])}</span>
-                </div>
-                <div className="flex justify-between text-slate-600">
-                  <span>4 Hospedagem</span>
-                  <span className="font-mono font-medium">{formatarMoeda(totalPorNatureza[4])}</span>
-                </div>
-                <div className="flex justify-between text-slate-600">
-                  <span>5 Passagens</span>
-                  <span className="font-mono font-medium">{formatarMoeda(totalPorNatureza[5])}</span>
-                </div>
-                <div className="flex justify-between text-slate-600">
-                  <span>6 Outros gastos</span>
-                  <span className="font-mono font-medium">{formatarMoeda(totalPorNatureza[6])}</span>
-                </div>
-                <div className="pt-2 border-t border-slate-100 text-[11px] text-slate-400">
-                  <b>Legenda:</b> Rec = Recibo | Nf = Nota Fiscal
+                {tiposGasto.map((tg) => (
+                  <div key={tg.id} className="flex justify-between text-slate-600">
+                    <span>
+                      {tg.codigo} {tg.nome}
+                    </span>
+                    <span className="font-mono font-medium">
+                      {formatarMoeda(totalPorNatureza[tg.codigo] || 0)}
+                    </span>
+                  </div>
+                ))}
+                <div className="pt-2 border-t border-slate-100 text-[11px] text-slate-500">
+                  <b>Legenda:</b>{' '}
+                  {tiposDoc.map((td) => `${td.codigo} = ${td.nome}`).join(' | ')}
                 </div>
               </div>
 
