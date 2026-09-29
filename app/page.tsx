@@ -13,8 +13,10 @@ import { EmissoresPermissoes } from '@/components/admin/EmissoresPermissoes';
 import { ConfiguracoesView } from '@/components/admin/ConfiguracoesView';
 import { EmissorDashboard } from '@/components/emissor/EmissorDashboard';
 import { MeusDocumentosView } from '@/components/documents/MeusDocumentosView';
+import { RecibosMedicosView } from '@/components/documents/RecibosMedicosView';
 import { NovoReciboModal } from '@/components/documents/NovoReciboModal';
 import { NovoRdcModal } from '@/components/documents/NovoRdcModal';
+import { NovoReciboMedicoModal } from '@/components/documents/NovoReciboMedicoModal';
 import { DocumentSuccessModal } from '@/components/documents/DocumentSuccessModal';
 import { DocumentViewerModal } from '@/components/documents/DocumentViewerModal';
 
@@ -35,6 +37,8 @@ export default function Home() {
   // Modais de Criação
   const [modalReciboAberto, setModalReciboAberto] = useState(false);
   const [modalRdcAberto, setModalRdcAberto] = useState(false);
+  const [modalReciboMedicoAberto, setModalReciboMedicoAberto] = useState(false);
+  const [reciboMedicoInitialData, setReciboMedicoInitialData] = useState<any>(undefined);
 
   // Modais de Visualização e Sucesso
   const [docSucesso, setDocSucesso] = useState<Documento | null>(null);
@@ -51,9 +55,15 @@ export default function Home() {
     setCurrentTab('dashboard');
   };
 
+  const handleAbrirNovoReciboMedico = (initialData?: any) => {
+    setReciboMedicoInitialData(initialData);
+    setModalReciboMedicoAberto(true);
+  };
+
   const handleEmissaoSucesso = (doc: Documento) => {
     setModalReciboAberto(false);
     setModalRdcAberto(false);
+    setModalReciboMedicoAberto(false);
     setDocSucesso(doc);
   };
 
@@ -88,7 +98,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 flex flex-col font-sans text-slate-900">
+    <div className="min-h-screen bg-slate-100 dark:bg-slate-950 flex flex-col font-sans text-slate-900 dark:text-slate-100 transition-colors">
       {/* Top Bar seguindo o Top Bar Contract */}
       <Navbar
         user={currentUser}
@@ -96,6 +106,7 @@ export default function Home() {
         onSelectTab={handleSelectTab}
         onOpenNovoRecibo={() => setModalReciboAberto(true)}
         onOpenNovoRdc={() => setModalRdcAberto(true)}
+        onOpenNovoReciboMedico={() => handleAbrirNovoReciboMedico()}
         onLogout={handleLogout}
       />
 
@@ -107,10 +118,11 @@ export default function Home() {
           onSelectTab={handleSelectTab}
           onOpenNovoRecibo={() => setModalReciboAberto(true)}
           onOpenNovoRdc={() => setModalRdcAberto(true)}
+          onOpenNovoReciboMedico={() => handleAbrirNovoReciboMedico()}
         />
 
         {/* Área de Conteúdo Principal */}
-        <main className="flex-1 overflow-y-auto bg-slate-50">
+        <main className="flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-900 transition-colors">
           {/* Roteamento de Abas */}
           {currentTab === 'dashboard' && (
             isAdmin ? (
@@ -118,6 +130,7 @@ export default function Home() {
                 onSelectTab={setCurrentTab}
                 onOpenNovoRecibo={() => setModalReciboAberto(true)}
                 onOpenNovoRdc={() => setModalRdcAberto(true)}
+                onOpenNovoReciboMedico={() => handleAbrirNovoReciboMedico()}
                 onVisualizarDocumento={(doc) => setDocVisualizando(doc)}
               />
             ) : (
@@ -125,11 +138,20 @@ export default function Home() {
                 currentUser={currentUser}
                 onOpenNovoRecibo={() => setModalReciboAberto(true)}
                 onOpenNovoRdc={() => setModalRdcAberto(true)}
+                onOpenNovoReciboMedico={() => handleAbrirNovoReciboMedico()}
                 onVisualizarDocumento={(doc) => setDocVisualizando(doc)}
                 onVerTodosDocumentos={() => setCurrentTab('meus-documentos')}
                 onIrParaEmpresas={() => setCurrentTab('empresas')}
               />
             )
+          )}
+
+          {currentTab === 'recibos-medicos' && (
+            <RecibosMedicosView
+              currentUser={currentUser}
+              onVisualizar={(doc) => setDocVisualizando(doc)}
+              onNovoReciboMedico={handleAbrirNovoReciboMedico}
+            />
           )}
 
           {currentTab === 'empresas' && (
@@ -179,6 +201,20 @@ export default function Home() {
         onSuccess={handleEmissaoSucesso}
       />
 
+      {/* Modal: Novo Recibo de Prestação de Serviços Médicos */}
+      {modalReciboMedicoAberto && (
+        <NovoReciboMedicoModal
+          isOpen={modalReciboMedicoAberto}
+          onClose={() => {
+            setModalReciboMedicoAberto(false);
+            setReciboMedicoInitialData(undefined);
+          }}
+          currentUser={currentUser}
+          onSuccess={handleEmissaoSucesso}
+          initialData={reciboMedicoInitialData}
+        />
+      )}
+
       {/* Modal: Confirmação de Sucesso Pós-Emissão */}
       <DocumentSuccessModal
         isOpen={!!docSucesso}
@@ -199,6 +235,10 @@ export default function Home() {
         onNovoRdc={() => {
           setDocSucesso(null);
           setModalRdcAberto(true);
+        }}
+        onNovoReciboMedico={() => {
+          setDocSucesso(null);
+          handleAbrirNovoReciboMedico();
         }}
       />
 

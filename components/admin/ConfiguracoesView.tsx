@@ -19,7 +19,11 @@ import {
   Layers,
   X,
   Sparkles,
+  Palette,
+  Sun,
+  Moon,
 } from 'lucide-react';
+import { ThemeToggle, useTheme } from '@/lib/theme';
 
 type TabConfig = 'geral' | 'tipos-gasto' | 'tipos-doc' | 'manutencao';
 
@@ -65,7 +69,11 @@ export function ConfiguracoesView() {
     e.preventDefault();
     setErro(null);
 
-    if (config.proximo_recibo_num <= 0 || config.proximo_rdc_num <= 0) {
+    if (
+      config.proximo_recibo_num <= 0 ||
+      config.proximo_rdc_num <= 0 ||
+      (config.proximo_recibo_medico_num !== undefined && config.proximo_recibo_medico_num <= 0)
+    ) {
       setErro('Os números sequenciais devem ser maiores que zero.');
       return;
     }
@@ -195,7 +203,7 @@ export function ConfiguracoesView() {
 
     const siglaLimpa = docCodigo.trim();
     if (!siglaLimpa) {
-      setErroDoc('A sigla / código do Tipo de Documento é obrigatória (ex: Rec, Nf, CF).');
+      setErroDoc('A sigla / código do Tipo de Documento é obrigatória (ex: Rec, NF, CF).');
       return;
     }
 
@@ -408,19 +416,60 @@ export function ConfiguracoesView() {
       {/* ======================================================== */}
       {activeTab === 'geral' && (
         <form onSubmit={handleSalvarGeral} className="space-y-6">
+          {/* Bloco 0: Aparência & Tema do Sistema */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-2xs space-y-4 transition-colors">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div>
+                <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <Palette className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  <span>Aparência do Sistema (Tema Claro / Escuro)</span>
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Alterne entre o tema claro e o tema escuro. A sua preferência é salva e aplicada instantaneamente a todas as telas.
+                </p>
+              </div>
+
+              <div>
+                <ThemeToggle variant="segmented" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <div className="p-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex items-start gap-2.5">
+                <Sun className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                <div>
+                  <div className="font-semibold text-slate-800 dark:text-slate-200">Aparência Clara</div>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    Ideal para ambientes com iluminação convencional ou para conferência de relatórios e recibos.
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex items-start gap-2.5">
+                <Moon className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
+                <div>
+                  <div className="font-semibold text-slate-800 dark:text-slate-200">Aparência Escura</div>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    Reduz a fadiga visual durante jornadas prolongadas com contraste otimizado e visual moderno.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Bloco 1: Numeração Sequencial Automática */}
-          <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-2xs space-y-4">
-            <div className="border-b border-slate-100 pb-3">
-              <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                <Receipt className="w-4 h-4 text-slate-600" />
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-2xs space-y-4 transition-colors">
+            <div className="border-b border-slate-100 dark:border-slate-800 pb-3">
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <Receipt className="w-4 h-4 text-slate-600 dark:text-slate-400" />
                 <span>Controle de Numeração Automática Sequencial</span>
               </h2>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                 O sistema controla a sequência numérica independente para Recibos e RDC com sufixo do ano corrente.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
                   Próximo Número de RECIBO
@@ -439,6 +488,27 @@ export function ConfiguracoesView() {
                 />
                 <p className="text-[11px] text-slate-400 mt-1">
                   Ex: RECIBO Nº {String(config.proximo_recibo_num).padStart(6, '0')}/{config.ano_corrente}
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Próximo RECIBO MÉDICO
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  value={config.proximo_recibo_medico_num || 1}
+                  onChange={(e) =>
+                    setConfig({
+                      ...config,
+                      proximo_recibo_medico_num: parseInt(e.target.value) || 1,
+                    })
+                  }
+                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none font-mono"
+                />
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Ex: Nº {String(config.proximo_recibo_medico_num || 1).padStart(3, '0')}/{config.ano_corrente}
                 </p>
               </div>
 
@@ -999,10 +1069,10 @@ export function ConfiguracoesView() {
                     maxLength={8}
                     value={docCodigo}
                     onChange={(e) => setDocCodigo(e.target.value)}
-                    placeholder="Ex: Rec, Nf, CF"
+                    placeholder="Ex: Rec, NF, CF"
                     className="w-full px-3 py-2 text-xs font-mono font-bold bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none uppercase"
                   />
-                  <p className="text-[10px] text-slate-400 mt-1">Ex: Rec, Nf, CF</p>
+                  <p className="text-[10px] text-slate-400 mt-1">Ex: Rec, NF, CF</p>
                 </div>
 
                 <div className="col-span-2">

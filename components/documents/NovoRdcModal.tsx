@@ -12,8 +12,8 @@ import {
 } from '@/lib/types';
 import { StorageService } from '@/lib/storage';
 import { valorPorExtenso } from '@/lib/extenso';
-import { dataHojeIso, mascaraCnpj, mascaraCpf, formatarMoeda } from '@/lib/masks';
-import { X, Check, Plus, Trash2, AlertCircle, Calculator, Building2 } from 'lucide-react';
+import { dataHojeIso, mascaraCnpj, mascaraCpf, formatarMoeda, validarCpf } from '@/lib/masks';
+import { X, Check, Plus, Trash2, AlertCircle, Calculator, Building2, Sparkles } from 'lucide-react';
 
 interface NovoRdcModalProps {
   isOpen: boolean;
@@ -58,74 +58,30 @@ export function NovoRdcModal({
 
   // 1. Informações do Solicitante da viagem ou despesas corporativas
   const [dataPedido, setDataPedido] = useState<string>(() => dataHojeIso());
-  const [numeroPedido, setNumeroPedido] = useState<string>('2026/089');
+  const [numeroPedido, setNumeroPedido] = useState<string>('');
   const [localPartida, setLocalPartida] = useState<string>('Brasília/DF');
-  const [destino, setDestino] = useState<string>('São Paulo/SP');
-  const [nomeSolicitante, setNomeSolicitante] = useState<string>(currentUser.nome || 'Lucas Oliveira');
-  const [cpfSolicitante, setCpfSolicitante] = useState<string>('021.488.921-34');
-  const [setorFuncao, setSetorFuncao] = useState<string>('Auditor de Sistemas / TI');
-  const [objetivoViagem, setObjetivoViagem] = useState<string>(
-    'Auditoria técnica e vistoria in loco de infraestrutura predial e contábil.'
-  );
+  const [destino, setDestino] = useState<string>('');
+  const [nomeSolicitante, setNomeSolicitante] = useState<string>(currentUser.nome || '');
+  const [cpfSolicitante, setCpfSolicitante] = useState<string>('');
+  const [setorFuncao, setSetorFuncao] = useState<string>('');
+  const [objetivoViagem, setObjetivoViagem] = useState<string>('');
 
   // 2. Informações bancária e financeira
-  const [valorSolicitadoRaw, setValorSolicitadoRaw] = useState<string>('2000,00');
-  const [valorSolicitado, setValorSolicitado] = useState<number>(2000.0);
-  const [nomeBanco, setNomeBanco] = useState<string>('Banco do Brasil');
-  const [agencia, setAgencia] = useState<string>('1820-1');
-  const [conta, setConta] = useState<string>('45.890-2');
+  const [valorSolicitadoRaw, setValorSolicitadoRaw] = useState<string>('0,00');
+  const [valorSolicitado, setValorSolicitado] = useState<number>(0.0);
+  const [nomeBanco, setNomeBanco] = useState<string>('');
+  const [agencia, setAgencia] = useState<string>('');
+  const [conta, setConta] = useState<string>('');
   const [tipoConta, setTipoConta] = useState<string>('Conta Corrente');
-  const [chavePix, setChavePix] = useState<string>(currentUser.email || 'lucas.oliveira@abeas.org.br');
+  const [chavePix, setChavePix] = useState<string>(currentUser.email || '');
 
   // 3. Descrição dos gastos
   const [dataEntregaRdc, setDataEntregaRdc] = useState<string>(() => dataHojeIso());
-  const [itens, setItens] = useState<ItemGastoRdc[]>([
-    {
-      id: 'item-1',
-      tipo_gasto: 1,
-      tipo_doc: 'Nf',
-      descricao: 'Restaurante Sabor & Arte - Almoço de trabalho equipe - NF 1042',
-      valor: 380.0,
-    },
-    {
-      id: 'item-2',
-      tipo_gasto: 2,
-      tipo_doc: 'Nf',
-      descricao: 'Posto Petrobras Paulista - Abastecimento de veículo locado - NF 8892',
-      valor: 320.0,
-    },
-    {
-      id: 'item-3',
-      tipo_gasto: 3,
-      tipo_doc: 'Rec',
-      descricao: 'Uber do Brasil - Deslocamentos Aeroporto x Hotel x Escritório',
-      valor: 195.0,
-    },
-    {
-      id: 'item-4',
-      tipo_gasto: 4,
-      tipo_doc: 'Nf',
-      descricao: 'Hotel Ibis Paulista - 2 diárias de hospedagem - NF 4421',
-      valor: 850.0,
-    },
-    {
-      id: 'item-5',
-      tipo_gasto: 5,
-      tipo_doc: 'Rec',
-      descricao: 'GOL Linhas Aéreas - Taxa de embarque e despacho bagagem',
-      valor: 210.0,
-    },
-    {
-      id: 'item-6',
-      tipo_gasto: 6,
-      tipo_doc: 'Rec',
-      descricao: 'Papelaria Express - Cópias de documentos e encadernações técnicas',
-      valor: 145.0,
-    },
-  ]);
+  const [itens, setItens] = useState<ItemGastoRdc[]>([]);
 
-  const [tiposGasto] = useState<TipoGastoConfig[]>(() => StorageService.getTiposGasto());
-  const [tiposDoc] = useState<TipoDocConfig[]>(() => StorageService.getTiposDoc());
+  // Tipos de Gasto e Tipos de Documento lidos em tempo real das Configurações
+  const tiposGasto = StorageService.getTiposGasto();
+  const tiposDoc = StorageService.getTiposDoc();
 
   // Assinaturas
   const [assinaturaProfissional, setAssinaturaProfissional] = useState(currentUser.nome);
@@ -133,6 +89,30 @@ export function NovoRdcModal({
   const [contabilFinanceiro, setContabilFinanceiro] = useState('Setor Contábil / Financeiro ABEAS');
 
   const [erro, setErro] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Preencher exemplo de teste (opcional)
+  const handlePreencherExemplo = () => {
+    setNumeroPedido('2026/089');
+    setLocalPartida('Brasília/DF');
+    setDestino('São Paulo/SP');
+    setCpfSolicitante('021.488.921-34');
+    setSetorFuncao('Auditor de Sistemas / TI');
+    setObjetivoViagem('Auditoria técnica e vistoria in loco de infraestrutura predial e contábil.');
+    setValorSolicitadoRaw('2000,00');
+    setValorSolicitado(2000.0);
+    setNomeBanco('Banco do Brasil');
+    setAgencia('1820-1');
+    setConta('45.890-2');
+    setItens([
+      { id: 'item-ex-1', tipo_gasto: 1, tipo_doc: 'NF', descricao: 'Restaurante Sabor & Arte - Almoço de trabalho equipe - NF 1042', valor: 380.0 },
+      { id: 'item-ex-2', tipo_gasto: 2, tipo_doc: 'NF', descricao: 'Posto Petrobras Paulista - Abastecimento de veículo locado - NF 8892', valor: 320.0 },
+      { id: 'item-ex-3', tipo_gasto: 3, tipo_doc: 'Rec', descricao: 'Uber do Brasil - Deslocamentos Aeroporto x Hotel x Escritório', valor: 195.0 },
+      { id: 'item-ex-4', tipo_gasto: 4, tipo_doc: 'NF', descricao: 'Hotel Ibis Paulista - 2 diárias de hospedagem - NF 4421', valor: 850.0 },
+      { id: 'item-ex-5', tipo_gasto: 5, tipo_doc: 'Rec', descricao: 'GOL Linhas Aéreas - Taxa de embarque e despacho bagagem', valor: 210.0 },
+      { id: 'item-ex-6', tipo_gasto: 6, tipo_doc: 'Rec', descricao: 'Papelaria Express - Cópias de documentos e encadernações técnicas', valor: 145.0 },
+    ]);
+  };
   const [salvando, setSalvando] = useState(false);
 
   // Cálculos dinâmicos em tempo real
@@ -165,7 +145,7 @@ export function NovoRdcModal({
     const primeiroGasto = tiposGasto[0]?.codigo || 1;
     const primeiroDoc = tiposDoc[0]?.codigo || 'Rec';
     const novoItem: ItemGastoRdc = {
-      id: `item-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      id: `item-${itens.length + 1}-${primeiroGasto}`,
       tipo_gasto: primeiroGasto,
       tipo_doc: primeiroDoc,
       descricao: '',
@@ -197,10 +177,16 @@ export function NovoRdcModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
     setErro(null);
 
     if (!nomeSolicitante.trim()) {
       setErro('Informe o nome do solicitante da viagem.');
+      return;
+    }
+
+    if (cpfSolicitante.trim() && !validarCpf(cpfSolicitante)) {
+      setErro('O CPF do Solicitante informado é inválido. Verifique os dígitos digitados.');
       return;
     }
 
@@ -218,6 +204,8 @@ export function NovoRdcModal({
       setErro('O valor total das despesas deve ser superior a R$ 0,00.');
       return;
     }
+
+    setIsSubmitting(true);
 
     const meses = [
       'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -269,8 +257,9 @@ export function NovoRdcModal({
       });
 
       onSuccess(doc);
-    } catch (err) {
+    } catch {
       setErro('Ocorreu um erro ao emitir o RDC. Tente novamente.');
+      setIsSubmitting(false);
     }
   };
 
@@ -278,25 +267,25 @@ export function NovoRdcModal({
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-      <div className="bg-white border border-slate-200 rounded-xl shadow-2xl max-w-4xl w-full my-6 flex flex-col max-h-[92vh] overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl max-w-4xl w-full my-6 flex flex-col max-h-[92vh] overflow-hidden transition-colors">
         {/* Top Header */}
-        <div className="flex items-center justify-between px-6 py-3.5 border-b border-slate-200 bg-slate-50 shrink-0">
+        <div className="flex items-center justify-between px-6 py-3.5 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-850 shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-800 flex items-center justify-center font-bold text-sm">
+            <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 flex items-center justify-center font-bold text-sm">
               📄
             </div>
             <div>
-              <h2 className="text-sm font-bold text-slate-900 tracking-tight">
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">
                 PRESTAÇÃO DE CONTAS E REEMBOLSO DE DESPESAS CORPORATIVA - RDC
               </h2>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 Modelo Oficial Institucional ABEAS - Formulário completo com controle de gastos e rateio
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-200 rounded-lg transition-colors"
+            className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -323,41 +312,53 @@ export function NovoRdcModal({
                 </p>
               </div>
 
-              {/* Seletor de Linha de Gastos */}
-              <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-lg shrink-0">
+              {/* Seletor de Linha de Gastos e Botão de Exemplo */}
+              <div className="flex flex-wrap items-center gap-2 shrink-0">
                 <button
                   type="button"
-                  onClick={() => setLinhaGasto('viagem')}
-                  className={`px-2.5 py-1 rounded text-[11px] font-semibold transition-colors ${
-                    linhaGasto === 'viagem'
-                      ? 'bg-white text-slate-900 shadow-2xs'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
+                  onClick={handlePreencherExemplo}
+                  className="px-2.5 py-1 text-[11px] font-medium text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-lg transition-colors flex items-center gap-1"
+                  title="Preencher com dados de exemplo para testes rápidos"
                 >
-                  ✈️ Viagem
+                  <Sparkles className="w-3 h-3 text-amber-500" />
+                  <span>Preencher Exemplo</span>
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setLinhaGasto('corporativa')}
-                  className={`px-2.5 py-1 rounded text-[11px] font-semibold transition-colors ${
-                    linhaGasto === 'corporativa'
-                      ? 'bg-white text-slate-900 shadow-2xs'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  🏢 Despesas Corporativas
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setLinhaGasto('ambas')}
-                  className={`px-2.5 py-1 rounded text-[11px] font-semibold transition-colors ${
-                    linhaGasto === 'ambas'
-                      ? 'bg-white text-slate-900 shadow-2xs'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  🌐 Ambas
-                </button>
+
+                <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-lg">
+                  <button
+                    type="button"
+                    onClick={() => setLinhaGasto('viagem')}
+                    className={`px-2.5 py-1 rounded text-[11px] font-semibold transition-colors ${
+                      linhaGasto === 'viagem'
+                        ? 'bg-white text-slate-900 shadow-2xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    ✈️ Viagem
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLinhaGasto('corporativa')}
+                    className={`px-2.5 py-1 rounded text-[11px] font-semibold transition-colors ${
+                      linhaGasto === 'corporativa'
+                        ? 'bg-white text-slate-900 shadow-2xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    🏢 Despesas Corporativas
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLinhaGasto('ambas')}
+                    className={`px-2.5 py-1 rounded text-[11px] font-semibold transition-colors ${
+                      linhaGasto === 'ambas'
+                        ? 'bg-white text-slate-900 shadow-2xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    🌐 Ambas
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -590,7 +591,7 @@ export function NovoRdcModal({
                   Descrição dos gastos
                 </span>
                 <span className="text-[11px] text-slate-500 ml-2">
-                  (Classifique cada item de 1 a 6 e tipo Rec/Nf)
+                  (Classifique cada item conforme Tipos de Gasto e Tipo Doc cadastrados)
                 </span>
               </div>
 
@@ -611,7 +612,7 @@ export function NovoRdcModal({
                 <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold">
                   <tr>
                     <th className="px-2 py-2 w-36">Tipo Gastos</th>
-                    <th className="px-2 py-2 w-28">Tipo Doc.</th>
+                    <th className="px-2 py-2 w-32">Tipo Doc.</th>
                     <th className="px-2 py-2">Fornecedor - observação das despesas - número documento</th>
                     <th className="px-2 py-2 text-right w-32">Valor (R$)</th>
                     <th className="px-2 py-2 text-center w-12">Ação</th>
@@ -638,7 +639,7 @@ export function NovoRdcModal({
 
                       <td className="px-2 py-1.5">
                         <select
-                          value={item.tipo_doc}
+                          value={item.tipo_doc === 'Nf' ? 'NF' : item.tipo_doc}
                           onChange={(e) => handleItemChange(item.id, 'tipo_doc', e.target.value)}
                           className="w-full px-2 py-1 text-xs bg-slate-50 border border-slate-200 rounded outline-none font-medium"
                         >
@@ -830,10 +831,11 @@ export function NovoRdcModal({
             </button>
             <button
               type="submit"
-              className="px-5 py-2 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-lg shadow-sm transition-colors flex items-center gap-1.5"
+              disabled={isSubmitting}
+              className="px-5 py-2 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 disabled:opacity-50 rounded-lg shadow-sm transition-colors flex items-center gap-1.5"
             >
               <Check className="w-3.5 h-3.5 text-blue-400" />
-              <span>EMITIR RDC COM PRESTAÇÃO DE CONTAS</span>
+              <span>{isSubmitting ? 'EMITINDO...' : 'EMITIR RDC COM PRESTAÇÃO DE CONTAS'}</span>
             </button>
           </div>
         </form>

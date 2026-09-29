@@ -13,6 +13,7 @@ interface DocumentSuccessModalProps {
   onImprimir: (doc: Documento) => void;
   onNovoRecibo: () => void;
   onNovoRdc: () => void;
+  onNovoReciboMedico?: () => void;
 }
 
 export function DocumentSuccessModal({
@@ -23,11 +24,13 @@ export function DocumentSuccessModal({
   onImprimir,
   onNovoRecibo,
   onNovoRdc,
+  onNovoReciboMedico,
 }: DocumentSuccessModalProps) {
   if (!isOpen || !documento) return null;
 
+  const isReciboMedico = documento.tipo === 'recibo_medico';
   const isRecibo = documento.tipo === 'recibo';
-  const tituloTipo = isRecibo ? 'RECIBO' : 'RDC';
+  const tituloTipo = isReciboMedico ? 'RECIBO MÉDICO' : isRecibo ? 'RECIBO' : 'RDC';
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
@@ -68,7 +71,15 @@ export function DocumentSuccessModal({
               <span>IMPRIMIR / PDF</span>
             </button>
 
-            {isRecibo ? (
+            {isReciboMedico ? (
+              <button
+                onClick={onNovoReciboMedico || onNovoRecibo}
+                className="py-2 px-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-semibold border border-emerald-200 rounded-lg transition-colors flex items-center justify-center gap-1.5"
+              >
+                <Plus className="w-4 h-4 text-emerald-600" />
+                <span>NOVO RECIBO</span>
+              </button>
+            ) : isRecibo ? (
               <button
                 onClick={onNovoRecibo}
                 className="py-2 px-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-semibold border border-emerald-200 rounded-lg transition-colors flex items-center justify-center gap-1.5"

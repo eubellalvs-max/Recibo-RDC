@@ -5,10 +5,22 @@ import {
   SistemaConfig,
   TipoDocumento,
   DadosRdc,
+  DadosReciboMedico,
   TipoGastoConfig,
   TipoDocConfig,
 } from './types';
 import { valorPorExtenso } from './extenso';
+
+export const ABEAS_FIXA = {
+  razao_social: 'ABEAS - Associação Brasileira de Entidades de Assistência Social',
+  cnpj: '04.547.278/0005-68',
+  texto_declaracao:
+    'A empresa ABEAS - Associação Brasileira de Entidades de Assistência Social, inscrita no CNPJ sob o nº 04.547.278/0005-68, declara que recebeu de:',
+  texto_final:
+    'Para maior clareza e para os devidos fins de direito, firmamos o presente recibo.',
+  cidade_padrao: 'Itapuranga',
+  uf_padrao: 'GO',
+};
 
 const STORAGE_KEYS = {
   USUARIOS: 'recibos_rdc_usuarios_v1',
@@ -29,7 +41,7 @@ export const DEFAULT_TIPOS_GASTO: TipoGastoConfig[] = [
 
 export const DEFAULT_TIPOS_DOC: TipoDocConfig[] = [
   { id: 'td-1', codigo: 'Rec', nome: 'Recibo', descricao: 'Recibo de pagamento ou quitação' },
-  { id: 'td-2', codigo: 'Nf', nome: 'Nota Fiscal', descricao: 'Nota fiscal eletrônica (NFe, NFCe ou NFSe)' },
+  { id: 'td-2', codigo: 'NF', nome: 'Nota Fiscal', descricao: 'Nota fiscal eletrônica (NFe, NFCe ou NFSe)' },
   { id: 'td-3', codigo: 'CF', nome: 'Cupom Fiscal', descricao: 'Cupom fiscal / SAT' },
 ];
 
@@ -40,6 +52,7 @@ export const INITIAL_CONFIG: SistemaConfig = {
   ano_corrente: 2026,
   proximo_recibo_num: 126,
   proximo_rdc_num: 125,
+  proximo_recibo_medico_num: 2,
   incluir_segunda_via: true,
   mensagem_rodape: 'Documento emitido eletronicamente pelo Sistema Oficial de Recibos e RDC.',
   tipos_gasto: DEFAULT_TIPOS_GASTO,
@@ -47,6 +60,26 @@ export const INITIAL_CONFIG: SistemaConfig = {
 };
 
 export const INITIAL_EMPRESAS: Empresa[] = [
+  {
+    id: 'emp-abeas-medico',
+    razao_social: 'ABEAS - Associação Brasileira de Entidades de Assistência Social',
+    nome_fantasia: 'ABEAS - Assistência Social',
+    cnpj: '04.547.278/0005-68',
+    inscricao_estadual: 'ISENTO',
+    inscricao_municipal: 'ISENTO',
+    endereco: 'Rua das Flores',
+    numero: '100',
+    complemento: 'Unidade de Atendimento',
+    bairro: 'Centro',
+    cidade: 'Itapuranga',
+    uf: 'GO',
+    cep: '76680-000',
+    email: 'atendimento@abeas.org.br',
+    telefone: '(62) 3312-1000',
+    tipo: 'ambas',
+    status: 'ativa',
+    created_at: '2026-01-01T08:00:00.000Z',
+  },
   {
     id: 'emp-1',
     razao_social: 'ABEAS - Associação Brasileira de Educação Agrícola Superior',
@@ -209,6 +242,42 @@ export const INITIAL_USUARIOS: Usuario[] = [
 
 export const INITIAL_DOCUMENTOS: Documento[] = [
   {
+    id: 'doc-med-001',
+    numero: '001/2026',
+    numero_sequencial: 1,
+    tipo: 'recibo_medico',
+    empresa_emissora_id: 'emp-abeas-medico',
+    empresa_destinataria_id: 'emp-1',
+    valor: 350.0,
+    valor_extenso: valorPorExtenso(350.0),
+    referente:
+      'A quantia supra de R$ 350,00 (trezentos e cinquenta reais), referente à prestação de serviços médicos particulares realizados no(a) paciente abaixo qualificado(a):',
+    data_emissao: '2026-09-02',
+    cidade_emissao: 'Itapuranga - GO',
+    observacoes: 'Consulta médica em ginecologia realizada na Unidade de Atendimento.',
+    usuario_id: 'usr-lucas',
+    usuario_nome: 'Lucas Oliveira',
+    status: 'emitido',
+    created_at: '2026-09-02T14:30:00.000Z',
+    recibo_medico_detalhes: {
+      pagador_nome: 'Mariana de Souza Silva',
+      pagador_documento: '584.920.183-49',
+      pagador_telefone: '(62) 99874-2211',
+      pagador_endereco: 'Av. Bernardo Sayão, 450 - Centro, Itapuranga/GO',
+      paciente_nome: 'Mariana de Souza Silva',
+      paciente_cpf: '584.920.183-49',
+      paciente_telefone: '(62) 99874-2211',
+      paciente_endereco: 'Av. Bernardo Sayão, 450 - Centro, Itapuranga/GO',
+      servico_prestado: 'Consulta médica em ginecologia',
+      medico_assistente: 'Dr(a). Morena Ciclano de Tal',
+      crm: '0000/GO',
+      data_atendimento: '2026-09-02',
+      forma_pagamento: 'Pix',
+      cidade: 'Itapuranga',
+      uf: 'GO',
+    },
+  },
+  {
     id: 'doc-125',
     numero: '000125/2026',
     numero_sequencial: 125,
@@ -265,14 +334,14 @@ export const INITIAL_DOCUMENTOS: Documento[] = [
         {
           id: 'item-1',
           tipo_gasto: 1,
-          tipo_doc: 'Nf',
+          tipo_doc: 'NF',
           descricao: 'Restaurante Sabor & Arte - Almoço de trabalho equipe - NF 1042',
           valor: 380.00,
         },
         {
           id: 'item-2',
           tipo_gasto: 2,
-          tipo_doc: 'Nf',
+          tipo_doc: 'NF',
           descricao: 'Posto Petrobras Paulista - Abastecimento de veículo locado - NF 8892',
           valor: 320.00,
         },
@@ -286,7 +355,7 @@ export const INITIAL_DOCUMENTOS: Documento[] = [
         {
           id: 'item-4',
           tipo_gasto: 4,
-          tipo_doc: 'Nf',
+          tipo_doc: 'NF',
           descricao: 'Hotel Ibis Paulista - 2 diárias de hospedagem - NF 4421',
           valor: 850.00,
         },
@@ -448,11 +517,33 @@ export const StorageService = {
 
   // --- Documentos ---
   getDocumentos(): Documento[] {
-    return getLocalStorageItem<Documento[]>(STORAGE_KEYS.DOCUMENTOS, INITIAL_DOCUMENTOS);
+    const docs = getLocalStorageItem<Documento[]>(STORAGE_KEYS.DOCUMENTOS, INITIAL_DOCUMENTOS);
+    let mudou = false;
+    docs.forEach((doc) => {
+      if (doc.rdc_detalhes?.itens) {
+        doc.rdc_detalhes.itens.forEach((it) => {
+          if (it.tipo_doc === 'Nf') {
+            it.tipo_doc = 'NF';
+            mudou = true;
+          }
+        });
+      }
+    });
+    if (mudou && typeof window !== 'undefined') {
+      setLocalStorageItem(STORAGE_KEYS.DOCUMENTOS, docs);
+    }
+    return docs;
   },
 
   getDocumentoById(id: string): Documento | undefined {
     return this.getDocumentos().find((d) => d.id === id);
+  },
+
+  getProximoNumeroReciboMedico(): string {
+    const config = this.getConfig();
+    const ano = config.ano_corrente || new Date().getFullYear();
+    const seqNum = config.proximo_recibo_medico_num || 2;
+    return `${String(seqNum).padStart(3, '0')}/${ano}`;
   },
 
   emitirDocumento(params: {
@@ -468,22 +559,30 @@ export const StorageService = {
     usuario: Usuario;
     logo_url?: string;
     rdc_detalhes?: DadosRdc;
+    recibo_medico_detalhes?: DadosReciboMedico;
   }): Documento {
     const config = this.getConfig();
     const ano = config.ano_corrente || new Date().getFullYear();
 
     // Sequenciador automático
     let seqNum = 1;
-    if (params.tipo === 'recibo') {
+    let numeroFormatado = '';
+
+    if (params.tipo === 'recibo_medico') {
+      seqNum = config.proximo_recibo_medico_num || 2;
+      config.proximo_recibo_medico_num = seqNum + 1;
+      numeroFormatado = `${String(seqNum).padStart(3, '0')}/${ano}`;
+    } else if (params.tipo === 'recibo') {
       seqNum = config.proximo_recibo_num;
       config.proximo_recibo_num += 1;
+      numeroFormatado = `${String(seqNum).padStart(6, '0')}/${ano}`;
     } else {
       seqNum = config.proximo_rdc_num;
       config.proximo_rdc_num += 1;
+      numeroFormatado = `${String(seqNum).padStart(6, '0')}/${ano}`;
     }
     this.saveConfig(config);
 
-    const numeroFormatado = `${String(seqNum).padStart(6, '0')}/${ano}`;
     const extenso = valorPorExtenso(params.valor);
 
     const novoDoc: Documento = {
@@ -498,7 +597,7 @@ export const StorageService = {
       referente: params.referente,
       competencia: params.competencia,
       data_emissao: params.data_emissao,
-      cidade_emissao: params.cidade_emissao || config.cidade_padrao || 'Brasília/DF',
+      cidade_emissao: params.cidade_emissao || config.cidade_padrao || 'Itapuranga - GO',
       observacoes: params.observacoes,
       usuario_id: params.usuario.id,
       usuario_nome: params.usuario.nome,
@@ -506,6 +605,7 @@ export const StorageService = {
       created_at: new Date().toISOString(),
       logo_url: params.logo_url,
       rdc_detalhes: params.rdc_detalhes,
+      recibo_medico_detalhes: params.recibo_medico_detalhes,
     };
 
     const docs = this.getDocumentos();
@@ -515,19 +615,29 @@ export const StorageService = {
     return novoDoc;
   },
 
-  cancelarDocumento(id: string): void {
+  cancelarDocumento(id: string, usuario?: Usuario, motivo?: string): Documento | undefined {
     const docs = this.getDocumentos();
     const item = docs.find((d) => d.id === id);
     if (item) {
       item.status = 'cancelado';
+      item.data_cancelamento = new Date().toISOString();
+      item.usuario_cancelamento_id = usuario?.id || 'sistema';
+      item.usuario_cancelamento_nome = usuario?.nome || 'Operador do Sistema';
+      item.motivo_cancelamento = motivo?.trim() || 'Cancelamento solicitado e confirmado no sistema.';
       setLocalStorageItem(STORAGE_KEYS.DOCUMENTOS, docs);
+      return item;
     }
+    return undefined;
   },
 
   // --- Configurações ---
   getConfig(): SistemaConfig {
     const cfg = getLocalStorageItem<SistemaConfig>(STORAGE_KEYS.CONFIG, INITIAL_CONFIG);
     let mudou = false;
+    if (cfg.proximo_recibo_medico_num === undefined) {
+      cfg.proximo_recibo_medico_num = 2;
+      mudou = true;
+    }
     if (!cfg.tipos_gasto || cfg.tipos_gasto.length === 0) {
       cfg.tipos_gasto = [...DEFAULT_TIPOS_GASTO];
       mudou = true;
@@ -535,6 +645,16 @@ export const StorageService = {
     if (!cfg.tipos_doc || cfg.tipos_doc.length === 0) {
       cfg.tipos_doc = [...DEFAULT_TIPOS_DOC];
       mudou = true;
+    } else {
+      let docMigrado = false;
+      cfg.tipos_doc = cfg.tipos_doc.map((td) => {
+        if (td.codigo === 'Nf') {
+          docMigrado = true;
+          return { ...td, codigo: 'NF' };
+        }
+        return td;
+      });
+      if (docMigrado) mudou = true;
     }
     if (mudou && typeof window !== 'undefined') {
       setLocalStorageItem(STORAGE_KEYS.CONFIG, cfg);

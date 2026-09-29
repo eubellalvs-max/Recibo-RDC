@@ -118,6 +118,7 @@ export function NovoReciboModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (salvando) return;
     setErro(null);
 
     if (!empresaEmissoraId) {
@@ -145,6 +146,7 @@ export function NovoReciboModal({
       return;
     }
 
+    setSalvando(true);
     try {
       const doc = StorageService.emitirDocumento({
         tipo: 'recibo',
@@ -160,8 +162,9 @@ export function NovoReciboModal({
       });
 
       onSuccess(doc);
-    } catch (err) {
+    } catch {
       setErro('Ocorreu um erro ao emitir o recibo. Tente novamente.');
+      setSalvando(false);
     }
   };
 
@@ -187,21 +190,21 @@ export function NovoReciboModal({
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-white border border-slate-200 rounded-xl shadow-xl max-w-2xl w-full my-8 overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl max-w-2xl w-full my-8 overflow-hidden transition-colors">
         {/* Header do Modal */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-slate-50">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-850">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold">
+            <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 flex items-center justify-center font-bold">
               🧾
             </div>
             <div>
-              <h2 className="text-sm font-bold text-slate-900">NOVO RECIBO</h2>
-              <p className="text-xs text-slate-500">Emissão com numeração sequencial e extenso automático</p>
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white">NOVO RECIBO</h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Emissão com numeração sequencial e extenso automático</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-200 rounded-lg transition-colors"
+            className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -243,7 +246,7 @@ export function NovoReciboModal({
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Empresa Destinatária (Quem paga) *
+                RECEBEMOS DE: (Empresa Destinatária / Quem paga) *
               </label>
               <select
                 value={empresaDestinatariaId}
@@ -335,7 +338,7 @@ export function NovoReciboModal({
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-center">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Valor *
+                  O VALOR DE: *
                 </label>
                 <div className="relative">
                   <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-xs font-semibold text-slate-500">
@@ -429,10 +432,11 @@ export function NovoReciboModal({
             </button>
             <button
               type="submit"
-              className="px-5 py-2 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-lg shadow-sm transition-colors flex items-center gap-1.5"
+              disabled={salvando}
+              className="px-5 py-2 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 disabled:opacity-50 rounded-lg shadow-sm transition-colors flex items-center gap-1.5"
             >
               <Check className="w-3.5 h-3.5 text-emerald-400" />
-              <span>EMITIR RECIBO</span>
+              <span>{salvando ? 'EMITINDO...' : 'EMITIR RECIBO'}</span>
             </button>
           </div>
         </form>

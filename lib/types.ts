@@ -41,7 +41,7 @@ export interface Empresa {
   created_at: string;
 }
 
-export type TipoDocumento = 'recibo' | 'rdc';
+export type TipoDocumento = 'recibo' | 'rdc' | 'recibo_medico';
 
 export type StatusDocumento = 'emitido' | 'cancelado';
 
@@ -59,6 +59,31 @@ export interface TipoDocConfig {
   codigo: string; // Ex: 'Rec', 'Nf', 'CF', 'Fat'
   nome: string; // Ex: 'Recibo', 'Nota Fiscal', 'Cupom Fiscal'
   descricao?: string;
+}
+
+export interface DadosReciboMedico {
+  // Dados do Pagador
+  pagador_nome: string;
+  pagador_documento: string; // CPF ou CNPJ
+  pagador_telefone?: string;
+  pagador_endereco?: string;
+
+  // Dados do Paciente
+  paciente_nome: string;
+  paciente_cpf: string;
+  paciente_telefone?: string;
+  paciente_endereco?: string;
+
+  // Detalhes do Atendimento
+  servico_prestado: string;
+  medico_assistente: string;
+  crm: string;
+  data_atendimento: string; // YYYY-MM-DD ou DD/MM/AAAA
+  forma_pagamento: string; // Pix, Dinheiro, Cartão de Crédito, Cartão de Débito, Transferência
+
+  // Local e Data
+  cidade: string;
+  uf: string;
 }
 
 export interface ItemGastoRdc {
@@ -127,6 +152,11 @@ export interface Documento {
   created_at: string;
   logo_url?: string; // Logo específico da empresa emissora vinculado ao documento
   rdc_detalhes?: DadosRdc; // Dados estruturados da RDC oficial
+  recibo_medico_detalhes?: DadosReciboMedico; // Dados específicos do Recibo Médico
+  data_cancelamento?: string; // Data ISO de quando o documento foi cancelado
+  usuario_cancelamento_id?: string; // ID do usuário que efetuou o cancelamento
+  usuario_cancelamento_nome?: string; // Nome do usuário que cancelou
+  motivo_cancelamento?: string; // Justificativa obrigatória do cancelamento
 }
 
 export interface SistemaConfig {
@@ -136,6 +166,7 @@ export interface SistemaConfig {
   ano_corrente: number;
   proximo_recibo_num: number;
   proximo_rdc_num: number;
+  proximo_recibo_medico_num?: number; // Próximo sequencial para recibo médico (Ex: 1 -> 001/2026)
   incluir_segunda_via: boolean;
   mensagem_rodape: string;
   tipos_gasto?: TipoGastoConfig[]; // Tipos / natureza de gastos configuráveis da RDC

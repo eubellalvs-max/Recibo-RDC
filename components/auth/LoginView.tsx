@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Usuario } from '@/lib/types';
 import { StorageService } from '@/lib/storage';
 import { Lock, User, FileText, ArrowRight, ShieldCheck, CheckCircle2, AlertCircle, Building2 } from 'lucide-react';
+import { ThemeToggle } from '@/lib/theme';
 
 interface LoginViewProps {
   onLoginSuccess: (user: Usuario) => void;
@@ -66,12 +67,12 @@ export function LoginView({ onLoginSuccess }: LoginViewProps) {
         return;
       }
 
-      // Validação de senha: aceita senha cadastrada OU senha mestra 123456
-      const senhaCorreta = usuarioEncontrado.senha === senha || senha === '123456';
+      // Validação estrita de senha: sem bypass de senha mestra
+      const senhaCorreta = usuarioEncontrado.senha === senha;
 
       if (!senhaCorreta) {
         setCarregando(false);
-        setErro('Senha incorreta. Tente novamente ou use a senha mestra de contingência.');
+        setErro('Senha incorreta. Verifique a senha digitada ou contate o administrador.');
         return;
       }
 
@@ -90,36 +91,41 @@ export function LoginView({ onLoginSuccess }: LoginViewProps) {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 flex flex-col justify-center items-center p-4">
+    <div className="min-h-screen bg-slate-100 dark:bg-slate-950 flex flex-col justify-center items-center p-4 transition-colors relative">
+      {/* Botão de Alternância de Aparência Clara/Escura */}
+      <div className="absolute top-5 right-5">
+        <ThemeToggle variant="icon" />
+      </div>
+
       <div className="w-full max-w-md">
         {/* Card Principal */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-7 shadow-sm">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-7 shadow-sm transition-colors">
           {/* Logo e Cabeçalho */}
           <div className="text-center mb-6">
-            <div className="w-14 h-14 bg-slate-900 text-white rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-xs">
-              <FileText className="w-7 h-7" />
+            <div className="w-14 h-14 bg-slate-900 dark:bg-slate-800 text-white rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-xs border dark:border-slate-700">
+              <FileText className="w-7 h-7 text-emerald-400" />
             </div>
-            <h1 className="text-lg font-bold text-slate-900 tracking-tight">
+            <h1 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">
               SISTEMA DE RECIBOS & RDC
             </h1>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
               Portal Oficial de Emissão e Controle Documental
             </p>
           </div>
 
           {/* Abas de Seleção de Acesso */}
-          <div className="grid grid-cols-2 p-1 bg-slate-100 rounded-xl mb-5 border border-slate-200/80">
+          <div className="grid grid-cols-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl mb-5 border border-slate-200/80 dark:border-slate-700">
             <button
               type="button"
               onClick={() => handleMudarTipoAcesso('admin')}
               className={`py-2 px-3 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
                 tipoAcesso === 'admin'
-                  ? 'bg-white text-slate-900 shadow-xs border border-slate-200'
-                  : 'text-slate-500 hover:text-slate-900'
+                  ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs border border-slate-200 dark:border-slate-700'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               <ShieldCheck
-                className={`w-4 h-4 ${tipoAcesso === 'admin' ? 'text-blue-600' : 'text-slate-400'}`}
+                className={`w-4 h-4 ${tipoAcesso === 'admin' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400'}`}
               />
               <span>Acesso Admin</span>
             </button>
@@ -129,12 +135,12 @@ export function LoginView({ onLoginSuccess }: LoginViewProps) {
               onClick={() => handleMudarTipoAcesso('emissor')}
               className={`py-2 px-3 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
                 tipoAcesso === 'emissor'
-                  ? 'bg-white text-slate-900 shadow-xs border border-slate-200'
-                  : 'text-slate-500 hover:text-slate-900'
+                  ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs border border-slate-200 dark:border-slate-700'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               <User
-                className={`w-4 h-4 ${tipoAcesso === 'emissor' ? 'text-emerald-600' : 'text-slate-400'}`}
+                className={`w-4 h-4 ${tipoAcesso === 'emissor' ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'}`}
               />
               <span>Área do Emissor</span>
             </button>
@@ -144,14 +150,14 @@ export function LoginView({ onLoginSuccess }: LoginViewProps) {
           <div
             className={`mb-5 p-3 rounded-xl border text-xs flex items-start gap-2.5 transition-colors ${
               tipoAcesso === 'admin'
-                ? 'bg-blue-50/70 border-blue-200/80 text-blue-900'
-                : 'bg-emerald-50/70 border-emerald-200/80 text-emerald-900'
+                ? 'bg-blue-50/70 dark:bg-blue-950/40 border-blue-200/80 dark:border-blue-900/50 text-blue-900 dark:text-blue-200'
+                : 'bg-emerald-50/70 dark:bg-emerald-950/40 border-emerald-200/80 dark:border-emerald-900/50 text-emerald-900 dark:text-emerald-200'
             }`}
           >
             {tipoAcesso === 'admin' ? (
-              <ShieldCheck className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+              <ShieldCheck className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
             ) : (
-              <Building2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+              <Building2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
             )}
             <div className="leading-relaxed">
               <div className="font-bold">
@@ -164,7 +170,7 @@ export function LoginView({ onLoginSuccess }: LoginViewProps) {
                   ? 'Gestão de empresas, usuários, permissões, histórico e numeração.'
                   : 'Emissão rápida de Recibos, RDC corporativa e consulta.'}
               </p>
-              <div className="text-[11px] font-mono mt-1 font-semibold pt-1 border-t border-black/10">
+              <div className="text-[11px] font-mono mt-1 font-semibold pt-1 border-t border-black/10 dark:border-white/10">
                 {tipoAcesso === 'admin'
                   ? 'Usuário padrão: admin | Senha: 123'
                   : 'Usuário padrão: lucas ou mariana | Senha: 123'}
@@ -174,7 +180,7 @@ export function LoginView({ onLoginSuccess }: LoginViewProps) {
 
           {/* Mensagem de Erro */}
           {erro && (
-            <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2">
+            <div className="mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/60 text-red-700 dark:text-red-300 text-xs flex items-center gap-2">
               <AlertCircle className="w-4 h-4 shrink-0" />
               <span>{erro}</span>
             </div>
@@ -183,11 +189,11 @@ export function LoginView({ onLoginSuccess }: LoginViewProps) {
           {/* Formulário de Login */}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
                 Usuário / Login
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 dark:text-slate-500">
                   <User className="w-4 h-4" />
                 </div>
                 <input
@@ -196,17 +202,17 @@ export function LoginView({ onLoginSuccess }: LoginViewProps) {
                   value={login}
                   onChange={(e) => setLogin(e.target.value)}
                   placeholder={tipoAcesso === 'admin' ? 'admin' : 'Ex: lucas ou mariana'}
-                  className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 focus:ring-1 focus:ring-slate-800 outline-none transition-colors"
+                  className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:border-slate-800 dark:focus:border-slate-500 focus:ring-1 focus:ring-slate-800 outline-none transition-colors"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
                 Senha de Acesso
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 dark:text-slate-500">
                   <Lock className="w-4 h-4" />
                 </div>
                 <input
@@ -215,10 +221,10 @@ export function LoginView({ onLoginSuccess }: LoginViewProps) {
                   value={senha}
                   onChange={(e) => setSenha(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 focus:ring-1 focus:ring-slate-800 outline-none transition-colors"
+                  className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:border-slate-800 dark:focus:border-slate-500 focus:ring-1 focus:ring-slate-800 outline-none transition-colors"
                 />
               </div>
-              <div className="flex items-center justify-between mt-1 text-[11px] text-slate-400">
+              <div className="flex items-center justify-between mt-1 text-[11px] text-slate-400 dark:text-slate-500">
                 <span>Senha padrão: 123 ou Mestra: 123456</span>
               </div>
             </div>
@@ -227,7 +233,7 @@ export function LoginView({ onLoginSuccess }: LoginViewProps) {
               <button
                 type="submit"
                 disabled={carregando}
-                className="w-full py-2.5 px-4 bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2"
+                className="w-full py-2.5 px-4 bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 dark:border dark:border-slate-700 disabled:opacity-50 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2"
               >
                 <span>{carregando ? 'ENTRANDO...' : 'ACESSAR O SISTEMA'}</span>
                 <ArrowRight className="w-4 h-4" />
@@ -238,7 +244,7 @@ export function LoginView({ onLoginSuccess }: LoginViewProps) {
               <button
                 type="button"
                 onClick={() => setModalEsqueci(true)}
-                className="text-xs text-slate-500 hover:text-slate-900 transition-colors underline-offset-4 hover:underline"
+                className="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors underline-offset-4 hover:underline"
               >
                 Esqueci minha senha
               </button>
@@ -247,9 +253,9 @@ export function LoginView({ onLoginSuccess }: LoginViewProps) {
         </div>
 
         {/* Rodapé */}
-        <div className="text-center mt-5 text-[11px] text-slate-400 space-y-1">
+        <div className="text-center mt-5 text-[11px] text-slate-400 dark:text-slate-500 space-y-1">
           <div>Sistema de Emissão e Gestão de Recibos & RDC</div>
-          <div className="text-slate-500">Desenvolvido para conformidade e controle interno</div>
+          <div className="text-slate-500 dark:text-slate-400">Desenvolvido para conformidade e controle interno</div>
         </div>
       </div>
 

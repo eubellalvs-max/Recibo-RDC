@@ -93,6 +93,15 @@ export function UsuariosManagement({ currentUser }: UsuariosManagementProps) {
       setErroForm('O Usuário/Login é obrigatório.');
       return;
     }
+
+    const loginLimpo = login.trim().toLowerCase();
+    const loginJaExiste = usuarios.some(
+      (u) => u.login.toLowerCase() === loginLimpo && (!usuarioEditando || u.id !== usuarioEditando.id)
+    );
+    if (loginJaExiste) {
+      setErroForm(`O login "${login.trim()}" já está em uso por outro usuário.`);
+      return;
+    }
     if (!email.trim()) {
       setErroForm('O E-mail é obrigatório.');
       return;

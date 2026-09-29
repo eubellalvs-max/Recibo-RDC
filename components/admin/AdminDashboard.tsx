@@ -14,12 +14,14 @@ import {
   ArrowRight,
   TrendingUp,
   FileCheck2,
+  HeartPulse,
 } from 'lucide-react';
 
 interface AdminDashboardProps {
   onSelectTab: (tab: string) => void;
   onOpenNovoRecibo: () => void;
   onOpenNovoRdc: () => void;
+  onOpenNovoReciboMedico?: () => void;
   onVisualizarDocumento: (doc: Documento) => void;
 }
 
@@ -27,6 +29,7 @@ export function AdminDashboard({
   onSelectTab,
   onOpenNovoRecibo,
   onOpenNovoRdc,
+  onOpenNovoReciboMedico,
   onVisualizarDocumento,
 }: AdminDashboardProps) {
   const empresas = StorageService.getEmpresas();
@@ -39,6 +42,7 @@ export function AdminDashboard({
   const valorTotalGeral = docsValidos.reduce((acc, curr) => acc + curr.valor, 0);
 
   const recibosCount = docsValidos.filter((d) => d.tipo === 'recibo').length;
+  const recibosMedicosCount = docsValidos.filter((d) => d.tipo === 'recibo_medico').length;
   const rdcCount = docsValidos.filter((d) => d.tipo === 'rdc').length;
 
   const ultimosDocs = documentos.slice(0, 6);
@@ -51,27 +55,36 @@ export function AdminDashboard({
   return (
     <div className="p-6 md:p-8 space-y-8 max-w-6xl mx-auto">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-slate-900">
+          <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
             Painel do Administrador
           </h1>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             Visão consolidada de empresas, usuários cadastrados e documentos emitidos
           </p>
         </div>
 
         <div className="flex items-center gap-2">
+          {onOpenNovoReciboMedico && (
+            <button
+              onClick={onOpenNovoReciboMedico}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-500 rounded-lg shadow-2xs transition-colors"
+            >
+              <HeartPulse className="w-3.5 h-3.5" />
+              <span>Recibo Médico</span>
+            </button>
+          )}
           <button
             onClick={onOpenNovoRecibo}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-lg shadow-2xs transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 dark:border dark:border-slate-700 rounded-lg shadow-2xs transition-colors"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Emitir Recibo</span>
           </button>
           <button
             onClick={onOpenNovoRdc}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 dark:text-slate-200 dark:hover:text-white bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-lg transition-colors"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Emitir RDC</span>
@@ -84,23 +97,23 @@ export function AdminDashboard({
         {/* Card Empresas */}
         <div
           onClick={() => onSelectTab('empresas')}
-          className="p-4 bg-white border border-slate-200 rounded-xl hover:border-slate-300 transition-colors cursor-pointer shadow-2xs group"
+          className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl hover:border-slate-300 dark:hover:border-slate-700 transition-colors cursor-pointer shadow-2xs group"
         >
-          <div className="flex items-center justify-between text-slate-500">
+          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
             <span className="text-[11px] font-semibold uppercase tracking-wider">
               Empresas
             </span>
-            <Building2 className="w-4 h-4 text-slate-400 group-hover:text-slate-800 transition-colors" />
+            <Building2 className="w-4 h-4 text-slate-400 dark:text-slate-500 group-hover:text-slate-800 dark:group-hover:text-slate-200 transition-colors" />
           </div>
           <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-slate-900 tabular-nums">
+            <span className="text-2xl font-bold text-slate-900 dark:text-white tabular-nums">
               {empresas.length}
             </span>
-            <span className="text-xs text-slate-500">
+            <span className="text-xs text-slate-500 dark:text-slate-400">
               ({empresasAtivas} ativas)
             </span>
           </div>
-          <div className="mt-2 text-[11px] text-slate-400 flex items-center justify-between">
+          <div className="mt-2 text-[11px] text-slate-400 dark:text-slate-500 flex items-center justify-between">
             <span>Emissoras e Destinatárias</span>
             <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
           </div>
@@ -109,23 +122,23 @@ export function AdminDashboard({
         {/* Card Usuários */}
         <div
           onClick={() => onSelectTab('usuarios')}
-          className="p-4 bg-white border border-slate-200 rounded-xl hover:border-slate-300 transition-colors cursor-pointer shadow-2xs group"
+          className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl hover:border-slate-300 dark:hover:border-slate-700 transition-colors cursor-pointer shadow-2xs group"
         >
-          <div className="flex items-center justify-between text-slate-500">
+          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
             <span className="text-[11px] font-semibold uppercase tracking-wider">
               Usuários
             </span>
-            <Users className="w-4 h-4 text-slate-400 group-hover:text-slate-800 transition-colors" />
+            <Users className="w-4 h-4 text-slate-400 dark:text-slate-500 group-hover:text-slate-800 dark:group-hover:text-slate-200 transition-colors" />
           </div>
           <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-slate-900 tabular-nums">
+            <span className="text-2xl font-bold text-slate-900 dark:text-white tabular-nums">
               {usuarios.length}
             </span>
-            <span className="text-xs text-slate-500">
+            <span className="text-xs text-slate-500 dark:text-slate-400">
               ({usuariosAtivos} ativos)
             </span>
           </div>
-          <div className="mt-2 text-[11px] text-slate-400 flex items-center justify-between">
+          <div className="mt-2 text-[11px] text-slate-400 dark:text-slate-500 flex items-center justify-between">
             <span>Administradores e Emissores</span>
             <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
           </div>
@@ -134,62 +147,62 @@ export function AdminDashboard({
         {/* Card Documentos */}
         <div
           onClick={() => onSelectTab('documentos')}
-          className="p-4 bg-white border border-slate-200 rounded-xl hover:border-slate-300 transition-colors cursor-pointer shadow-2xs group"
+          className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl hover:border-slate-300 dark:hover:border-slate-700 transition-colors cursor-pointer shadow-2xs group"
         >
-          <div className="flex items-center justify-between text-slate-500">
+          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
             <span className="text-[11px] font-semibold uppercase tracking-wider">
               Documentos
             </span>
-            <FileText className="w-4 h-4 text-slate-400 group-hover:text-slate-800 transition-colors" />
+            <FileText className="w-4 h-4 text-slate-400 dark:text-slate-500 group-hover:text-slate-800 dark:group-hover:text-slate-200 transition-colors" />
           </div>
           <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-slate-900 tabular-nums">
+            <span className="text-2xl font-bold text-slate-900 dark:text-white tabular-nums">
               {documentos.length}
             </span>
-            <span className="text-xs text-slate-500">
-              ({recibosCount} Rec / {rdcCount} RDC)
+            <span className="text-xs text-slate-500 dark:text-slate-400">
+              ({recibosMedicosCount} Méd / {recibosCount} Rec / {rdcCount} RDC)
             </span>
           </div>
-          <div className="mt-2 text-[11px] text-slate-400 flex items-center justify-between">
+          <div className="mt-2 text-[11px] text-slate-400 dark:text-slate-500 flex items-center justify-between">
             <span>Sequencial ativo</span>
             <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
           </div>
         </div>
 
         {/* Card Volume Total */}
-        <div className="p-4 bg-white border border-slate-200 rounded-xl shadow-2xs">
-          <div className="flex items-center justify-between text-slate-500">
+        <div className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xs">
+          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
             <span className="text-[11px] font-semibold uppercase tracking-wider">
               Volume Emitido
             </span>
-            <DollarSign className="w-4 h-4 text-emerald-600" />
+            <DollarSign className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
           </div>
           <div className="mt-2">
-            <span className="text-xl font-bold text-slate-900 tabular-nums">
+            <span className="text-xl font-bold text-slate-900 dark:text-white tabular-nums">
               {formatarMoeda(valorTotalGeral)}
             </span>
           </div>
-          <div className="mt-2 text-[11px] text-slate-400">
+          <div className="mt-2 text-[11px] text-slate-400 dark:text-slate-500">
             Total acumulado no exercício 2026
           </div>
         </div>
       </div>
 
       {/* Tabela dos Últimos Documentos Emitidos */}
-      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
-        <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-2xs transition-colors">
+        <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
           <div>
-            <h2 className="text-sm font-bold text-slate-900">
+            <h2 className="text-sm font-bold text-slate-900 dark:text-white">
               Últimos Documentos Emitidos no Sistema
             </h2>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               Acompanhamento em tempo real de emissões de Recibos e RDC
             </p>
           </div>
 
           <button
             onClick={() => onSelectTab('documentos')}
-            className="text-xs font-semibold text-slate-700 hover:text-slate-900 hover:underline flex items-center gap-1"
+            className="text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:underline flex items-center gap-1"
           >
             <span>Ver todos</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -198,7 +211,7 @@ export function AdminDashboard({
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold">
+            <thead className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 font-semibold">
               <tr>
                 <th className="px-4 py-3">Nº</th>
                 <th className="px-4 py-3">Tipo</th>
@@ -209,41 +222,46 @@ export function AdminDashboard({
                 <th className="px-4 py-3 text-center">Ações</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {ultimosDocs.map((doc) => {
                 const isRecibo = doc.tipo === 'recibo';
+                const isReciboMedico = doc.tipo === 'recibo_medico';
                 return (
-                  <tr key={doc.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-4 py-3 font-mono font-semibold text-slate-900 whitespace-nowrap">
+                  <tr key={doc.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                    <td className="px-4 py-3 font-mono font-semibold text-slate-900 dark:text-slate-100 whitespace-nowrap">
                       {doc.numero}
                     </td>
                     <td className="px-4 py-3">
                       <span
                         className={`text-[11px] font-semibold ${
-                          isRecibo ? 'text-emerald-700' : 'text-blue-700'
+                          isReciboMedico
+                            ? 'text-teal-700 bg-teal-50 dark:text-teal-300 dark:bg-teal-950/60 px-2 py-0.5 rounded'
+                            : isRecibo
+                            ? 'text-emerald-700 bg-emerald-50 dark:text-emerald-300 dark:bg-emerald-950/60 px-2 py-0.5 rounded'
+                            : 'text-blue-700 bg-blue-50 dark:text-blue-300 dark:bg-blue-950/60 px-2 py-0.5 rounded'
                         }`}
                       >
-                        {isRecibo ? 'Recibo' : 'RDC'}
+                        {isReciboMedico ? 'REC.M' : isRecibo ? 'REC.' : 'RDC'}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-slate-700 max-w-[170px] truncate">
+                    <td className="px-4 py-3 text-slate-700 dark:text-slate-300 max-w-[170px] truncate">
                       {getNomeEmpresa(doc.empresa_emissora_id)}
                     </td>
-                    <td className="px-4 py-3 text-slate-900 font-medium max-w-[170px] truncate">
+                    <td className="px-4 py-3 text-slate-900 dark:text-slate-100 font-medium max-w-[170px] truncate">
                       {getNomeEmpresa(doc.empresa_destinataria_id)}
                     </td>
-                    <td className="px-4 py-3 text-slate-500 whitespace-nowrap">
+                    <td className="px-4 py-3 text-slate-500 dark:text-slate-400 whitespace-nowrap">
                       {formatarDataBr(doc.data_emissao)}
                     </td>
-                    <td className="px-4 py-3 text-right font-semibold text-slate-900 tabular-nums whitespace-nowrap">
+                    <td className="px-4 py-3 text-right font-semibold text-slate-900 dark:text-slate-100 tabular-nums whitespace-nowrap">
                       {formatarMoeda(doc.valor)}
                     </td>
                     <td className="px-4 py-3 text-center whitespace-nowrap">
                       <button
                         onClick={() => onVisualizarDocumento(doc)}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 rounded-md transition-colors"
+                        className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-md transition-colors"
                       >
-                        <Eye className="w-3 h-3 text-slate-500" />
+                        <Eye className="w-3 h-3 text-slate-500 dark:text-slate-400" />
                         <span>Visualizar</span>
                       </button>
                     </td>

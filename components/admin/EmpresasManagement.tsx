@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Empresa, TipoEmpresa, StatusEmpresa, Usuario } from '@/lib/types';
 import { StorageService } from '@/lib/storage';
-import { mascaraCnpj, mascaraCep, mascaraTelefone } from '@/lib/masks';
+import { mascaraCnpj, mascaraCep, mascaraTelefone, validarCnpj } from '@/lib/masks';
 import {
   Building2,
   Plus,
@@ -134,8 +134,16 @@ export function EmpresasManagement({ currentUser, readOnly = false }: EmpresasMa
     }
 
     const cnpjLimpo = cnpj.replace(/\D/g, '');
-    if (cnpjLimpo.length < 14) {
-      setErroForm('Informe um CNPJ válido com 14 dígitos.');
+    if (!validarCnpj(cnpjLimpo)) {
+      setErroForm('Informe um CNPJ válido com dígitos verificadores corretos.');
+      return;
+    }
+
+    const cnpjJaExiste = empresas.some(
+      (e) => e.cnpj.replace(/\D/g, '') === cnpjLimpo && (!empresaEditando || e.id !== empresaEditando.id)
+    );
+    if (cnpjJaExiste) {
+      setErroForm(`O CNPJ informado já está cadastrado para outra empresa.`);
       return;
     }
 

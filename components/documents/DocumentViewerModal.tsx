@@ -2,10 +2,10 @@
 
 import React, { useState } from 'react';
 import { Documento, Empresa, TipoGastoConfig, TipoDocConfig } from '@/lib/types';
-import { StorageService } from '@/lib/storage';
+import { StorageService, ABEAS_FIXA } from '@/lib/storage';
 import { formatarMoeda, mascaraCnpj, mascaraCpf, formatarDataBr } from '@/lib/masks';
 import { dataPorExtenso } from '@/lib/extenso';
-import { Printer, Copy, Check, X } from 'lucide-react';
+import { Printer, Copy, Check, X, Download, AlertCircle } from 'lucide-react';
 
 interface DocumentViewerModalProps {
   documento: Documento | null;
@@ -34,7 +34,9 @@ export function DocumentViewerModal({
   );
 
   const isRdc = documento.tipo === 'rdc';
+  const isReciboMedico = documento.tipo === 'recibo_medico';
   const rdc = documento.rdc_detalhes;
+  const med = documento.recibo_medico_detalhes;
 
   const handlePrint = () => {
     window.print();
@@ -79,16 +81,57 @@ Valor a ressarcir na conta do solicitante: ${formatarMoeda(rdc.valor_ressarcir_s
 AVISO: DESPESAS COM BEBIDAS ALCOÓLICAS, GASTOS NÃO PRÉ ACORDADOS COM DIRETORIA, NÃO SERÃO REEMBOLSADOS.
 ==================================================
 `.trim();
+    } else if (isReciboMedico && med) {
+      texto = `
+==================================================
+${ABEAS_FIXA.razao_social}
+CNPJ: ${ABEAS_FIXA.cnpj}
+RECIBO DE PRESTAÇÃO DE SERVIÇOS MÉDICOS
+Recibo nº: ${documento.numero}
+Valor: ${formatarMoeda(documento.valor)} (${documento.valor_extenso})
+==================================================
+${ABEAS_FIXA.texto_declaracao}
+
+DADOS DO PAGADOR:
+Nome/Razão Social: ${med.pagador_nome}
+CPF/CNPJ: ${med.pagador_documento}
+Telefone: ${med.pagador_telefone || '---'}
+Endereço: ${med.pagador_endereco || '---'}
+
+A quantia supra de ${formatarMoeda(documento.valor)} (${documento.valor_extenso}), referente à prestação de serviços médicos particulares realizados no(a) paciente abaixo qualificado(a):
+
+DADOS DO PACIENTE:
+Nome do Paciente: ${med.paciente_nome}
+CPF do Paciente: ${med.paciente_cpf}
+Telefone: ${med.paciente_telefone || '---'}
+Endereço: ${med.paciente_endereco || '---'}
+
+DETALHES DO ATENDIMENTO:
+Serviço prestado: ${med.servico_prestado}
+Médico(a) assistente: ${med.medico_assistente}
+CRM: ${med.crm}
+Data do atendimento: ${med.data_atendimento.split('-').reverse().join('/')}
+Forma de pagamento: ${med.forma_pagamento}
+
+${ABEAS_FIXA.texto_final}
+
+${med.cidade || 'Itapuranga'} - ${med.uf || 'GO'}, ${dataPorExtenso(documento.data_emissao)}.
+
+__________________________________________________
+${ABEAS_FIXA.razao_social}
+CNPJ: ${ABEAS_FIXA.cnpj}
+==================================================
+`.trim();
     } else {
       texto = `
 ==================================================
 ${config.sigla_organizacao || 'ABEAS'}
 RECIBO Nº ${documento.numero}
 ==================================================
-Recebemos de: ${destinataria?.razao_social || 'Empresa Destinatária'}
+RECEBEMOS DE: ${destinataria?.razao_social || 'Empresa Destinatária'}
 CNPJ: ${destinataria ? mascaraCnpj(destinataria.cnpj) : ''}
-A importância de: ${formatarMoeda(documento.valor)} (${documento.valor_extenso})
-Referente a: ${documento.referente}
+O VALOR DE: ${formatarMoeda(documento.valor)} (${documento.valor_extenso})
+REFERENTE A: ${documento.referente}
 ${documento.observacoes ? `Observações: ${documento.observacoes}` : ''}
 ${documento.cidade_emissao || 'Brasília/DF'}, ${dataPorExtenso(documento.data_emissao)}.
 Emissor: ${emissora?.razao_social || 'Empresa Emissora'}
@@ -122,20 +165,25 @@ Emissor: ${emissora?.razao_social || 'Empresa Emissora'}
   const linhasVaziasCount = Math.max(0, qtdLinhasTotais - itensAtuais.length);
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
-      <div className="bg-white border border-slate-200 rounded-xl shadow-2xl max-w-4xl w-full my-4 flex flex-col max-h-[94vh]">
+    <div className="fixed inset-0 z-50 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl max-w-4xl w-full my-4 flex flex-col max-h-[94vh] transition-colors">
         {/* Barra Superior de Ações no Modal (Não impressa) */}
-        <div className="no-print flex items-center justify-between px-6 py-3 border-b border-slate-200 bg-slate-50 rounded-t-xl shrink-0">
+        <div className="no-print flex items-center justify-between px-6 py-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-850 rounded-t-xl shrink-0">
           <div className="flex items-center gap-3">
-            <span className="text-xs font-bold text-slate-800 tracking-wide uppercase">
-              {isRdc ? 'RDC - PRESTAÇÃO DE CONTAS' : 'RECIBO'} Nº {documento.numero}
+            <span className="text-xs font-bold text-slate-800 dark:text-slate-100 tracking-wide uppercase">
+              {isRdc
+                ? 'RDC - PRESTAÇÃO DE CONTAS'
+                : isReciboMedico
+                ? 'RECIBO DE PRESTAÇÃO DE SERVIÇOS MÉDICOS'
+                : 'RECIBO'}{' '}
+              Nº {documento.numero}
             </span>
-            {!isRdc && (
-              <div className="flex items-center bg-slate-200/80 rounded-md p-0.5 text-[11px] font-medium text-slate-700">
+            {!isRdc && !isReciboMedico && (
+              <div className="flex items-center bg-slate-200/80 dark:bg-slate-800 rounded-md p-0.5 text-[11px] font-medium text-slate-700 dark:text-slate-300">
                 <button
                   onClick={() => setVia('1')}
                   className={`px-2 py-0.5 rounded transition-colors ${
-                    via === '1' ? 'bg-white text-slate-900 shadow-2xs font-semibold' : ''
+                    via === '1' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-2xs font-semibold' : ''
                   }`}
                 >
                   1ª Via
@@ -143,7 +191,7 @@ Emissor: ${emissora?.razao_social || 'Empresa Emissora'}
                 <button
                   onClick={() => setVia('2')}
                   className={`px-2 py-0.5 rounded transition-colors ${
-                    via === '2' ? 'bg-white text-slate-900 shadow-2xs font-semibold' : ''
+                    via === '2' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-2xs font-semibold' : ''
                   }`}
                 >
                   2ª Via
@@ -155,17 +203,17 @@ Emissor: ${emissora?.razao_social || 'Empresa Emissora'}
           <div className="flex items-center gap-2">
             <button
               onClick={handleCopyText}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-lg transition-colors"
               title="Copiar texto do documento"
             >
               {copiado ? (
                 <>
-                  <Check className="w-3.5 h-3.5 text-emerald-600" />
-                  <span className="text-emerald-700 font-semibold">Copiado!</span>
+                  <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                  <span className="text-emerald-700 dark:text-emerald-400 font-semibold">Copiado!</span>
                 </>
               ) : (
                 <>
-                  <Copy className="w-3.5 h-3.5 text-slate-500" />
+                  <Copy className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
                   <span>Copiar Dados</span>
                 </>
               )}
@@ -173,7 +221,7 @@ Emissor: ${emissora?.razao_social || 'Empresa Emissora'}
 
             <button
               onClick={handlePrint}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-lg shadow-sm transition-colors"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 dark:border dark:border-slate-700 rounded-lg shadow-sm transition-colors"
             >
               <Printer className="w-3.5 h-3.5" />
               <span>Imprimir / Gerar PDF</span>
@@ -181,41 +229,59 @@ Emissor: ${emissora?.razao_social || 'Empresa Emissora'}
 
             <button
               onClick={onClose}
-              className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-200 rounded-lg transition-colors"
+              className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
         </div>
 
+        {/* Banner de Auditoria de Cancelamento */}
+        {documento.status === 'cancelado' && (
+          <div className="bg-red-50 dark:bg-red-950/60 border-b border-red-200 dark:border-red-900/60 px-6 py-2.5 text-xs text-red-800 dark:text-red-300 flex items-start gap-2.5 shrink-0">
+            <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+            <div className="leading-tight">
+              <span className="font-bold uppercase tracking-wider text-red-700 dark:text-red-400">DOCUMENTO CANCELADO</span>
+              <div className="text-[11px] text-red-600 dark:text-red-400 mt-0.5">
+                <span>Data do Cancelamento: <b>{documento.data_cancelamento ? new Date(documento.data_cancelamento).toLocaleString('pt-BR') : 'Não registrada'}</b></span>
+                <span className="mx-2">•</span>
+                <span>Responsável: <b>{documento.usuario_cancelamento_nome || 'Sistema'}</b></span>
+              </div>
+              {documento.motivo_cancelamento && (
+                <div className="text-[11px] text-red-700 dark:text-red-300 mt-1 italic">
+                  Motivo: &ldquo;{documento.motivo_cancelamento}&rdquo;
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Conteúdo com Scroll na tela e formatado para papel timbrado */}
-        <div className="flex-1 overflow-y-auto p-4 md:p-8 bg-slate-100 flex justify-center">
+        <div className="flex-1 overflow-y-auto p-4 md:p-8 bg-slate-100 dark:bg-slate-950 flex justify-center transition-colors">
           {/* Se for RDC: Renderiza EXATAMENTE o modelo da imagem */}
           {isRdc && rdc ? (
             <div className="print-sheet bg-white border border-slate-800 shadow-sm p-6 sm:p-8 max-w-3xl w-full text-slate-900 font-sans leading-tight text-xs">
-              {/* CABEÇALHO DO MODELO ABEAS */}
-              <div className="flex items-center justify-between gap-4 pb-4 border-b-2 border-slate-800 mb-3">
-                {/* Logo ABEAS */}
-                <div className="flex items-center gap-2 shrink-0">
-                  <div className="w-10 h-10 rounded border-2 border-slate-900 flex items-center justify-center font-bold text-slate-900 text-sm tracking-tighter">
-                    abeas
-                  </div>
-                  <div className="text-[9px] text-slate-500 leading-tight">
-                    Associação Brasileira de Entidades<br />de Assistência Social
+              {/* CABEÇALHO DO MODELO ABEAS COM LOGO AO LADO */}
+              <div className="flex items-center justify-between gap-4 pb-3.5 border-b-2 border-slate-800 mb-3">
+                {/* Imagem ABEAS ao Lado e depois os textos */}
+                <div className="flex items-center gap-3.5 flex-1">
+                  <img
+                    src="/abeas_logo.png"
+                    alt="ABEAS"
+                    className="h-14 sm:h-16 w-auto object-contain shrink-0"
+                  />
+                  <div>
+                    <h1 className="text-sm sm:text-base font-bold tracking-tight text-slate-900 leading-tight">
+                      Associação Brasileira de Entidades de Assistência Social
+                    </h1>
+                    <h2 className="text-xs sm:text-sm font-bold text-slate-800 tracking-tight mt-0.5 underline leading-tight">
+                      Prestação de Contas e Reembolso de Despesas Corporativa - RDC
+                    </h2>
                   </div>
                 </div>
 
-                {/* Título Central */}
-                <div className="text-right sm:text-center flex-1">
-                  <h1 className="text-sm sm:text-base font-bold tracking-tight text-slate-900 uppercase">
-                    Associação Brasileira de Entidades de Assistência Social
-                  </h1>
-                  <h2 className="text-xs sm:text-sm font-bold text-slate-800 tracking-tight mt-0.5 underline">
-                    Prestação de Contas e Reembolso de Despesas Corporativa - RDC
-                  </h2>
-                  <div className="text-[10px] text-slate-500 font-mono mt-0.5">
-                    Nº {documento.numero}
-                  </div>
+                <div className="text-right text-xs font-mono font-bold text-slate-900 shrink-0">
+                  Nº {documento.numero}
                 </div>
               </div>
 
@@ -338,7 +404,7 @@ Emissor: ${emissora?.razao_social || 'Empresa Emissora'}
                   <thead>
                     <tr className="border-b border-slate-800 text-center font-bold bg-slate-50">
                       <th className="border-r border-slate-800 px-2 py-1 w-20">Tipo Gastos</th>
-                      <th className="border-r border-slate-800 px-2 py-1 w-24">Tipo Doc. - Rec/Nf</th>
+                      <th className="border-r border-slate-800 px-2 py-1 w-24">Tipo Doc. - Rec/NF</th>
                       <th className="border-r border-slate-800 px-2 py-1 text-left">Fornecedor - observação das despesas - número documento</th>
                       <th className="px-2 py-1 w-28 text-right">Valor</th>
                     </tr>
@@ -350,7 +416,7 @@ Emissor: ${emissora?.razao_social || 'Empresa Emissora'}
                           {it.tipo_gasto}
                         </td>
                         <td className="border-r border-slate-800 px-2 py-1 text-center font-semibold">
-                          {it.tipo_doc}
+                          {it.tipo_doc === 'Nf' ? 'NF' : it.tipo_doc}
                         </td>
                         <td className="border-r border-slate-800 px-2 py-1">
                           {it.descricao}
@@ -490,6 +556,181 @@ Emissor: ${emissora?.razao_social || 'Empresa Emissora'}
                 </div>
               </div>
             </div>
+          ) : isReciboMedico && med ? (
+            /* ============================================================== */
+            /* RECIBO DE PRESTAÇÃO DE SERVIÇOS MÉDICOS (MODELO OFICIAL ABEAS) */
+            /* ============================================================== */
+            <div className="print-sheet bg-white border border-slate-300 shadow-sm p-8 sm:p-12 max-w-3xl w-full text-slate-900 font-sans leading-relaxed text-sm">
+              {/* Cabeçalho Oficial do Modelo com Logo ABEAS Acima */}
+              <div className="text-center border-b-2 border-slate-300 pb-5 mb-5">
+                <div className="flex justify-center mb-2.5">
+                  <img
+                    src="/abeas_logo.png"
+                    alt="ABEAS"
+                    className="h-16 sm:h-20 w-auto object-contain"
+                  />
+                </div>
+                <div className="text-xs uppercase tracking-wider text-slate-800 font-bold mb-0.5">
+                  ABEAS - Associação Brasileira de Entidades de Assistência Social
+                </div>
+                <div className="text-xs text-slate-600 font-mono mb-3">
+                  CNPJ: 04.547.278/0005-68
+                </div>
+                <h1 className="text-xl md:text-2xl font-bold uppercase text-slate-900 tracking-tight">
+                  RECIBO DE PRESTAÇÃO DE SERVIÇOS MÉDICOS
+                </h1>
+              </div>
+
+              {/* Linha com Número e Valor em Destaque */}
+              <div className="flex flex-wrap items-center justify-between gap-3 p-4 bg-slate-50 border border-slate-200 rounded-lg mb-6">
+                <div>
+                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    Recibo nº:{' '}
+                  </span>
+                  <span className="text-base font-bold font-mono text-slate-900">
+                    {documento.numero}
+                  </span>
+                </div>
+                <div className="text-right">
+                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
+                    Valor:
+                  </span>
+                  <span className="text-lg md:text-xl font-bold text-slate-900">
+                    {formatarMoeda(documento.valor)}
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-6 text-sm text-slate-800">
+                {/* Texto Fixo Declaratório da ABEAS */}
+                <p className="leading-relaxed text-justify font-normal">
+                  {ABEAS_FIXA.texto_declaracao}
+                </p>
+
+                {/* Seção: DADOS DO PAGADOR */}
+                <div className="border border-slate-300 rounded-lg overflow-hidden">
+                  <div className="bg-slate-100 px-4 py-2 border-b border-slate-300 text-xs font-bold text-slate-900 uppercase tracking-wider">
+                    DADOS DO PAGADOR
+                  </div>
+                  <div className="p-4 space-y-2 text-xs text-slate-800 bg-white">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <span className="font-bold text-slate-900">Nome/Razão Social: </span>
+                        <span>{med.pagador_nome}</span>
+                      </div>
+                      <div>
+                        <span className="font-bold text-slate-900">CPF/CNPJ: </span>
+                        <span className="font-mono">{med.pagador_documento}</span>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-slate-100">
+                      <div>
+                        <span className="font-bold text-slate-900">Telefone: </span>
+                        <span>{med.pagador_telefone || '---'}</span>
+                      </div>
+                      <div>
+                        <span className="font-bold text-slate-900">Endereço: </span>
+                        <span>{med.pagador_endereco || '---'}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Texto Fixo Intermediário com Valor e Extenso Automáticos */}
+                <p className="leading-relaxed text-justify">
+                  A quantia supra de <b>{formatarMoeda(documento.valor)}</b> (<i>{documento.valor_extenso}</i>), referente à prestação de serviços médicos particulares realizados no(a) paciente abaixo qualificado(a):
+                </p>
+
+                {/* Seção: DADOS DO PACIENTE */}
+                <div className="border border-slate-300 rounded-lg overflow-hidden">
+                  <div className="bg-slate-100 px-4 py-2 border-b border-slate-300 text-xs font-bold text-slate-900 uppercase tracking-wider">
+                    DADOS DO PACIENTE
+                  </div>
+                  <div className="p-4 space-y-2 text-xs text-slate-800 bg-white">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <span className="font-bold text-slate-900">Nome do Paciente: </span>
+                        <span>{med.paciente_nome}</span>
+                      </div>
+                      <div>
+                        <span className="font-bold text-slate-900">CPF do Paciente: </span>
+                        <span className="font-mono">{med.paciente_cpf}</span>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-slate-100">
+                      <div>
+                        <span className="font-bold text-slate-900">Telefone: </span>
+                        <span>{med.paciente_telefone || '---'}</span>
+                      </div>
+                      <div>
+                        <span className="font-bold text-slate-900">Endereço: </span>
+                        <span>{med.paciente_endereco || '---'}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Seção: DETALHES DO ATENDIMENTO */}
+                <div className="border border-slate-300 rounded-lg overflow-hidden">
+                  <div className="bg-slate-100 px-4 py-2 border-b border-slate-300 text-xs font-bold text-slate-900 uppercase tracking-wider">
+                    DETALHES DO ATENDIMENTO:
+                  </div>
+                  <div className="p-4 space-y-2 text-xs text-slate-800 bg-white">
+                    <div>
+                      <span className="font-bold text-slate-900">Serviço prestado: </span>
+                      <span>{med.servico_prestado}</span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-slate-100">
+                      <div>
+                        <span className="font-bold text-slate-900">Médico(a) assistente: </span>
+                        <span>{med.medico_assistente}</span>
+                      </div>
+                      <div>
+                        <span className="font-bold text-slate-900">CRM: </span>
+                        <span className="font-mono">{med.crm}</span>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-slate-100">
+                      <div>
+                        <span className="font-bold text-slate-900">Data do atendimento: </span>
+                        <span>{med.data_atendimento.split('-').reverse().join('/')}</span>
+                      </div>
+                      <div>
+                        <span className="font-bold text-slate-900">Forma de pagamento: </span>
+                        <span>{med.forma_pagamento}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Texto Final Fixo */}
+                <p className="leading-relaxed text-justify font-medium pt-2">
+                  {ABEAS_FIXA.texto_final}
+                </p>
+
+                {/* Local e Data */}
+                <div className="pt-4 text-right text-xs text-slate-800 font-medium">
+                  {med.cidade || 'Itapuranga'} - {med.uf || 'GO'}, {dataPorExtenso(documento.data_emissao)}.
+                </div>
+
+                {/* Assinatura Oficial Fixo da ABEAS */}
+                <div className="pt-12 text-center">
+                  <div className="w-80 mx-auto border-t border-slate-500 mb-2" />
+                  <div className="font-bold text-xs uppercase text-slate-900">
+                    {ABEAS_FIXA.razao_social}
+                  </div>
+                  <div className="text-[11px] text-slate-600 font-mono">
+                    CNPJ: {ABEAS_FIXA.cnpj}
+                  </div>
+                </div>
+              </div>
+
+              {/* Rodapé Interno */}
+              <div className="mt-12 pt-4 border-t border-slate-200 flex items-center justify-between text-[10px] text-slate-400">
+                <div>Documento Oficial de Prestação de Serviços Médicos Particulares</div>
+                <div>Emissor: {documento.usuario_nome || 'Sistema'}</div>
+              </div>
+            </div>
           ) : (
             /* RECIBO PADRÃO TRADICIONAL COM FONTE PADRÃO DO SISTEMA */
             <div className="print-sheet bg-white border border-slate-300 shadow-sm p-8 md:p-12 max-w-2xl w-full text-slate-900 font-sans leading-relaxed text-sm">
@@ -530,8 +771,8 @@ Emissor: ${emissora?.razao_social || 'Empresa Emissora'}
 
               <div className="space-y-6 text-sm text-slate-800">
                 <div>
-                  <span className="font-semibold block text-xs font-sans text-slate-500 uppercase tracking-wider mb-1">
-                    Recebemos de:
+                  <span className="font-bold block text-xs font-sans text-slate-600 uppercase tracking-wider mb-1">
+                    RECEBEMOS DE:
                   </span>
                   <div className="font-bold text-base text-slate-900">
                     {destinataria?.razao_social || 'EMPRESA DESTINATÁRIA'}
@@ -547,8 +788,8 @@ Emissor: ${emissora?.razao_social || 'Empresa Emissora'}
                 </div>
 
                 <div>
-                  <span className="font-semibold block text-xs font-sans text-slate-500 uppercase tracking-wider mb-1">
-                    A importância de:
+                  <span className="font-bold block text-xs font-sans text-slate-600 uppercase tracking-wider mb-1">
+                    O VALOR DE:
                   </span>
                   <div className="font-semibold text-slate-900 text-sm">
                     {formatarMoeda(documento.valor)}
@@ -559,8 +800,8 @@ Emissor: ${emissora?.razao_social || 'Empresa Emissora'}
                 </div>
 
                 <div>
-                  <span className="font-semibold block text-xs font-sans text-slate-500 uppercase tracking-wider mb-1">
-                    Referente a:
+                  <span className="font-bold block text-xs font-sans text-slate-600 uppercase tracking-wider mb-1">
+                    REFERENTE A:
                   </span>
                   <p className="text-slate-800 text-justify whitespace-pre-line leading-relaxed">
                     {documento.referente}

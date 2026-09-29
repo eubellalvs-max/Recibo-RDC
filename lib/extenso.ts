@@ -176,23 +176,37 @@ export function dataPorExtenso(dataIsoOuDate?: string | Date): string {
     'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'
   ];
 
-  let d: Date;
-  if (!dataIsoOuDate) {
-    d = new Date();
-  } else if (typeof dataIsoOuDate === 'string') {
-    // Se for YYYY-MM-DD
-    const partes = dataIsoOuDate.split('-');
-    if (partes.length === 3) {
-      d = new Date(parseInt(partes[0]), parseInt(partes[1]) - 1, parseInt(partes[2]));
+  let d: Date = new Date();
+  if (dataIsoOuDate instanceof Date) {
+    d = isNaN(dataIsoOuDate.getTime()) ? new Date() : dataIsoOuDate;
+  } else if (typeof dataIsoOuDate === 'string' && dataIsoOuDate.trim()) {
+    const s = dataIsoOuDate.trim();
+    // Formato DD/MM/AAAA
+    if (s.includes('/')) {
+      const p = s.split('/');
+      if (p.length === 3) {
+        d = new Date(parseInt(p[2], 10), parseInt(p[1], 10) - 1, parseInt(p[0], 10));
+      }
+    } else if (s.includes('-')) {
+      // Formato YYYY-MM-DD ou ISO
+      const p = s.split('T')[0].split('-');
+      if (p.length === 3) {
+        d = new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10));
+      }
     } else {
-      d = new Date(dataIsoOuDate);
+      const parsed = new Date(s);
+      if (!isNaN(parsed.getTime())) {
+        d = parsed;
+      }
     }
-  } else {
-    d = dataIsoOuDate;
   }
 
-  const dia = d.getDate();
-  const mes = meses[d.getMonth()];
+  if (isNaN(d.getTime())) {
+    d = new Date();
+  }
+
+  const dia = String(d.getDate()).padStart(2, '0');
+  const mes = meses[d.getMonth()] || 'janeiro';
   const ano = d.getFullYear();
 
   return `${dia} de ${mes} de ${ano}`;

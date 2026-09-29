@@ -77,3 +77,80 @@ export function dataHojeIso(): string {
   const dia = String(d.getDate()).padStart(2, '0');
   return `${d.getFullYear()}-${mes}-${dia}`;
 }
+
+/**
+ * Validação oficial de CPF (Algoritmo Módulo 11 da Receita Federal)
+ */
+export function validarCpf(cpf: string): boolean {
+  if (!cpf) return false;
+  const clean = cpf.replace(/\D/g, '');
+  if (clean.length !== 11) return false;
+
+  // Bloquear sequências com todos os dígitos iguais (111.111.111-11, etc.)
+  if (/^(\d)\1{10}$/.test(clean)) return false;
+
+  // Cálculo do 1º dígito verificador
+  let soma = 0;
+  for (let i = 0; i < 9; i++) {
+    soma += parseInt(clean.charAt(i), 10) * (10 - i);
+  }
+  let resto = (soma * 10) % 11;
+  if (resto === 10 || resto === 11) resto = 0;
+  if (resto !== parseInt(clean.charAt(9), 10)) return false;
+
+  // Cálculo do 2º dígito verificador
+  soma = 0;
+  for (let i = 0; i < 10; i++) {
+    soma += parseInt(clean.charAt(i), 10) * (11 - i);
+  }
+  resto = (soma * 10) % 11;
+  if (resto === 10 || resto === 11) resto = 0;
+  if (resto !== parseInt(clean.charAt(10), 10)) return false;
+
+  return true;
+}
+
+/**
+ * Validação oficial de CNPJ (Algoritmo Módulo 11 da Receita Federal)
+ */
+export function validarCnpj(cnpj: string): boolean {
+  if (!cnpj) return false;
+  const clean = cnpj.replace(/\D/g, '');
+  if (clean.length !== 14) return false;
+
+  // Bloquear sequências repetidas
+  if (/^(\d)\1{13}$/.test(clean)) return false;
+
+  // Cálculo do 1º dígito verificador
+  const pesos1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+  let soma = 0;
+  for (let i = 0; i < 12; i++) {
+    soma += parseInt(clean.charAt(i), 10) * pesos1[i];
+  }
+  let resto = soma % 11;
+  const digito1 = resto < 2 ? 0 : 11 - resto;
+  if (digito1 !== parseInt(clean.charAt(12), 10)) return false;
+
+  // Cálculo do 2º dígito verificador
+  const pesos2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+  soma = 0;
+  for (let i = 0; i < 13; i++) {
+    soma += parseInt(clean.charAt(i), 10) * pesos2[i];
+  }
+  resto = soma % 11;
+  const digito2 = resto < 2 ? 0 : 11 - resto;
+  if (digito2 !== parseInt(clean.charAt(13), 10)) return false;
+
+  return true;
+}
+
+/**
+ * Valida CPF ou CNPJ de acordo com a extensão numérica
+ */
+export function validarCpfOuCnpj(valor: string): boolean {
+  if (!valor) return false;
+  const clean = valor.replace(/\D/g, '');
+  if (clean.length === 11) return validarCpf(clean);
+  if (clean.length === 14) return validarCnpj(clean);
+  return false;
+}
