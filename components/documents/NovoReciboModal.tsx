@@ -212,7 +212,9 @@ export function NovoReciboModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-y-auto print-modal-overlay">
+    <div className={`fixed inset-0 z-50 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-y-auto ${
+      modoPreVisualizar ? 'print-modal-overlay' : 'no-print'
+    }`}>
       <div className={`bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl w-full my-6 flex flex-col max-h-[92vh] overflow-hidden transition-colors print-modal-content ${
         modoPreVisualizar ? 'max-w-4xl' : 'max-w-2xl'
       }`}>
@@ -261,7 +263,7 @@ export function NovoReciboModal({
           )}
 
           {modoPreVisualizar ? (
-            <div className="bg-slate-100 dark:bg-slate-950 p-4 sm:p-6 rounded-xl flex justify-center">
+            <div className="bg-slate-100 dark:bg-slate-950 p-4 sm:p-6 rounded-xl flex justify-center print:bg-transparent print:p-0 print:m-0 print:block print:overflow-visible">
               <UnifiedReciboPrint
                 dados={{
                   numero: numeroReciboAuto,

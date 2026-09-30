@@ -16,19 +16,35 @@
       padding: 0 !important;
       width: 100% !important;
       height: auto !important;
-      min-height: auto !important;
+      min-height: 0 !important;
       overflow: visible !important;
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
     }
 
-    /* Ocultar elementos de navegação, modais fora do print, botões e barras de ferramentas */
+    /* Ocultar COMPLETAMENTE toda a interface do sistema, navegações, barras e telas de fundo */
     header,
     nav,
     aside,
+    main,
+    footer,
     .no-print,
     [role="dialog"] > div:first-child:not(.print-dialog-content) {
       display: none !important;
+    }
+
+    /* Resetar casca do aplicativo no print para não empurrar ou gerar páginas vazias */
+    body > div,
+    .min-h-screen,
+    .flex-1 {
+      min-height: 0 !important;
+      height: auto !important;
+      background: transparent !important;
+      display: block !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      border: none !important;
+      box-shadow: none !important;
     }
 
     /* Transformar contêineres modais em fluxo normal de página para impressão perfeita */
@@ -42,7 +58,8 @@
       -webkit-backdrop-filter: none !important;
       width: 100% !important;
       max-width: 100% !important;
-      min-height: auto !important;
+      min-height: 0 !important;
+      height: auto !important;
       overflow: visible !important;
       inset: auto !important;
       z-index: auto !important;
@@ -59,8 +76,18 @@
       width: 100% !important;
       max-width: 100% !important;
       max-height: none !important;
+      height: auto !important;
       overflow: visible !important;
       background: transparent !important;
+    }
+
+    /* Remover paddings e backgrounds de fundo do contêiner da folha */
+    .print-modal-content > div:last-child {
+      padding: 0 !important;
+      margin: 0 !important;
+      background: transparent !important;
+      overflow: visible !important;
+      display: block !important;
     }
 
     .print-sheet {

@@ -226,7 +226,9 @@ export function NovoReciboMedicoModal({
   const formasPagamentoSugeridas = ['Pix', 'Dinheiro', 'Cartão de Débito', 'Cartão de Crédito', 'Transferência'];
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-y-auto print-modal-overlay">
+    <div className={`fixed inset-0 z-50 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-y-auto ${
+      modoPreVisualizar ? 'print-modal-overlay' : 'no-print'
+    }`}>
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl max-w-4xl w-full my-4 flex flex-col max-h-[94vh] transition-colors print-modal-content">
         {/* Top Header / Toolbar de Pré-Visualização */}
         {modoPreVisualizar ? (
@@ -291,7 +293,7 @@ export function NovoReciboMedicoModal({
             /* ============================================================== */
             /* MODO DE PRÉ-VISUALIZAÇÃO FIEL AO DOCUMENTO IMPRESSO/PDF */
             /* ============================================================== */
-            <div className="bg-slate-100 dark:bg-slate-950 p-4 sm:p-6 rounded-xl flex justify-center">
+            <div className="bg-slate-100 dark:bg-slate-950 p-4 sm:p-6 rounded-xl flex justify-center print:bg-transparent print:p-0 print:m-0 print:block print:overflow-visible">
               <UnifiedReciboMedicoPrint
                 dados={{
                   numero: numeroReciboAuto,
@@ -710,7 +712,7 @@ export function NovoReciboMedicoModal({
         </div>
 
         {/* Barra de Ações Inferior */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-slate-200 bg-slate-50 rounded-b-xl shrink-0">
+        <div className="no-print flex items-center justify-between px-6 py-4 border-t border-slate-200 bg-slate-50 rounded-b-xl shrink-0">
           <button
             type="button"
             onClick={onClose}

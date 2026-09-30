@@ -33,7 +33,7 @@ export function DocumentSuccessModal({
   const tituloTipo = isReciboMedico ? 'RECIBO MÉDICO' : isRecibo ? 'RECIBO' : 'RDC';
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4">
+    <div className="no-print fixed inset-0 z-50 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4">
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl max-w-md w-full p-6 text-center animate-in fade-in zoom-in-95 duration-150 transition-colors">
         {/* Ícone de Sucesso */}
         <div className="w-14 h-14 bg-emerald-100 dark:bg-emerald-950/80 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-4">

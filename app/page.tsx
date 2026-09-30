@@ -110,7 +110,7 @@ export default function Home() {
         onLogout={handleLogout}
       />
 
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden no-print">
         {/* Barra Lateral com navegação estrita por perfil */}
         <Sidebar
           user={currentUser}
@@ -122,7 +122,7 @@ export default function Home() {
         />
 
         {/* Área de Conteúdo Principal */}
-        <main className="flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-900 transition-colors">
+        <main className="flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-900 transition-colors no-print">
           {/* Roteamento de Abas */}
           {currentTab === 'dashboard' && (
             isAdmin ? (
