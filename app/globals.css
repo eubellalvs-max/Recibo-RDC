@@ -28,7 +28,14 @@
     aside,
     main,
     footer,
+    .sidebar,
+    .header,
+    .navigation,
+    .dashboard,
+    .buttons,
+    .actions,
     .no-print,
+    button:not(.print-document *),
     [role="dialog"] > div:first-child:not(.print-dialog-content) {
       display: none !important;
     }
@@ -88,6 +95,23 @@
       background: transparent !important;
       overflow: visible !important;
       display: block !important;
+    }
+
+    /* =========================================================================
+       ISOLAMENTO DO DOCUMENTO (.print-document)
+       Permanece visível com exclusividade absoluta e formatação 100% preservada
+       ========================================================================= */
+    .print-document {
+      display: block !important;
+      visibility: visible !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      margin: 0 auto !important;
+      padding: 0 !important;
+      background: #ffffff !important;
+      box-shadow: none !important;
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
     }
 
     .print-sheet {

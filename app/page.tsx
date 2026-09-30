@@ -122,7 +122,7 @@ export default function Home() {
         />
 
         {/* Área de Conteúdo Principal */}
-        <main className="flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-900 transition-colors no-print">
+        <main className="dashboard flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-900 transition-colors no-print">
           {/* Roteamento de Abas */}
           {currentTab === 'dashboard' && (
             isAdmin ? (

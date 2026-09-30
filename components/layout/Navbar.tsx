@@ -27,7 +27,7 @@ export function Navbar({
   const isAdmin = user.perfil === 'admin';
 
   return (
-    <header className="sticky top-0 z-30 flex items-center justify-between px-6 py-3 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 transition-colors no-print">
+    <header className="header navigation sticky top-0 z-30 flex items-center justify-between px-6 py-3 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 transition-colors no-print">
       {/* Zone 1: Single text element wordmark with clean subtle metadata */}
       <div className="flex items-center gap-3">
         <button

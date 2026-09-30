@@ -263,7 +263,7 @@ export function NovoReciboModal({
           )}
 
           {modoPreVisualizar ? (
-            <div className="bg-slate-100 dark:bg-slate-950 p-4 sm:p-6 rounded-xl flex justify-center print:bg-transparent print:p-0 print:m-0 print:block print:overflow-visible">
+            <div className="print-document bg-slate-100 dark:bg-slate-950 p-4 sm:p-6 rounded-xl flex justify-center print:bg-transparent print:p-0 print:m-0 print:block print:overflow-visible">
               <UnifiedReciboPrint
                 dados={{
                   numero: numeroReciboAuto,

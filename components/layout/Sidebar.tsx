@@ -37,7 +37,7 @@ export function Sidebar({
   const isAdmin = user.perfil === 'admin';
 
   return (
-    <aside className="w-64 bg-slate-50 dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 flex flex-col shrink-0 no-print min-h-[calc(100vh-53px)] transition-colors">
+    <aside className="sidebar navigation w-64 bg-slate-50 dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 flex flex-col shrink-0 no-print min-h-[calc(100vh-53px)] transition-colors">
       {/* Botões de Ação Primária de Emissão */}
       <div className="p-4 space-y-2 border-b border-slate-200 dark:border-slate-800">
         <button

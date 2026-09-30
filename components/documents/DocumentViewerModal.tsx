@@ -88,45 +88,47 @@ export function DocumentViewerModal({
 
         {/* Conteúdo com Scroll na tela e formatado para papel timbrado */}
         <div className="flex-1 overflow-y-auto p-4 md:p-8 bg-slate-100 dark:bg-slate-950 flex justify-center transition-colors print:bg-transparent print:p-0 print:m-0 print:block print:overflow-visible">
-          {isRdc && rdc ? (
-            <UnifiedRdcPrint
-              dados={{
-                numero: documento.numero,
-                detalhes: rdc,
-                tiposGasto,
-                tiposDoc,
-              }}
-            />
-          ) : isReciboMedico && med ? (
-            <UnifiedReciboMedicoPrint
-              dados={{
-                numero: documento.numero,
-                valor: documento.valor,
-                valor_extenso: documento.valor_extenso,
-                data_emissao: documento.data_emissao,
-                usuario_nome: documento.usuario_nome,
-                detalhes: med,
-              }}
-            />
-          ) : (
-            <UnifiedReciboPrint
-              dados={{
-                numero: documento.numero,
-                valor: documento.valor,
-                valor_extenso: documento.valor_extenso,
-                referente: documento.referente,
-                data_emissao: documento.data_emissao,
-                cidade_emissao: documento.cidade_emissao,
-                observacoes: documento.observacoes,
-                logo_url: documento.logo_url,
-                usuario_nome: documento.usuario_nome,
-                emissora,
-                destinataria,
-              }}
-              config={config}
-              via={via}
-            />
-          )}
+          <div className="print-document w-full flex justify-center">
+            {isRdc && rdc ? (
+              <UnifiedRdcPrint
+                dados={{
+                  numero: documento.numero,
+                  detalhes: rdc,
+                  tiposGasto,
+                  tiposDoc,
+                }}
+              />
+            ) : isReciboMedico && med ? (
+              <UnifiedReciboMedicoPrint
+                dados={{
+                  numero: documento.numero,
+                  valor: documento.valor,
+                  valor_extenso: documento.valor_extenso,
+                  data_emissao: documento.data_emissao,
+                  usuario_nome: documento.usuario_nome,
+                  detalhes: med,
+                }}
+              />
+            ) : (
+              <UnifiedReciboPrint
+                dados={{
+                  numero: documento.numero,
+                  valor: documento.valor,
+                  valor_extenso: documento.valor_extenso,
+                  referente: documento.referente,
+                  data_emissao: documento.data_emissao,
+                  cidade_emissao: documento.cidade_emissao,
+                  observacoes: documento.observacoes,
+                  logo_url: documento.logo_url,
+                  usuario_nome: documento.usuario_nome,
+                  emissora,
+                  destinataria,
+                }}
+                config={config}
+                via={via}
+              />
+            )}
+          </div>
         </div>
       </div>
     </div>
