@@ -1,36 +1,42 @@
 'use client';
 
 import React, { useState } from 'react';
-import {
-  Empresa,
-  Usuario,
-  Documento,
-  ItemGastoRdc,
-  NaturezaGastoId,
-  TipoGastoConfig,
-  TipoDocConfig,
-} from '@/lib/types';
+import { Usuario, Empresa, Documento, ItemGastoRdc, ModeloDespesa } from '@/lib/types';
 import { StorageService } from '@/lib/storage';
-import { valorPorExtenso } from '@/lib/extenso';
-import { dataHojeIso, mascaraCnpj, mascaraCpf, formatarMoeda, validarCpf } from '@/lib/masks';
-import { X, Check, Plus, Trash2, AlertCircle, Calculator, Building2, Sparkles } from 'lucide-react';
+import { formatarMoeda, mascaraCpf, formatarDataBr, dataHojeIso } from '@/lib/masks';
+import {
+  X,
+  Check,
+  AlertCircle,
+  Plus,
+  Trash2,
+  Sparkles,
+  Layers,
+  Eye,
+  FileSpreadsheet,
+} from 'lucide-react';
+import { UnifiedPrintToolbar } from './unified/UnifiedPrintToolbar';
+import { UnifiedRdcPrint } from './unified/UnifiedRdcPrint';
 
 interface NovoRdcModalProps {
+  currentUser: Usuario;
   isOpen: boolean;
   onClose: () => void;
-  currentUser: Usuario;
-  onSuccess: (documento: Documento) => void;
+  onDocumentCreated?: (doc: Documento) => void;
+  onSuccess?: (doc: Documento) => void;
 }
 
 export function NovoRdcModal({
+  currentUser,
   isOpen,
   onClose,
-  currentUser,
+  onDocumentCreated,
   onSuccess,
 }: NovoRdcModalProps) {
-  const [empresas] = useState<Empresa[]>(() => {
-    return StorageService.getEmpresas().filter((e) => e.status === 'ativa');
-  });
+  const empresas = StorageService.getEmpresas().filter((e) => e.status === 'ativa');
+  const modelosDespesa = StorageService.getModelosDespesa();
+  const [modeloSelecionadoId, setModeloSelecionadoId] = useState<string>('');
+  const [notificacaoModelo, setNotificacaoModelo] = useState<string | null>(null);
 
   const [empresaEmissoraId, setEmpresaEmissoraId] = useState<string>(() => {
     const all = StorageService.getEmpresas().filter((e) => e.status === 'ativa');
@@ -90,8 +96,64 @@ export function NovoRdcModal({
 
   const [erro, setErro] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [modoPreVisualizar, setModoPreVisualizar] = useState(false);
 
-  // Preencher exemplo de teste (opcional)
+  if (!isOpen) return null;
+
+  const config = StorageService.getConfig();
+  const seqNum = config.proximo_rdc_num || 1;
+  const anoAtual = config.ano_corrente || new Date().getFullYear();
+  const numeroRdcAuto = `${String(seqNum).padStart(6, '0')}/${anoAtual}`;
+
+  // Aplicar modelo de despesa selecionado
+  const handleSelecionarModelo = (modeloId: string) => {
+    setModeloSelecionadoId(modeloId);
+    if (!modeloId) return;
+
+    const modelo = modelosDespesa.find((m) => m.id === modeloId);
+    if (!modelo) return;
+
+    // Carregar configurações exatas do modelo
+    if (modelo.linha_gasto) setLinhaGasto(modelo.linha_gasto);
+    if (modelo.local_partida_padrao) setLocalPartida(modelo.local_partida_padrao);
+    if (modelo.destino_padrao) setDestino(modelo.destino_padrao);
+    if (modelo.setor_funcao_padrao) setSetorFuncao(modelo.setor_funcao_padrao);
+    if (modelo.objetivo_padrao) setObjetivoViagem(modelo.objetivo_padrao);
+
+    if (modelo.valor_adiantamento_sugerido !== undefined) {
+      setValorSolicitado(modelo.valor_adiantamento_sugerido);
+      setValorSolicitadoRaw(
+        modelo.valor_adiantamento_sugerido.toLocaleString('pt-BR', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })
+      );
+    }
+
+    if (modelo.nome_banco_padrao) setNomeBanco(modelo.nome_banco_padrao);
+    if (modelo.agencia_padrao) setAgencia(modelo.agencia_padrao);
+    if (modelo.conta_padrao) setConta(modelo.conta_padrao);
+    if (modelo.tipo_conta_padrao) setTipoConta(modelo.tipo_conta_padrao);
+    if (modelo.chave_pix_padrao) setChavePix(modelo.chave_pix_padrao);
+    if (modelo.diretoria_direta_padrao) setDiretoriaDireta(modelo.diretoria_direta_padrao);
+    if (modelo.contabil_financeiro_padrao) setContabilFinanceiro(modelo.contabil_financeiro_padrao);
+
+    if (modelo.itens_padrao && modelo.itens_padrao.length > 0) {
+      const novosItens: ItemGastoRdc[] = modelo.itens_padrao.map((it, idx) => ({
+        id: `item-${Date.now()}-${idx}`,
+        tipo_gasto: it.tipo_gasto,
+        tipo_doc: it.tipo_doc,
+        descricao: it.descricao,
+        valor: it.valor,
+      }));
+      setItens(novosItens);
+    }
+
+    setNotificacaoModelo(`Configurações do modelo "${modelo.nome}" aplicadas com sucesso!`);
+    setTimeout(() => setNotificacaoModelo(null), 4000);
+  };
+
+  // Preencher exemplo de teste rápido
   const handlePreencherExemplo = () => {
     setNumeroPedido('2026/089');
     setLocalPartida('Brasília/DF');
@@ -113,7 +175,6 @@ export function NovoRdcModal({
       { id: 'item-ex-6', tipo_gasto: 6, tipo_doc: 'Rec', descricao: 'Papelaria Express - Cópias de documentos e encadernações técnicas', valor: 145.0 },
     ]);
   };
-  const [salvando, setSalvando] = useState(false);
 
   // Cálculos dinâmicos em tempo real
   const totalDespesas = itens.reduce((acc, curr) => acc + (Number(curr.valor) || 0), 0);
@@ -126,11 +187,7 @@ export function NovoRdcModal({
     totalPorNatureza[cod] = (totalPorNatureza[cod] || 0) + (Number(it.valor) || 0);
   });
 
-  // Saldo devolução/ressarcimento:
-  // Conforme formulário: (Saldo negativo, a receber. Saldo positivo, devolver na conta de origem)
-  // Fórmula: Valor Adiantado - Total Despesas
   const saldoDevolucao = valorSolicitado - totalDespesas;
-  // Se saldoDevolucao < 0: despesas > adiantamento -> valor a ressarcir é o módulo
   const valorARessarcir = saldoDevolucao < 0 ? Math.abs(saldoDevolucao) : 0;
 
   const handleValorSolicitadoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -138,72 +195,76 @@ export function NovoRdcModal({
     setValorSolicitadoRaw(raw);
     const limpo = raw.replace(/\./g, '').replace(',', '.').replace(/[^\d.-]/g, '');
     const num = parseFloat(limpo);
-    setValorSolicitado(!isNaN(num) && num >= 0 ? num : 0);
+    setValorSolicitado(isNaN(num) ? 0 : num);
   };
 
-  const handleAddItem = () => {
-    const primeiroGasto = tiposGasto[0]?.codigo || 1;
-    const primeiroDoc = tiposDoc[0]?.codigo || 'Rec';
-    const novoItem: ItemGastoRdc = {
-      id: `item-${itens.length + 1}-${primeiroGasto}`,
-      tipo_gasto: primeiroGasto,
-      tipo_doc: primeiroDoc,
+  const handleAdicionarItem = () => {
+    const novo: ItemGastoRdc = {
+      id: `item-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      tipo_gasto: tiposGasto[0]?.codigo || 1,
+      tipo_doc: tiposDoc[0]?.codigo || 'Rec',
       descricao: '',
       valor: 0,
     };
-    setItens([...itens, novoItem]);
+    setItens([...itens, novo]);
   };
 
-  const handleRemoveItem = (id: string) => {
-    if (itens.length === 1) {
-      alert('A prestação de contas deve conter pelo menos 1 item de despesa.');
-      return;
-    }
+  const handleRemoverItem = (id: string) => {
     setItens(itens.filter((it) => it.id !== id));
   };
 
-  const handleItemChange = (id: string, field: keyof ItemGastoRdc, val: any) => {
+  const handleItemChange = (id: string, campo: keyof ItemGastoRdc, valor: string | number) => {
     setItens(
       itens.map((it) => {
         if (it.id !== id) return it;
-        if (field === 'valor') {
-          const num = typeof val === 'number' ? val : parseFloat(String(val).replace(',', '.')) || 0;
-          return { ...it, valor: num };
+        if (campo === 'valor') {
+          return { ...it, valor: Number(valor) || 0 };
         }
-        return { ...it, [field]: val };
+        if (campo === 'tipo_gasto') {
+          return { ...it, tipo_gasto: Number(valor) || 1 };
+        }
+        return { ...it, [campo]: valor };
       })
     );
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (isSubmitting) return;
+  const validarFormulario = (): boolean => {
     setErro(null);
 
+    if (!empresaEmissoraId) {
+      setErro('Selecione a empresa pagadora/emissora.');
+      return false;
+    }
+    if (!numeroPedido.trim()) {
+      setErro('Informe o número do pedido.');
+      return false;
+    }
     if (!nomeSolicitante.trim()) {
-      setErro('Informe o nome do solicitante da viagem.');
-      return;
+      setErro('Informe o nome do solicitante.');
+      return false;
     }
-
-    if (cpfSolicitante.trim() && !validarCpf(cpfSolicitante)) {
-      setErro('O CPF do Solicitante informado é inválido. Verifique os dígitos digitados.');
-      return;
+    if (!cpfSolicitante.trim()) {
+      setErro('Informe o CPF do solicitante.');
+      return false;
     }
-
     if (!objetivoViagem.trim()) {
-      setErro('Informe o objetivo da viagem.');
-      return;
+      setErro('Informe o objetivo da viagem ou despesas corporativas.');
+      return false;
     }
-
     if (itens.length === 0) {
       setErro('Adicione ao menos um item na descrição dos gastos.');
-      return;
+      return false;
     }
-
     if (totalDespesas <= 0) {
       setErro('O valor total das despesas deve ser superior a R$ 0,00.');
-      return;
+      return false;
     }
+
+    return true;
+  };
+
+  const executarEmissao = () => {
+    if (!validarFormulario()) return;
 
     setIsSubmitting(true);
 
@@ -213,8 +274,10 @@ export function NovoRdcModal({
     ];
     const dataPartes = dataEntregaRdc.split('-');
     const mesIndex = dataPartes.length === 3 ? parseInt(dataPartes[1]) - 1 : new Date().getMonth();
-    const anoAtual = dataPartes.length === 3 ? dataPartes[0] : '2026';
-    const competenciaStr = `${meses[mesIndex]} / ${anoAtual}`;
+    const anoAtualStr = dataPartes.length === 3 ? dataPartes[0] : '2026';
+    const competenciaStr = `${meses[mesIndex]} / ${anoAtualStr}`;
+
+    const modeloObj = modelosDespesa.find((m) => m.id === modeloSelecionadoId);
 
     try {
       const doc = StorageService.emitirDocumento({
@@ -229,6 +292,8 @@ export function NovoRdcModal({
         observacoes: `Solicitante: ${nomeSolicitante} | N.º Pedido: ${numeroPedido} | Saldo: ${saldoDevolucao < 0 ? `A ressarcir ${formatarMoeda(valorARessarcir)}` : `A devolver ${formatarMoeda(saldoDevolucao)}`}`,
         usuario: currentUser,
         rdc_detalhes: {
+          modelo_despesa_id: modeloSelecionadoId || undefined,
+          modelo_despesa_nome: modeloObj?.nome || undefined,
           linha_gasto: linhaGasto,
           data_pedido: dataPedido,
           numero_pedido: numeroPedido,
@@ -256,589 +321,689 @@ export function NovoRdcModal({
         },
       });
 
-      onSuccess(doc);
-    } catch {
-      setErro('Ocorreu um erro ao emitir o RDC. Tente novamente.');
+      if (onDocumentCreated) {
+        onDocumentCreated(doc);
+      } else if (onSuccess) {
+        onSuccess(doc);
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Erro ao emitir a RDC.';
+      setErro(msg);
       setIsSubmitting(false);
     }
   };
 
-  if (!isOpen) return null;
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    executarEmissao();
+  };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl max-w-4xl w-full my-6 flex flex-col max-h-[92vh] overflow-hidden transition-colors">
-        {/* Top Header */}
-        <div className="flex items-center justify-between px-6 py-3.5 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-850 shrink-0">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 flex items-center justify-center font-bold text-sm">
-              📄
+    <div className="fixed inset-0 z-50 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-y-auto print-modal-overlay">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl max-w-4xl w-full my-6 flex flex-col max-h-[92vh] overflow-hidden transition-colors print-modal-content">
+        {/* Header do Modal / Toolbar de Pré-Visualização */}
+        {modoPreVisualizar ? (
+          <UnifiedPrintToolbar
+            titulo="PRÉ-VISUALIZAÇÃO DA RDC"
+            subtitulo={`Nº ${numeroRdcAuto} • Relatório de Despesas com Comprovantes`}
+            isPreVisualizacao={true}
+            onVoltarEdicao={() => setModoPreVisualizar(false)}
+            onConfirmarEmissao={executarEmissao}
+            onFechar={onClose}
+            isSubmitting={isSubmitting}
+            documentoNumero={numeroRdcAuto}
+            tipoDocumento="RDC"
+          />
+        ) : (
+          <div className="no-print flex items-center justify-between px-6 py-3.5 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-850 shrink-0">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 flex items-center justify-center font-bold text-sm">
+                📄
+              </div>
+              <div>
+                <h2 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">
+                  PRESTAÇÃO DE CONTAS E REEMBOLSO DE DESPESAS CORPORATIVA - RDC
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Modelo Oficial Institucional ABEAS - Formulário completo com controle de gastos e rateio
+                </p>
+              </div>
             </div>
-            <div>
-              <h2 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">
-                PRESTAÇÃO DE CONTAS E REEMBOLSO DE DESPESAS CORPORATIVA - RDC
-              </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                Modelo Oficial Institucional ABEAS - Formulário completo com controle de gastos e rateio
-              </p>
-            </div>
+            <button
+              onClick={onClose}
+              className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+        )}
 
-        {/* Formulário com Scroll Vertical */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
+        {/* Conteúdo Principal */}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
           {erro && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-xs flex items-center gap-2">
+            <div className="p-3 bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-900/60 rounded-lg text-red-700 dark:text-red-300 text-xs flex items-center gap-2">
               <AlertCircle className="w-4 h-4 shrink-0" />
               <span>{erro}</span>
             </div>
           )}
 
-          {/* 1. SEÇÃO: Informações do Solicitante da Viagem ou Despesas Corporativas */}
-          <div className="border border-slate-200 rounded-xl p-4 bg-white space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
-              <div>
-                <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wide">
-                  INFORMAÇÕES DO SOLICITANTE DA VIAGEM OU DESPESAS CORPORATIVAS
-                </h3>
-                <p className="text-[11px] text-slate-500 mt-0.5">
-                  Esta RDC pode registrar despesas com viagens técnicas, despesas corporativas gerais ou ambas as linhas.
-                </p>
-              </div>
-
-              {/* Seletor de Linha de Gastos e Botão de Exemplo */}
-              <div className="flex flex-wrap items-center gap-2 shrink-0">
-                <button
-                  type="button"
-                  onClick={handlePreencherExemplo}
-                  className="px-2.5 py-1 text-[11px] font-medium text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-lg transition-colors flex items-center gap-1"
-                  title="Preencher com dados de exemplo para testes rápidos"
-                >
-                  <Sparkles className="w-3 h-3 text-amber-500" />
-                  <span>Preencher Exemplo</span>
-                </button>
-
-                <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-lg">
-                  <button
-                    type="button"
-                    onClick={() => setLinhaGasto('viagem')}
-                    className={`px-2.5 py-1 rounded text-[11px] font-semibold transition-colors ${
-                      linhaGasto === 'viagem'
-                        ? 'bg-white text-slate-900 shadow-2xs'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    ✈️ Viagem
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setLinhaGasto('corporativa')}
-                    className={`px-2.5 py-1 rounded text-[11px] font-semibold transition-colors ${
-                      linhaGasto === 'corporativa'
-                        ? 'bg-white text-slate-900 shadow-2xs'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    🏢 Despesas Corporativas
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setLinhaGasto('ambas')}
-                    className={`px-2.5 py-1 rounded text-[11px] font-semibold transition-colors ${
-                      linhaGasto === 'ambas'
-                        ? 'bg-white text-slate-900 shadow-2xs'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    🌐 Ambas
-                  </button>
-                </div>
-              </div>
+          {notificacaoModelo && (
+            <div className="p-3 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 rounded-lg text-emerald-800 dark:text-emerald-300 text-xs flex items-center gap-2 animate-fadeIn">
+              <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <span className="font-medium">{notificacaoModelo}</span>
             </div>
+          )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                  Data do pedido *
-                </label>
-                <input
-                  type="date"
-                  required
-                  value={dataPedido}
-                  onChange={(e) => setDataPedido(e.target.value)}
-                  className="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                  N.º Pedido *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={numeroPedido}
-                  onChange={(e) => setNumeroPedido(e.target.value)}
-                  placeholder="Ex: 2026/089"
-                  className="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none font-mono"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                  {linhaGasto === 'corporativa' ? 'Local / Origem Corporativa *' : 'Local de partida *'}
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={localPartida}
-                  onChange={(e) => setLocalPartida(e.target.value)}
-                  placeholder={linhaGasto === 'corporativa' ? 'Ex: Sede Brasília/DF' : 'Ex: Brasília/DF'}
-                  className="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                  {linhaGasto === 'corporativa' ? 'Destino / Unidade Beneficiada *' : 'Destino *'}
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={destino}
-                  onChange={(e) => setDestino(e.target.value)}
-                  placeholder={linhaGasto === 'corporativa' ? 'Ex: Sede / Departamento Local' : 'Ex: São Paulo/SP'}
-                  className="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                  Nome - Solicitante *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={nomeSolicitante}
-                  onChange={(e) => {
-                    setNomeSolicitante(e.target.value);
-                    setAssinaturaProfissional(e.target.value);
-                  }}
-                  placeholder="Ex: Lucas Oliveira"
-                  className="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none font-medium"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                  Nº CPF *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={cpfSolicitante}
-                  onChange={(e) => setCpfSolicitante(mascaraCpf(e.target.value))}
-                  placeholder="000.000.000-00"
-                  className="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none font-mono"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                  Setor / Função *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={setorFuncao}
-                  onChange={(e) => setSetorFuncao(e.target.value)}
-                  placeholder="Ex: Auditor de Sistemas / TI"
-                  className="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                {linhaGasto === 'corporativa'
-                  ? 'Objetivo das despesas corporativas *'
-                  : 'Objetivo da viagem / despesas corporativas *'}
-              </label>
-              <textarea
-                rows={2}
-                required
-                value={objetivoViagem}
-                onChange={(e) => setObjetivoViagem(e.target.value)}
-                placeholder={
-                  linhaGasto === 'corporativa'
-                    ? 'Ex: Aquisição de insumos de escritório, suprimento de fundos para materiais técnicos e reuniões corporativas...'
-                    : 'Ex: Realização de auditoria técnica in loco, reuniões estratégicas com conselho fiscal e levantamento contábil...'
-                }
-                className="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none"
+          {modoPreVisualizar ? (
+            <div className="bg-slate-100 dark:bg-slate-950 p-4 sm:p-6 rounded-xl flex justify-center">
+              <UnifiedRdcPrint
+                dados={{
+                  numero: numeroRdcAuto,
+                  detalhes: {
+                    linha_gasto: linhaGasto,
+                    data_pedido: dataPedido,
+                    numero_pedido: numeroPedido,
+                    local_partida: localPartida,
+                    destino: destino,
+                    nome_solicitante: nomeSolicitante,
+                    cpf_solicitante: cpfSolicitante,
+                    setor_funcao: setorFuncao,
+                    objetivo_viagem: objetivoViagem,
+                    valor_solicitado: valorSolicitado,
+                    nome_banco: nomeBanco,
+                    agencia: agencia,
+                    conta: conta,
+                    tipo_conta: tipoConta,
+                    chave_pix: chavePix,
+                    data_entrega_rdc: dataEntregaRdc,
+                    itens: itens,
+                    total_despesas: totalDespesas,
+                    valor_adiantamento: valorSolicitado,
+                    saldo_devolucao_ressarcimento: saldoDevolucao,
+                    valor_ressarcir_solicitante: valorARessarcir,
+                    assinatura_profissional: assinaturaProfissional,
+                    diretoria_direta: diretoriaDireta,
+                    contabil_financeiro: contabilFinanceiro,
+                  },
+                  tiposGasto,
+                  tiposDoc,
+                }}
               />
             </div>
-          </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-5">
+              {/* BLOCO: Selecionar Modelo de Despesa */}
+              <div className="p-3.5 bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/60 rounded-xl space-y-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <Layers className="w-4 h-4 text-blue-700 dark:text-blue-400" />
+                    <div>
+                      <span className="text-xs font-bold text-blue-950 dark:text-blue-200 uppercase tracking-wide">
+                        Modelo de Despesa Pré-Configurado
+                      </span>
+                      <p className="text-[11px] text-blue-800/80 dark:text-blue-300">
+                        Carregue uma configuração salva no banco para preencher automaticamente os campos e despesas padrão.
+                      </p>
+                    </div>
+                  </div>
 
-          {/* 2. SEÇÃO: Informações bancária e financeira */}
-          <div className="border border-slate-200 rounded-xl p-4 bg-white space-y-3">
-            <div className="text-xs font-bold text-slate-900 uppercase tracking-wide border-b border-slate-100 pb-2">
-              Informações bancária e financeira
-            </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={handlePreencherExemplo}
+                      className="px-2.5 py-1 text-[11px] font-medium text-slate-700 dark:text-slate-300 hover:text-slate-900 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg transition-colors flex items-center gap-1 shadow-2xs"
+                      title="Preencher com dados de exemplo para testes rápidos"
+                    >
+                      <Sparkles className="w-3 h-3 text-amber-500" />
+                      <span>Exemplo Rápido</span>
+                    </button>
+                  </div>
+                </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                  Valor solicitado (Adiantamento)
-                </label>
-                <div className="relative">
-                  <span className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-xs font-medium text-slate-500">
-                    R$
-                  </span>
-                  <input
-                    type="text"
-                    value={valorSolicitadoRaw}
-                    onChange={handleValorSolicitadoChange}
-                    placeholder="0,00"
-                    className="w-full pl-8 pr-2.5 py-1.5 text-xs font-semibold text-slate-900 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-slate-800 outline-none font-mono"
+                <div className="pt-1">
+                  <select
+                    value={modeloSelecionadoId}
+                    onChange={(e) => handleSelecionarModelo(e.target.value)}
+                    className="w-full px-3 py-2 text-xs bg-white dark:bg-slate-800 border border-blue-300 dark:border-blue-800 rounded-lg text-slate-900 dark:text-slate-100 font-medium focus:border-blue-700 outline-none"
+                  >
+                    <option value="">Selecione um Modelo de Despesa salvo para carregar...</option>
+                    {modelosDespesa.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        📌 {m.nome} ({m.linha_gasto === 'corporativa' ? 'Corporativa' : m.linha_gasto === 'ambas' ? 'Ambas' : 'Viagem'}) — {m.itens_padrao?.length || 0} itens padrão
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* 1. SEÇÃO: Informações do Solicitante da Viagem ou Despesas Corporativas */}
+              <div className="border border-slate-200 dark:border-slate-800 rounded-xl p-4 bg-white dark:bg-slate-850 space-y-4 transition-colors">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
+                  <div>
+                    <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wide">
+                      1. INFORMAÇÕES DO SOLICITANTE DA VIAGEM OU DESPESAS CORPORATIVAS
+                    </h3>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                      Esta RDC pode registrar despesas com viagens técnicas, despesas corporativas gerais ou ambas as linhas.
+                    </p>
+                  </div>
+
+                  {/* Seletor de Linha de Gastos */}
+                  <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setLinhaGasto('viagem')}
+                      className={`px-2.5 py-1 rounded text-[11px] font-semibold transition-colors ${
+                        linhaGasto === 'viagem'
+                          ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-2xs'
+                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                      }`}
+                    >
+                      ✈️ Viagem
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setLinhaGasto('corporativa')}
+                      className={`px-2.5 py-1 rounded text-[11px] font-semibold transition-colors ${
+                        linhaGasto === 'corporativa'
+                          ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-2xs'
+                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                      }`}
+                    >
+                      🏢 Corporativa
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setLinhaGasto('ambas')}
+                      className={`px-2.5 py-1 rounded text-[11px] font-semibold transition-colors ${
+                        linhaGasto === 'ambas'
+                          ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-2xs'
+                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                      }`}
+                    >
+                      🌐 Ambas
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      Data do pedido *
+                    </label>
+                    <input
+                      type="date"
+                      required
+                      value={dataPedido}
+                      onChange={(e) => setDataPedido(e.target.value)}
+                      className="w-full px-2.5 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-750 focus:border-slate-800 outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      N.º Pedido *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={numeroPedido}
+                      onChange={(e) => setNumeroPedido(e.target.value)}
+                      placeholder="Ex: 2026/089"
+                      className="w-full px-2.5 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-750 focus:border-slate-800 outline-none font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      {linhaGasto === 'corporativa' ? 'Local / Origem Corporativa *' : 'Local de partida *'}
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={localPartida}
+                      onChange={(e) => setLocalPartida(e.target.value)}
+                      placeholder={linhaGasto === 'corporativa' ? 'Ex: Sede Central' : 'Ex: Brasília/DF'}
+                      className="w-full px-2.5 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-750 focus:border-slate-800 outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      {linhaGasto === 'corporativa' ? 'Destino / Unidade Beneficiada *' : 'Destino *'}
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={destino}
+                      onChange={(e) => setDestino(e.target.value)}
+                      placeholder={linhaGasto === 'corporativa' ? 'Ex: Departamento Local' : 'Ex: São Paulo/SP'}
+                      className="w-full px-2.5 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-750 focus:border-slate-800 outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      Nome - Solicitante *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={nomeSolicitante}
+                      onChange={(e) => {
+                        setNomeSolicitante(e.target.value);
+                        setAssinaturaProfissional(e.target.value);
+                      }}
+                      placeholder="Ex: Lucas Oliveira"
+                      className="w-full px-2.5 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-750 focus:border-slate-800 outline-none font-medium"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      Nº CPF *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={cpfSolicitante}
+                      onChange={(e) => setCpfSolicitante(mascaraCpf(e.target.value))}
+                      placeholder="000.000.000-00"
+                      className="w-full px-2.5 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-750 focus:border-slate-800 outline-none font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      Setor / Função *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={setorFuncao}
+                      onChange={(e) => setSetorFuncao(e.target.value)}
+                      placeholder="Ex: Auditor de Sistemas"
+                      className="w-full px-2.5 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-750 focus:border-slate-800 outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    {linhaGasto === 'corporativa'
+                      ? 'Objetivo das despesas corporativas *'
+                      : 'Objetivo da viagem / despesas *'}
+                  </label>
+                  <textarea
+                    rows={2}
+                    required
+                    value={objetivoViagem}
+                    onChange={(e) => setObjetivoViagem(e.target.value)}
+                    placeholder="Descreva detalhadamente o motivo e objetivo das despesas realizadas..."
+                    className="w-full px-2.5 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-750 focus:border-slate-800 outline-none"
                   />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                  Nome do Banco
-                </label>
-                <input
-                  type="text"
-                  value={nomeBanco}
-                  onChange={(e) => setNomeBanco(e.target.value)}
-                  placeholder="Ex: Banco do Brasil"
-                  className="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                  N.º Agencia
-                </label>
-                <input
-                  type="text"
-                  value={agencia}
-                  onChange={(e) => setAgencia(e.target.value)}
-                  placeholder="Ex: 1820-1"
-                  className="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none font-mono"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                  N.º Conta
-                </label>
-                <input
-                  type="text"
-                  value={conta}
-                  onChange={(e) => setConta(e.target.value)}
-                  placeholder="Ex: 45.890-2"
-                  className="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none font-mono"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                  Tipo da Conta
-                </label>
-                <select
-                  value={tipoConta}
-                  onChange={(e) => setTipoConta(e.target.value)}
-                  className="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none"
-                >
-                  <option value="Conta Corrente">Conta Corrente</option>
-                  <option value="Conta Poupança">Conta Poupança</option>
-                  <option value="Conta Pagamento">Conta Pagamento</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                  Chave do PIX
-                </label>
-                <input
-                  type="text"
-                  value={chavePix}
-                  onChange={(e) => setChavePix(e.target.value)}
-                  placeholder="Ex: CPF, celular ou e-mail"
-                  className="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none font-mono"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* 3. SEÇÃO: Descrição dos gastos */}
-          <div className="border border-slate-200 rounded-xl p-4 bg-white space-y-3">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-2">
-              <div>
-                <span className="text-xs font-bold text-slate-900 uppercase tracking-wide">
-                  Descrição dos gastos
-                </span>
-                <span className="text-[11px] text-slate-500 ml-2">
-                  (Classifique cada item conforme Tipos de Gasto e Tipo Doc cadastrados)
-                </span>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] font-semibold text-slate-600">Data entrega - RDC:</span>
-                <input
-                  type="date"
-                  value={dataEntregaRdc}
-                  onChange={(e) => setDataEntregaRdc(e.target.value)}
-                  className="px-2 py-1 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 outline-none"
-                />
-              </div>
-            </div>
-
-            {/* Tabela de Itens Dinâmica */}
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold">
-                  <tr>
-                    <th className="px-2 py-2 w-36">Tipo Gastos</th>
-                    <th className="px-2 py-2 w-32">Tipo Doc.</th>
-                    <th className="px-2 py-2">Fornecedor - observação das despesas - número documento</th>
-                    <th className="px-2 py-2 text-right w-32">Valor (R$)</th>
-                    <th className="px-2 py-2 text-center w-12">Ação</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {itens.map((item, idx) => (
-                    <tr key={item.id} className="hover:bg-slate-50/70 transition-colors">
-                      <td className="px-2 py-1.5">
-                        <select
-                          value={item.tipo_gasto}
-                          onChange={(e) =>
-                            handleItemChange(item.id, 'tipo_gasto', parseInt(e.target.value) || 1)
-                          }
-                          className="w-full px-2 py-1 text-xs bg-slate-50 border border-slate-200 rounded outline-none"
-                        >
-                          {tiposGasto.map((tg) => (
-                            <option key={tg.id} value={tg.codigo}>
-                              {tg.codigo} {tg.nome}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-
-                      <td className="px-2 py-1.5">
-                        <select
-                          value={item.tipo_doc === 'Nf' ? 'NF' : item.tipo_doc}
-                          onChange={(e) => handleItemChange(item.id, 'tipo_doc', e.target.value)}
-                          className="w-full px-2 py-1 text-xs bg-slate-50 border border-slate-200 rounded outline-none font-medium"
-                        >
-                          {tiposDoc.map((td) => (
-                            <option key={td.id} value={td.codigo}>
-                              {td.codigo} ({td.nome})
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-
-                      <td className="px-2 py-1.5">
-                        <input
-                          type="text"
-                          required
-                          value={item.descricao}
-                          onChange={(e) => handleItemChange(item.id, 'descricao', e.target.value)}
-                          placeholder="Ex: Fornecedor Ltda - Jantar com cliente - NF 3341"
-                          className="w-full px-2.5 py-1 text-xs bg-slate-50 border border-slate-200 rounded outline-none focus:bg-white focus:border-slate-800"
-                        />
-                      </td>
-
-                      <td className="px-2 py-1.5 text-right">
-                        <input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          required
-                          value={item.valor || ''}
-                          onChange={(e) => handleItemChange(item.id, 'valor', e.target.value)}
-                          placeholder="0,00"
-                          className="w-full px-2 py-1 text-xs text-right font-mono font-semibold bg-slate-50 border border-slate-200 rounded outline-none focus:bg-white focus:border-slate-800"
-                        />
-                      </td>
-
-                      <td className="px-2 py-1.5 text-center">
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveItem(item.id)}
-                          className="p-1 text-slate-400 hover:text-red-600 rounded transition-colors"
-                          title="Remover linha"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            <button
-              type="button"
-              onClick={handleAddItem}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-lg transition-colors"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Adicionar Linha de Despesa</span>
-            </button>
-          </div>
-
-          {/* 4. SEÇÃO: Resumo, Legenda e Totais (Idêntico ao Rodapé da Imagem) */}
-          <div className="border border-slate-200 rounded-xl p-4 bg-slate-50 space-y-3">
-            <div className="text-xs font-bold text-slate-900 uppercase tracking-wide border-b border-slate-200 pb-2">
-              Quadro Resumo de Gastos & Prestação de Contas
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Coluna Esquerda: Natureza dos Gastos */}
-              <div className="bg-white border border-slate-200 rounded-lg p-3 text-xs space-y-1.5">
-                <div className="font-semibold text-slate-700 border-b border-slate-100 pb-1 flex justify-between">
-                  <span>Natureza dos gastos</span>
-                  <span>Total gastos</span>
-                </div>
-                {tiposGasto.map((tg) => (
-                  <div key={tg.id} className="flex justify-between text-slate-600">
-                    <span>
-                      {tg.codigo} {tg.nome}
-                    </span>
-                    <span className="font-mono font-medium">
-                      {formatarMoeda(totalPorNatureza[tg.codigo] || 0)}
-                    </span>
-                  </div>
-                ))}
-                <div className="pt-2 border-t border-slate-100 text-[11px] text-slate-500">
-                  <b>Legenda:</b>{' '}
-                  {tiposDoc.map((td) => `${td.codigo} = ${td.nome}`).join(' | ')}
-                </div>
-              </div>
-
-              {/* Coluna Direita: Totais Financeiros Oficiais */}
-              <div className="bg-white border border-slate-200 rounded-lg p-3 text-xs space-y-2">
-                <div className="flex justify-between items-center py-1 border-b border-slate-100">
-                  <span className="font-bold text-slate-800">Total das Despesas:</span>
-                  <span className="font-mono font-bold text-slate-900 text-sm">{formatarMoeda(totalDespesas)}</span>
+              {/* 2. SEÇÃO: Informações bancária e financeira */}
+              <div className="border border-slate-200 dark:border-slate-800 rounded-xl p-4 bg-white dark:bg-slate-850 space-y-3 transition-colors">
+                <div className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wide border-b border-slate-100 dark:border-slate-800 pb-2">
+                  2. INFORMAÇÕES BANCÁRIA E FINANCEIRA
                 </div>
 
-                <div className="flex justify-between items-center py-1 border-b border-slate-100">
-                  <span className="text-slate-600">Valor recebido de adiantamento:</span>
-                  <span className="font-mono font-semibold text-slate-800">{formatarMoeda(valorSolicitado)}</span>
-                </div>
-
-                <div className="flex justify-between items-center py-1 border-b border-slate-100">
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                   <div>
-                    <div className="font-medium text-slate-700">Valor de devolução / ressarcimento:</div>
-                    <div className="text-[10px] text-slate-400">
-                      (Saldo negativo, a receber. Saldo positivo, devolver)
+                    <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      Valor solicitado (Adiantamento)
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-2.5 top-1.5 text-xs text-slate-500 dark:text-slate-400 font-semibold">
+                        R$
+                      </span>
+                      <input
+                        type="text"
+                        value={valorSolicitadoRaw}
+                        onChange={handleValorSolicitadoChange}
+                        placeholder="0,00"
+                        className="w-full pl-7 pr-2.5 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 font-bold focus:bg-white dark:focus:bg-slate-750 outline-none"
+                      />
                     </div>
                   </div>
-                  <span
-                    className={`font-mono font-bold text-xs ${
-                      saldoDevolucao < 0 ? 'text-blue-700' : saldoDevolucao > 0 ? 'text-amber-700' : 'text-slate-700'
-                    }`}
+
+                  <div className="sm:col-span-1">
+                    <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      Nome do Banco
+                    </label>
+                    <input
+                      type="text"
+                      value={nomeBanco}
+                      onChange={(e) => setNomeBanco(e.target.value)}
+                      placeholder="Ex: Banco do Brasil"
+                      className="w-full px-2.5 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      N.º Agência
+                    </label>
+                    <input
+                      type="text"
+                      value={agencia}
+                      onChange={(e) => setAgencia(e.target.value)}
+                      placeholder="Ex: 1820-1"
+                      className="w-full px-2.5 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 outline-none font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      N.º Conta
+                    </label>
+                    <input
+                      type="text"
+                      value={conta}
+                      onChange={(e) => setConta(e.target.value)}
+                      placeholder="Ex: 45.890-2"
+                      className="w-full px-2.5 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 outline-none font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      Tipo da Conta
+                    </label>
+                    <input
+                      type="text"
+                      value={tipoConta}
+                      onChange={(e) => setTipoConta(e.target.value)}
+                      placeholder="Ex: Conta Corrente / Poupança"
+                      className="w-full px-2.5 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      Chave do PIX
+                    </label>
+                    <input
+                      type="text"
+                      value={chavePix}
+                      onChange={(e) => setChavePix(e.target.value)}
+                      placeholder="Ex: email@dominio.com ou CPF"
+                      className="w-full px-2.5 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 outline-none font-mono"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 3. SEÇÃO: Descrição dos gastos */}
+              <div className="border border-slate-200 dark:border-slate-800 rounded-xl p-4 bg-white dark:bg-slate-850 space-y-3 transition-colors">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-2">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wide">
+                      3. DESCRIÇÃO DOS GASTOS
+                    </span>
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                      ({itens.length} itens cadastrados)
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1.5">
+                      <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                        Data entrega - RDC:
+                      </label>
+                      <input
+                        type="date"
+                        value={dataEntregaRdc}
+                        onChange={(e) => setDataEntregaRdc(e.target.value)}
+                        className="px-2 py-1 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-slate-900 dark:text-slate-100 outline-none"
+                      />
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleAdicionarItem}
+                      className="px-2.5 py-1 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 dark:bg-blue-600 dark:hover:bg-blue-500 rounded-lg transition-colors flex items-center gap-1 shadow-2xs"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Adicionar Item</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Tabela de Itens Editáveis */}
+                <div className="overflow-x-auto border border-slate-200 dark:border-slate-700 rounded-lg">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-b border-slate-200 dark:border-slate-700">
+                        <th className="px-2 py-1.5 w-36">Tipo de Gasto</th>
+                        <th className="px-2 py-1.5 w-28">Tipo Doc.</th>
+                        <th className="px-2 py-1.5">Fornecedor / Observação / Nº Doc.</th>
+                        <th className="px-2 py-1.5 w-28 text-right">Valor (R$)</th>
+                        <th className="px-2 py-1.5 w-10 text-center">Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                      {itens.length === 0 ? (
+                        <tr>
+                          <td colSpan={5} className="py-6 text-center text-xs text-slate-400 dark:text-slate-500">
+                            Nenhum item adicionado. Clique no botão &ldquo;+ Adicionar Item&rdquo; ou carregue um Modelo acima.
+                          </td>
+                        </tr>
+                      ) : (
+                        itens.map((it) => (
+                          <tr key={it.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
+                            <td className="p-1">
+                              <select
+                                value={it.tipo_gasto}
+                                onChange={(e) => handleItemChange(it.id, 'tipo_gasto', e.target.value)}
+                                className="w-full p-1 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-slate-900 dark:text-slate-100 outline-none"
+                              >
+                                {tiposGasto.map((tg) => (
+                                  <option key={tg.codigo} value={tg.codigo}>
+                                    {tg.codigo} - {tg.nome}
+                                  </option>
+                                ))}
+                              </select>
+                            </td>
+                            <td className="p-1">
+                              <select
+                                value={it.tipo_doc}
+                                onChange={(e) => handleItemChange(it.id, 'tipo_doc', e.target.value)}
+                                className="w-full p-1 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-slate-900 dark:text-slate-100 outline-none"
+                              >
+                                {tiposDoc.map((td) => (
+                                  <option key={td.codigo} value={td.codigo}>
+                                    {td.codigo} ({td.nome})
+                                  </option>
+                                ))}
+                              </select>
+                            </td>
+                            <td className="p-1">
+                              <input
+                                type="text"
+                                value={it.descricao}
+                                onChange={(e) => handleItemChange(it.id, 'descricao', e.target.value)}
+                                placeholder="Ex: Restaurante Central - Almoço diretoria - NF 982"
+                                className="w-full p-1 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-slate-900 dark:text-slate-100 outline-none"
+                              />
+                            </td>
+                            <td className="p-1">
+                              <input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                value={it.valor === 0 ? '' : it.valor}
+                                onChange={(e) => handleItemChange(it.id, 'valor', e.target.value)}
+                                placeholder="0,00"
+                                className="w-full p-1 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-slate-900 dark:text-slate-100 outline-none font-mono text-right"
+                              />
+                            </td>
+                            <td className="p-1 text-center">
+                              <button
+                                type="button"
+                                onClick={() => handleRemoverItem(it.id)}
+                                className="p-1 text-slate-400 hover:text-red-600 dark:hover:text-red-400 rounded transition-colors"
+                                title="Remover item"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* 4. SEÇÃO: Totais e Fechamento Financeiro */}
+              <div className="border border-slate-200 dark:border-slate-800 rounded-xl p-4 bg-white dark:bg-slate-850 space-y-3 transition-colors">
+                <div className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wide border-b border-slate-100 dark:border-slate-800 pb-2">
+                  4. TOTAIS E FECHAMENTO FINANCEIRO
+                </div>
+
+                <div className="space-y-1.5 text-xs text-slate-800 dark:text-slate-200">
+                  <div className="flex justify-between items-center py-1 border-b border-slate-100 dark:border-slate-800">
+                    <span className="font-semibold">Total das Despesas:</span>
+                    <span className="font-mono font-bold text-sm text-slate-900 dark:text-white">
+                      {formatarMoeda(totalDespesas)}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between items-center py-1 border-b border-slate-100 dark:border-slate-800">
+                    <span>Valor recebido de adiantamento:</span>
+                    <span className="font-mono font-semibold">
+                      {formatarMoeda(valorSolicitado)}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between items-center py-1 border-b border-slate-100 dark:border-slate-800">
+                    <div>
+                      <span className="font-semibold">Saldo devolução/ressarcimento:</span>
+                      <div className="text-[10px] text-slate-400 dark:text-slate-500">
+                        (Saldo negativo, a receber. Saldo positivo, devolver na conta de origem)
+                      </div>
+                    </div>
+                    <span
+                      className={`font-mono font-bold text-xs ${
+                        saldoDevolucao < 0
+                          ? 'text-blue-600 dark:text-blue-400'
+                          : saldoDevolucao > 0
+                          ? 'text-amber-600 dark:text-amber-400'
+                          : 'text-slate-700 dark:text-slate-300'
+                      }`}
+                    >
+                      {formatarMoeda(saldoDevolucao)}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between items-center py-2 bg-blue-50/70 dark:bg-blue-950/40 px-3 rounded-lg">
+                    <span className="font-bold text-blue-900 dark:text-blue-200">
+                      {saldoDevolucao < 0
+                        ? 'Valor a ressarcir na conta do solicitante:'
+                        : 'Valor a devolver na conta de origem:'}
+                    </span>
+                    <span className="font-mono font-bold text-blue-900 dark:text-blue-300 text-sm">
+                      {formatarMoeda(saldoDevolucao < 0 ? valorARessarcir : saldoDevolucao)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Aviso Obrigatório em Destaque */}
+                <div className="p-2.5 bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-900/60 rounded-lg text-center text-red-700 dark:text-red-300 font-bold text-[11px] tracking-wide uppercase">
+                  DESPESAS COM BEBIDAS ALCOÓLICAS, GASTOS NÃO PRÉ ACORDADOS COM DIRETORIA, NÃO SERÃO REEMBOLSADOS.
+                </div>
+              </div>
+
+              {/* 5. SEÇÃO: Assinaturas e aprovação das despesas */}
+              <div className="border border-slate-200 dark:border-slate-800 rounded-xl p-4 bg-white dark:bg-slate-850 space-y-3 transition-colors">
+                <div className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wide border-b border-slate-100 dark:border-slate-800 pb-2">
+                  5. ASSINATURAS E APROVAÇÃO DAS DESPESAS
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      Assinatura do profissional (Solicitante)
+                    </label>
+                    <input
+                      type="text"
+                      value={assinaturaProfissional}
+                      onChange={(e) => setAssinaturaProfissional(e.target.value)}
+                      className="w-full px-2.5 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      Diretoria direta
+                    </label>
+                    <input
+                      type="text"
+                      value={diretoriaDireta}
+                      onChange={(e) => setDiretoriaDireta(e.target.value)}
+                      className="w-full px-2.5 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      Contábil / Financeiro
+                    </label>
+                    <input
+                      type="text"
+                      value={contabilFinanceiro}
+                      onChange={(e) => setContabilFinanceiro(e.target.value)}
+                      className="w-full px-2.5 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer com Botões */}
+              <div className="flex items-center justify-between pt-3 border-t border-slate-200 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-4 py-2 text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                >
+                  Cancelar
+                </button>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (validarFormulario()) {
+                        setModoPreVisualizar(true);
+                      }
+                    }}
+                    className="px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-lg transition-colors flex items-center gap-1.5 shadow-2xs"
                   >
-                    {formatarMoeda(saldoDevolucao)}
-                  </span>
+                    <Eye className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                    <span>PRÉ-VISUALIZAR RDC</span>
+                  </button>
+
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="px-5 py-2 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 dark:bg-blue-600 dark:hover:bg-blue-500 disabled:opacity-50 rounded-lg shadow-sm transition-colors flex items-center gap-1.5"
+                  >
+                    <Check className="w-3.5 h-3.5 text-blue-400 dark:text-white" />
+                    <span>{isSubmitting ? 'EMITINDO...' : 'EMITIR RDC COM PRESTAÇÃO DE CONTAS'}</span>
+                  </button>
                 </div>
-
-                <div className="flex justify-between items-center py-1.5 bg-blue-50/70 px-2 rounded">
-                  <span className="font-bold text-blue-900">
-                    {saldoDevolucao < 0 ? 'Valor a ressarcir na conta do solicitante:' : 'Valor a devolver na conta de origem:'}
-                  </span>
-                  <span className="font-mono font-bold text-blue-900 text-sm">
-                    {formatarMoeda(saldoDevolucao < 0 ? valorARessarcir : saldoDevolucao)}
-                  </span>
-                </div>
               </div>
-            </div>
-
-            {/* Aviso Obrigatório em Destaque */}
-            <div className="p-2.5 bg-red-50 border border-red-200 rounded-lg text-center text-red-700 font-bold text-[11px] tracking-wide uppercase">
-              DESPESAS COM BEBIDAS ALCOÓLICAS, GASTOS NÃO PRÉ ACORDADOS COM DIRETORIA, NÃO SERÃO REEMBOLSADOS.
-            </div>
-          </div>
-
-          {/* 5. SEÇÃO: Assinaturas e aprovação das despesas */}
-          <div className="border border-slate-200 rounded-xl p-4 bg-white space-y-3">
-            <div className="text-xs font-bold text-slate-900 uppercase tracking-wide border-b border-slate-100 pb-2">
-              Assinaturas e aprovação das despesas
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                  Assinatura do profissional (Solicitante)
-                </label>
-                <input
-                  type="text"
-                  value={assinaturaProfissional}
-                  onChange={(e) => setAssinaturaProfissional(e.target.value)}
-                  className="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                  Diretoria direta
-                </label>
-                <input
-                  type="text"
-                  value={diretoriaDireta}
-                  onChange={(e) => setDiretoriaDireta(e.target.value)}
-                  className="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                  Contábil / Financeiro
-                </label>
-                <input
-                  type="text"
-                  value={contabilFinanceiro}
-                  onChange={(e) => setContabilFinanceiro(e.target.value)}
-                  className="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg outline-none"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Footer com Botões */}
-          <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-200">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-xs font-medium text-slate-600 hover:text-slate-900 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="px-5 py-2 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 disabled:opacity-50 rounded-lg shadow-sm transition-colors flex items-center gap-1.5"
-            >
-              <Check className="w-3.5 h-3.5 text-blue-400" />
-              <span>{isSubmitting ? 'EMITINDO...' : 'EMITIR RDC COM PRESTAÇÃO DE CONTAS'}</span>
-            </button>
-          </div>
-        </form>
+            </form>
+          )}
+        </div>
       </div>
     </div>
   );

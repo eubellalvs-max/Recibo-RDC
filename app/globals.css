@@ -4,27 +4,104 @@
 
 @layer utilities {
   @media print {
-    body {
+    @page {
+      size: A4 portrait;
+      margin: 6mm 8mm 6mm 8mm;
+    }
+
+    html, body {
       background: #ffffff !important;
       color: #000000 !important;
       margin: 0 !important;
       padding: 0 !important;
+      width: 100% !important;
+      height: auto !important;
+      min-height: auto !important;
+      overflow: visible !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
     }
-    .no-print {
+
+    /* Ocultar elementos de navegação, modais fora do print, botões e barras de ferramentas */
+    header,
+    nav,
+    aside,
+    .no-print,
+    [role="dialog"] > div:first-child:not(.print-dialog-content) {
       display: none !important;
     }
-    .print-only {
+
+    /* Transformar contêineres modais em fluxo normal de página para impressão perfeita */
+    .print-modal-overlay {
+      position: static !important;
       display: block !important;
-    }
-    .print-sheet {
-      box-shadow: none !important;
-      border: 1px solid #000000 !important;
+      padding: 0 !important;
       margin: 0 !important;
-      padding: 20mm !important;
+      background: transparent !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
       width: 100% !important;
       max-width: 100% !important;
-      page-break-inside: avoid;
+      min-height: auto !important;
+      overflow: visible !important;
+      inset: auto !important;
+      z-index: auto !important;
+    }
+
+    .print-modal-content {
+      position: static !important;
+      display: block !important;
+      box-shadow: none !important;
+      border: none !important;
+      border-radius: 0 !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      max-height: none !important;
+      overflow: visible !important;
+      background: transparent !important;
+    }
+
+    .print-sheet {
+      box-shadow: none !important;
+      border: 1px solid #1e293b !important;
+      border-radius: 0 !important;
+      margin: 0 auto !important;
+      padding: 6mm 8mm !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
       background: #ffffff !important;
+      color: #0f172a !important;
+      transform: none !important;
+    }
+
+    /* Formatação compacta e de alta precisão para a folha oficial da RDC caber inteira em 1 página */
+    .print-sheet-rdc {
+      box-shadow: none !important;
+      border: 1.5px solid #000000 !important;
+      border-radius: 0 !important;
+      margin: 0 auto !important;
+      padding: 4mm 5mm !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+      background: #ffffff !important;
+      color: #000000 !important;
+      font-size: 8pt !important;
+      line-height: 1.15 !important;
+    }
+
+    .print-sheet-rdc * {
+      box-shadow: none !important;
+    }
+
+    .avoid-page-break {
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
     }
   }
 }

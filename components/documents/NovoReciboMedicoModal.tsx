@@ -27,6 +27,8 @@ import {
   Printer,
   Sparkles,
 } from 'lucide-react';
+import { UnifiedPrintToolbar } from './unified/UnifiedPrintToolbar';
+import { UnifiedReciboMedicoPrint } from './unified/UnifiedReciboMedicoPrint';
 
 interface NovoReciboMedicoModalProps {
   isOpen: boolean;
@@ -224,46 +226,56 @@ export function NovoReciboMedicoModal({
   const formasPagamentoSugeridas = ['Pix', 'Dinheiro', 'Cartão de Débito', 'Cartão de Crédito', 'Transferência'];
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl max-w-4xl w-full my-4 flex flex-col max-h-[94vh] transition-colors">
-        {/* Top Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-850 rounded-t-xl shrink-0">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center">
-              <HeartPulse className="w-4 h-4" />
+    <div className="fixed inset-0 z-50 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-y-auto print-modal-overlay">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl max-w-4xl w-full my-4 flex flex-col max-h-[94vh] transition-colors print-modal-content">
+        {/* Top Header / Toolbar de Pré-Visualização */}
+        {modoPreVisualizar ? (
+          <UnifiedPrintToolbar
+            titulo="PRÉ-VISUALIZAÇÃO - RECIBO MÉDICO"
+            subtitulo={`Nº ${numeroReciboAuto} • Modelo Oficial Institucional ABEAS`}
+            isPreVisualizacao={true}
+            onVoltarEdicao={() => setModoPreVisualizar(false)}
+            onConfirmarEmissao={handleEmitir}
+            onFechar={onClose}
+            isSubmitting={isSubmitting}
+            documentoNumero={numeroReciboAuto}
+            tipoDocumento="Recibo_Medico"
+          />
+        ) : (
+          <div className="no-print flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-850 rounded-t-xl shrink-0">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center">
+                <HeartPulse className="w-4 h-4" />
+              </div>
+              <div>
+                <h2 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">
+                  EMISSÃO DE RECIBO DE PRESTAÇÃO DE SERVIÇOS MÉDICOS
+                </h2>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  Modelo Oficial Institucional da ABEAS • Numeração e Extenso Automáticos
+                </p>
+              </div>
             </div>
-            <div>
-              <h2 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">
-                EMISSÃO DE RECIBO DE PRESTAÇÃO DE SERVIÇOS MÉDICOS
-              </h2>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                Modelo Oficial Institucional da ABEAS • Numeração e Extenso Automáticos
-              </p>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setModoPreVisualizar(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors shadow-2xs"
+              >
+                <Eye className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                <span>PRÉ-VISUALIZAR RECIBO</span>
+              </button>
+
+              <button
+                onClick={onClose}
+                className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
           </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setModoPreVisualizar(!modoPreVisualizar)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border transition-colors ${
-                modoPreVisualizar
-                  ? 'bg-blue-600 text-white border-blue-600'
-                  : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
-              }`}
-            >
-              <Eye className="w-3.5 h-3.5" />
-              <span>{modoPreVisualizar ? 'Voltar à Edição' : 'PRÉ-VISUALIZAR RECIBO'}</span>
-            </button>
-
-            <button
-              onClick={onClose}
-              className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-200 rounded-lg transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
+        )}
 
         {/* Mensagem de Erro */}
         {erro && (
@@ -279,167 +291,33 @@ export function NovoReciboMedicoModal({
             /* ============================================================== */
             /* MODO DE PRÉ-VISUALIZAÇÃO FIEL AO DOCUMENTO IMPRESSO/PDF */
             /* ============================================================== */
-            <div className="bg-slate-100 p-4 sm:p-6 rounded-xl">
-              <div className="bg-white border border-slate-300 rounded-lg p-8 shadow-sm max-w-2xl mx-auto font-sans text-slate-900 space-y-6">
-                {/* Cabeçalho Oficial do Modelo com Logo ABEAS Acima */}
-                <div className="text-center border-b border-slate-200 pb-5">
-                  <div className="flex justify-center mb-2.5">
-                    <img
-                      src="/abeas_logo.png"
-                      alt="ABEAS"
-                      className="h-16 sm:h-20 w-auto object-contain"
-                    />
-                  </div>
-                  <div className="text-xs uppercase tracking-wider text-slate-800 font-bold mb-0.5">
-                    ABEAS - Associação Brasileira de Entidades de Assistência Social
-                  </div>
-                  <div className="text-xs text-slate-600 font-mono mb-2">
-                    CNPJ: 04.547.278/0005-68
-                  </div>
-                  <h1 className="text-lg md:text-xl font-bold uppercase text-slate-900 tracking-tight">
-                    RECIBO DE PRESTAÇÃO DE SERVIÇOS MÉDICOS
-                  </h1>
-                </div>
-
-                {/* Linha com Número e Valor em Destaque */}
-                <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 bg-slate-50 border border-slate-200 rounded-lg">
-                  <div>
-                    <span className="text-xs text-slate-500 font-medium">Recibo nº: </span>
-                    <span className="text-sm font-bold font-mono text-slate-900">
-                      {numeroReciboAuto}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-xs text-slate-500 font-medium">Valor: </span>
-                    <span className="text-base font-bold text-emerald-700">
-                      {formatarMoeda(valorNumerico)}
-                    </span>
-                    <span className="text-xs text-slate-500 ml-1">({valorExtenso})</span>
-                  </div>
-                </div>
-
-                {/* Texto Fixo Declaratório da ABEAS */}
-                <p className="text-xs text-slate-800 leading-relaxed text-justify font-medium">
-                  {ABEAS_FIXA.texto_declaracao}
-                </p>
-
-                {/* Seção: DADOS DO PAGADOR */}
-                <div className="border border-slate-200 rounded-lg overflow-hidden">
-                  <div className="bg-slate-100 px-3 py-1.5 border-b border-slate-200 text-xs font-bold text-slate-800 uppercase tracking-wide">
-                    DADOS DO PAGADOR
-                  </div>
-                  <div className="p-3.5 space-y-1.5 text-xs text-slate-700">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      <div>
-                        <span className="font-semibold text-slate-900">Nome/Razão Social: </span>
-                        <span>{pagadorNome || '---'}</span>
-                      </div>
-                      <div>
-                        <span className="font-semibold text-slate-900">CPF/CNPJ: </span>
-                        <span className="font-mono">{pagadorDocumento || '---'}</span>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-                      <div>
-                        <span className="font-semibold text-slate-900">Telefone: </span>
-                        <span>{pagadorTelefone || '---'}</span>
-                      </div>
-                      <div>
-                        <span className="font-semibold text-slate-900">Endereço: </span>
-                        <span>{pagadorEndereco || '---'}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Texto Fixo Intermediário com Valor e Extenso Automáticos */}
-                <p className="text-xs text-slate-800 leading-relaxed text-justify">
-                  A quantia supra de <b>{formatarMoeda(valorNumerico)}</b> (<i>{valorExtenso}</i>), referente à prestação de serviços médicos particulares realizados no(a) paciente abaixo qualificado(a):
-                </p>
-
-                {/* Seção: DADOS DO PACIENTE */}
-                <div className="border border-slate-200 rounded-lg overflow-hidden">
-                  <div className="bg-slate-100 px-3 py-1.5 border-b border-slate-200 text-xs font-bold text-slate-800 uppercase tracking-wide">
-                    DADOS DO PACIENTE
-                  </div>
-                  <div className="p-3.5 space-y-1.5 text-xs text-slate-700">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      <div>
-                        <span className="font-semibold text-slate-900">Nome do Paciente: </span>
-                        <span>{pacienteNome || '---'}</span>
-                      </div>
-                      <div>
-                        <span className="font-semibold text-slate-900">CPF do Paciente: </span>
-                        <span className="font-mono">{pacienteCpf || '---'}</span>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-                      <div>
-                        <span className="font-semibold text-slate-900">Telefone: </span>
-                        <span>{pacienteTelefone || '---'}</span>
-                      </div>
-                      <div>
-                        <span className="font-semibold text-slate-900">Endereço: </span>
-                        <span>{pacienteEndereco || '---'}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Seção: DETALHES DO ATENDIMENTO */}
-                <div className="border border-slate-200 rounded-lg overflow-hidden">
-                  <div className="bg-slate-100 px-3 py-1.5 border-b border-slate-200 text-xs font-bold text-slate-800 uppercase tracking-wide">
-                    DETALHES DO ATENDIMENTO:
-                  </div>
-                  <div className="p-3.5 space-y-1.5 text-xs text-slate-700">
-                    <div>
-                      <span className="font-semibold text-slate-900">Serviço prestado: </span>
-                      <span>{servicoPrestado}</span>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-                      <div>
-                        <span className="font-semibold text-slate-900">Médico(a) assistente: </span>
-                        <span>{medicoAssistente}</span>
-                      </div>
-                      <div>
-                        <span className="font-semibold text-slate-900">CRM: </span>
-                        <span className="font-mono">{crm}</span>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-                      <div>
-                        <span className="font-semibold text-slate-900">Data do atendimento: </span>
-                        <span>{dataAtendimento.split('-').reverse().join('/')}</span>
-                      </div>
-                      <div>
-                        <span className="font-semibold text-slate-900">Forma de pagamento: </span>
-                        <span>{formaPagamento}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Texto Final Fixo */}
-                <p className="text-xs text-slate-800 leading-relaxed text-justify font-medium">
-                  {ABEAS_FIXA.texto_final}
-                </p>
-
-                {/* Local e Data Automáticos */}
-                <div className="text-right text-xs text-slate-800 pt-2">
-                  {cidade} - {uf}, {dataPorExtenso(dataEmissao)}.
-                </div>
-
-                {/* Assinatura Oficial Fixo da ABEAS */}
-                <div className="pt-8 text-center">
-                  <div className="w-72 mx-auto border-t border-slate-400 mb-2" />
-                  <div className="font-bold text-xs uppercase text-slate-900">
-                    {ABEAS_FIXA.razao_social}
-                  </div>
-                  <div className="text-[11px] text-slate-600 font-mono">
-                    CNPJ: {ABEAS_FIXA.cnpj}
-                  </div>
-                </div>
-              </div>
+            <div className="bg-slate-100 dark:bg-slate-950 p-4 sm:p-6 rounded-xl flex justify-center">
+              <UnifiedReciboMedicoPrint
+                dados={{
+                  numero: numeroReciboAuto,
+                  valor: valorNumerico,
+                  valor_extenso: valorExtenso,
+                  data_emissao: dataEmissao,
+                  usuario_nome: currentUser.nome,
+                  detalhes: {
+                    pagador_nome: pagadorNome,
+                    pagador_documento: pagadorDocumento,
+                    pagador_telefone: pagadorTelefone,
+                    pagador_endereco: pagadorEndereco,
+                    paciente_nome: pacienteNome,
+                    paciente_cpf: pacienteCpf,
+                    paciente_telefone: pacienteTelefone,
+                    paciente_endereco: pacienteEndereco,
+                    servico_prestado: servicoPrestado,
+                    medico_assistente: medicoAssistente,
+                    crm: crm,
+                    data_atendimento: dataAtendimento,
+                    forma_pagamento: formaPagamento,
+                    cidade: cidade,
+                    uf: uf,
+                  },
+                }}
+              />
             </div>
           ) : (
             /* ============================================================== */

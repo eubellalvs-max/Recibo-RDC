@@ -154,3 +154,5 @@ export function validarCpfOuCnpj(valor: string): boolean {
   if (clean.length === 14) return validarCnpj(clean);
   return false;
 }
+
+export { dataPorExtenso } from './extenso';

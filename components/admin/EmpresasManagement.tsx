@@ -10,14 +10,16 @@ import {
   Search,
   Edit2,
   Power,
+  Trash2,
   CheckCircle2,
   XCircle,
   X,
   Check,
   AlertCircle,
+  AlertTriangle,
   Upload,
   Image as ImageIcon,
-  Trash2,
+  ShieldAlert,
 } from 'lucide-react';
 
 interface EmpresasManagementProps {
@@ -34,6 +36,22 @@ export function EmpresasManagement({ currentUser, readOnly = false }: EmpresasMa
   // Modal de Criação / Edição
   const [modalAberto, setModalAberto] = useState(false);
   const [empresaEditando, setEmpresaEditando] = useState<Empresa | null>(null);
+
+  // Modal de Exclusão de Empresa
+  const [modalExcluirAberto, setModalExcluirAberto] = useState(false);
+  const [empresaParaExcluir, setEmpresaParaExcluir] = useState<Empresa | null>(null);
+  const [vinculosExclusao, setVinculosExclusao] = useState<{
+    podeExcluirFisicamente: boolean;
+    totalDocumentos: number;
+    totalUsuarios: number;
+    detalhes: string[];
+  } | null>(null);
+
+  // Feedback de Operação (Sucesso / Info / Erro)
+  const [feedback, setFeedback] = useState<{
+    tipo: 'sucesso' | 'info' | 'erro';
+    mensagem: string;
+  } | null>(null);
 
   // Campos do formulário
   const [razaoSocial, setRazaoSocial] = useState('');
@@ -177,15 +195,46 @@ export function EmpresasManagement({ currentUser, readOnly = false }: EmpresasMa
     StorageService.saveEmpresa(novaEmpresa);
     recarregarEmpresas();
     setModalAberto(false);
+    setFeedback({
+      tipo: 'sucesso',
+      mensagem: `Empresa "${novaEmpresa.razao_social}" salva com sucesso!`,
+    });
+    setTimeout(() => setFeedback(null), 5000);
   };
 
   const handleAlternarStatus = (emp: Empresa) => {
     const novoStatus: StatusEmpresa = emp.status === 'ativa' ? 'inativa' : 'ativa';
     StorageService.saveEmpresa({ ...emp, status: novoStatus });
     recarregarEmpresas();
+    setFeedback({
+      tipo: 'info',
+      mensagem: `Empresa "${emp.razao_social}" alterada para status ${novoStatus.toUpperCase()}.`,
+    });
+    setTimeout(() => setFeedback(null), 4000);
   };
 
-  // Filtragem
+  // Exclusão de Empresa com verificação de vínculos
+  const handleSolicitarExclusao = (emp: Empresa) => {
+    const vinculos = StorageService.verificarVinculosEmpresa(emp.id);
+    setVinculosExclusao(vinculos);
+    setEmpresaParaExcluir(emp);
+    setModalExcluirAberto(true);
+  };
+
+  const handleConfirmarExclusao = () => {
+    if (!empresaParaExcluir) return;
+    const res = StorageService.excluirEmpresa(empresaParaExcluir.id);
+    recarregarEmpresas();
+    setModalExcluirAberto(false);
+    setEmpresaParaExcluir(null);
+    setFeedback({
+      tipo: res.tipo === 'fisica' ? 'sucesso' : 'info',
+      mensagem: res.mensagem,
+    });
+    setTimeout(() => setFeedback(null), 7000);
+  };
+
+  // Filtragem (ocultando empresas excluídas logicamente a menos que busquem pelo status)
   const empresasFiltradas = empresas.filter((emp) => {
     if (filtroTipo !== 'todos' && emp.tipo !== filtroTipo && emp.tipo !== 'ambas') {
       return false;
@@ -207,12 +256,12 @@ export function EmpresasManagement({ currentUser, readOnly = false }: EmpresasMa
   return (
     <div className="p-6 md:p-8 space-y-6 max-w-6xl mx-auto">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-slate-900">
+          <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
             {readOnly ? 'Consulta de Empresas' : 'Cadastro de Empresas'}
           </h1>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             {readOnly
               ? 'Consulte as empresas autorizadas para emissão e cobrança de documentos'
               : 'Gerencie as empresas emissoras e destinatárias disponíveis no sistema'}
@@ -222,7 +271,7 @@ export function EmpresasManagement({ currentUser, readOnly = false }: EmpresasMa
         {!readOnly && (
           <button
             onClick={abrirNovo}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-lg shadow-2xs transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 dark:bg-emerald-600 dark:hover:bg-emerald-500 rounded-lg shadow-2xs transition-colors"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Cadastrar Empresa</span>
@@ -230,33 +279,63 @@ export function EmpresasManagement({ currentUser, readOnly = false }: EmpresasMa
         )}
       </div>
 
+      {/* Banner de Feedback */}
+      {feedback && (
+        <div
+          className={`p-3.5 rounded-xl border text-xs flex items-center justify-between gap-2.5 animate-fadeIn shadow-2xs ${
+            feedback.tipo === 'sucesso'
+              ? 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300'
+              : feedback.tipo === 'info'
+              ? 'bg-blue-50 dark:bg-blue-950/60 border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-300'
+              : 'bg-red-50 dark:bg-red-950/60 border-red-200 dark:border-red-900/60 text-red-800 dark:text-red-300'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            {feedback.tipo === 'sucesso' ? (
+              <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            ) : feedback.tipo === 'info' ? (
+              <AlertCircle className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+            ) : (
+              <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0" />
+            )}
+            <span className="font-medium">{feedback.mensagem}</span>
+          </div>
+          <button
+            onClick={() => setFeedback(null)}
+            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
       {/* Barra de Filtros */}
-      <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-2xs space-y-3">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-2xs space-y-3 transition-colors">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
           <div className="md:col-span-2">
-            <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+            <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">
               Buscar empresa
             </label>
             <div className="relative">
-              <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
+              <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400 dark:text-slate-500" />
               <input
                 type="text"
                 value={busca}
                 onChange={(e) => setBusca(e.target.value)}
                 placeholder="Razão social, nome fantasia, CNPJ ou cidade..."
-                className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none"
+                className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-750 focus:border-slate-800 dark:focus:border-slate-600 outline-none"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+            <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">
               Tipo de Empresa
             </label>
             <select
               value={filtroTipo}
               onChange={(e) => setFiltroTipo(e.target.value)}
-              className="w-full px-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none"
+              className="w-full px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-750 focus:border-slate-800 dark:focus:border-slate-600 outline-none"
             >
               <option value="todos">Todos os tipos</option>
               <option value="emissora">Emissora (Quem recebe)</option>
@@ -266,13 +345,13 @@ export function EmpresasManagement({ currentUser, readOnly = false }: EmpresasMa
           </div>
 
           <div>
-            <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+            <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">
               Status
             </label>
             <select
               value={filtroStatus}
               onChange={(e) => setFiltroStatus(e.target.value)}
-              className="w-full px-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none"
+              className="w-full px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-750 focus:border-slate-800 dark:focus:border-slate-600 outline-none"
             >
               <option value="todos">Todos os status</option>
               <option value="ativa">Somente Ativas</option>
@@ -281,7 +360,7 @@ export function EmpresasManagement({ currentUser, readOnly = false }: EmpresasMa
           </div>
         </div>
 
-        <div className="text-xs text-slate-500 pt-2 border-t border-slate-100 flex items-center justify-between">
+        <div className="text-xs text-slate-500 dark:text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
           <span>{empresasFiltradas.length} empresa(s) encontrada(s)</span>
           {(busca || filtroTipo !== 'todos' || filtroStatus !== 'todos') && (
             <button
@@ -290,7 +369,7 @@ export function EmpresasManagement({ currentUser, readOnly = false }: EmpresasMa
                 setFiltroTipo('todos');
                 setFiltroStatus('todos');
               }}
-              className="text-slate-700 hover:underline font-medium"
+              className="text-slate-700 dark:text-slate-300 hover:underline font-medium"
             >
               Limpar filtros
             </button>
@@ -299,15 +378,15 @@ export function EmpresasManagement({ currentUser, readOnly = false }: EmpresasMa
       </div>
 
       {/* Tabela de Empresas */}
-      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-2xs transition-colors">
         {empresasFiltradas.length === 0 ? (
-          <div className="p-12 text-center text-xs text-slate-500">
+          <div className="p-12 text-center text-xs text-slate-500 dark:text-slate-400">
             Nenhuma empresa encontrada com os critérios pesquisados.
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold">
+              <thead className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 font-semibold">
                 <tr>
                   <th className="px-4 py-3">Razão Social / Nome Fantasia</th>
                   <th className="px-4 py-3">CNPJ</th>
@@ -317,14 +396,14 @@ export function EmpresasManagement({ currentUser, readOnly = false }: EmpresasMa
                   {!readOnly && <th className="px-4 py-3 text-center">Ações</th>}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {empresasFiltradas.map((emp) => {
                   const isAtiva = emp.status === 'ativa';
                   return (
                     <tr
                       key={emp.id}
-                      className={`hover:bg-slate-50 transition-colors ${
-                        !isAtiva ? 'opacity-60 bg-slate-50/50' : ''
+                      className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors ${
+                        !isAtiva ? 'opacity-60 bg-slate-50/50 dark:bg-slate-850/40' : ''
                       }`}
                     >
                       <td className="px-4 py-3 max-w-[280px]">
@@ -333,33 +412,33 @@ export function EmpresasManagement({ currentUser, readOnly = false }: EmpresasMa
                             <img
                               src={emp.logo_url}
                               alt={emp.nome_fantasia || emp.razao_social}
-                              className="w-8 h-8 rounded border border-slate-200 object-contain bg-white shrink-0 p-0.5"
+                              className="w-8 h-8 rounded border border-slate-200 dark:border-slate-700 object-contain bg-white shrink-0 p-0.5"
                             />
                           ) : (
-                            <div className="w-8 h-8 rounded bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-500 shrink-0">
+                            <div className="w-8 h-8 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-400 shrink-0">
                               <Building2 className="w-4 h-4" />
                             </div>
                           )}
                           <div className="min-w-0">
-                            <div className="font-semibold text-slate-900 truncate">
+                            <div className="font-semibold text-slate-900 dark:text-slate-100 truncate">
                               {emp.razao_social}
                             </div>
                             {emp.nome_fantasia && (
-                              <div className="text-[11px] text-slate-500 truncate">
+                              <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
                                 {emp.nome_fantasia}
                               </div>
                             )}
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-3 font-mono text-slate-700 whitespace-nowrap">
+                      <td className="px-4 py-3 font-mono text-slate-700 dark:text-slate-300 whitespace-nowrap">
                         {emp.cnpj}
                       </td>
-                      <td className="px-4 py-3 text-slate-600 whitespace-nowrap">
+                      <td className="px-4 py-3 text-slate-600 dark:text-slate-400 whitespace-nowrap">
                         {emp.cidade}/{emp.uf}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
-                        <span className="capitalize text-slate-700 font-medium">
+                        <span className="capitalize text-slate-700 dark:text-slate-300 font-medium">
                           {emp.tipo === 'ambas'
                             ? 'Emissora / Destinatária'
                             : emp.tipo === 'emissora'
@@ -370,7 +449,9 @@ export function EmpresasManagement({ currentUser, readOnly = false }: EmpresasMa
                       <td className="px-4 py-3 text-center whitespace-nowrap">
                         <span
                           className={`text-[10px] font-medium px-2 py-0.5 rounded ${
-                            isAtiva ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'
+                            isAtiva
+                              ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300'
+                              : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
                           }`}
                         >
                           {isAtiva ? 'Ativa' : 'Inativa'}
@@ -381,7 +462,7 @@ export function EmpresasManagement({ currentUser, readOnly = false }: EmpresasMa
                           <div className="flex items-center justify-center gap-1">
                             <button
                               onClick={() => abrirEdicao(emp)}
-                              className="p-1 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded transition-colors"
+                              className="p-1 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors"
                               title="Editar empresa"
                             >
                               <Edit2 className="w-3.5 h-3.5" />
@@ -390,12 +471,19 @@ export function EmpresasManagement({ currentUser, readOnly = false }: EmpresasMa
                               onClick={() => handleAlternarStatus(emp)}
                               className={`p-1 rounded transition-colors ${
                                 isAtiva
-                                  ? 'text-slate-400 hover:text-red-600 hover:bg-red-50'
-                                  : 'text-slate-400 hover:text-emerald-600 hover:bg-emerald-50'
+                                  ? 'text-slate-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/40'
+                                  : 'text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40'
                               }`}
                               title={isAtiva ? 'Inativar empresa' : 'Ativar empresa'}
                             >
                               <Power className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => handleSolicitarExclusao(emp)}
+                              className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded transition-colors"
+                              title="Excluir empresa"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
                             </button>
                           </div>
                         </td>
@@ -409,20 +497,113 @@ export function EmpresasManagement({ currentUser, readOnly = false }: EmpresasMa
         )}
       </div>
 
+      {/* Modal de Confirmação de Exclusão de Empresa */}
+      {modalExcluirAberto && empresaParaExcluir && vinculosExclusao && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl max-w-lg w-full overflow-hidden transition-colors">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-red-50/50 dark:bg-red-950/40">
+              <div className="flex items-center gap-2">
+                <ShieldAlert className="w-5 h-5 text-red-600 dark:text-red-400" />
+                <h2 className="text-sm font-bold text-red-900 dark:text-red-300">
+                  CONFIRMAR EXCLUSÃO DE EMPRESA
+                </h2>
+              </div>
+              <button
+                onClick={() => setModalExcluirAberto(false)}
+                className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div className="p-3.5 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 text-xs space-y-1">
+                <div className="font-bold text-slate-900 dark:text-white">
+                  {empresaParaExcluir.razao_social}
+                </div>
+                {empresaParaExcluir.nome_fantasia && (
+                  <div className="text-slate-600 dark:text-slate-300">
+                    Fantasia: {empresaParaExcluir.nome_fantasia}
+                  </div>
+                )}
+                <div className="text-slate-500 dark:text-slate-400 font-mono">
+                  CNPJ: {empresaParaExcluir.cnpj}
+                </div>
+              </div>
+
+              {vinculosExclusao.podeExcluirFisicamente ? (
+                <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-lg text-xs text-emerald-800 dark:text-emerald-300 space-y-1">
+                  <div className="font-bold flex items-center gap-1.5">
+                    <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <span>Nenhum documento ou histórico contábil vinculado</span>
+                  </div>
+                  <p className="text-[11px] text-emerald-700/90 dark:text-emerald-300/90">
+                    Esta empresa não possui nenhum recibo ou RDC emitido no sistema. Ela será excluída fisicamente de forma definitiva.
+                  </p>
+                </div>
+              ) : (
+                <div className="p-3.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-lg text-xs text-amber-800 dark:text-amber-300 space-y-2">
+                  <div className="font-bold flex items-center gap-1.5 text-amber-900 dark:text-amber-200">
+                    <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                    <span>Vínculo com Documentos e Histórico Fiscal Detectado</span>
+                  </div>
+                  <div className="text-[11px] text-amber-800 dark:text-amber-300 leading-relaxed">
+                    Esta empresa possui <b>{vinculosExclusao.totalDocumentos} documento(s) fiscal(is)</b> emitido(s). Para preservar a validade jurídica, contábil e a integridade de auditoria dos recibos históricos, <b>a exclusão será realizada de forma lógica</b> (inativação definitiva). Ela deixará de aparecer em novas seleções de emissão, mas todo o histórico existente continuará 100% preservado.
+                  </div>
+                  {vinculosExclusao.detalhes.length > 0 && (
+                    <ul className="list-disc list-inside text-[11px] text-amber-700 dark:text-amber-300 space-y-0.5">
+                      {vinculosExclusao.detalhes.map((d, i) => (
+                        <li key={i}>{d}</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
+
+              <p className="text-xs text-slate-600 dark:text-slate-400">
+                Tem certeza de que deseja prosseguir com a exclusão da empresa?
+              </p>
+
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setModalExcluirAberto(false)}
+                  className="px-4 py-2 text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmarExclusao}
+                  className="px-5 py-2 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg shadow-sm transition-colors flex items-center gap-1.5"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>
+                    {vinculosExclusao.podeExcluirFisicamente
+                      ? 'Confirmar Exclusão Definitiva'
+                      : 'Inativar e Ocultar do Sistema'}
+                  </span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modal de Cadastro / Edição de Empresa */}
       {modalAberto && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white border border-slate-200 rounded-xl shadow-xl max-w-2xl w-full my-8 overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-slate-50">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl max-w-2xl w-full my-8 overflow-hidden transition-colors">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-850">
               <div className="flex items-center gap-2">
-                <Building2 className="w-5 h-5 text-slate-700" />
-                <h2 className="text-sm font-bold text-slate-900">
+                <Building2 className="w-5 h-5 text-slate-700 dark:text-slate-300" />
+                <h2 className="text-sm font-bold text-slate-900 dark:text-white">
                   {empresaEditando ? 'EDITAR EMPRESA' : 'CADASTRO DE EMPRESA'}
                 </h2>
               </div>
               <button
                 onClick={() => setModalAberto(false)}
-                className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-200 rounded-lg transition-colors"
+                className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -430,7 +611,7 @@ export function EmpresasManagement({ currentUser, readOnly = false }: EmpresasMa
 
             <form onSubmit={handleSalvar} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
               {erroForm && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-xs flex items-center gap-2">
+                <div className="p-3 bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-900/60 rounded-lg text-red-700 dark:text-red-300 text-xs flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 shrink-0" />
                   <span>{erroForm}</span>
                 </div>
@@ -439,7 +620,7 @@ export function EmpresasManagement({ currentUser, readOnly = false }: EmpresasMa
               {/* Razão Social e Nome Fantasia */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                     Razão Social *
                   </label>
                   <input
@@ -448,12 +629,12 @@ export function EmpresasManagement({ currentUser, readOnly = false }: EmpresasMa
                     value={razaoSocial}
                     onChange={(e) => setRazaoSocial(e.target.value)}
                     placeholder="Ex: Exemplo Serviços Empresariais Ltda"
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none"
+                    className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-750 focus:border-slate-800 dark:focus:border-slate-600 outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                     Nome Fantasia
                   </label>
                   <input
@@ -461,7 +642,7 @@ export function EmpresasManagement({ currentUser, readOnly = false }: EmpresasMa
                     value={nomeFantasia}
                     onChange={(e) => setNomeFantasia(e.target.value)}
                     placeholder="Ex: Exemplo Serviços"
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none"
+                    className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-750 focus:border-slate-800 dark:focus:border-slate-600 outline-none"
                   />
                 </div>
               </div>
@@ -469,7 +650,7 @@ export function EmpresasManagement({ currentUser, readOnly = false }: EmpresasMa
               {/* CNPJ, Inscrição Estadual e Municipal */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                     CNPJ *
                   </label>
                   <input
@@ -478,12 +659,12 @@ export function EmpresasManagement({ currentUser, readOnly = false }: EmpresasMa
                     value={cnpj}
                     onChange={(e) => setCnpj(mascaraCnpj(e.target.value))}
                     placeholder="00.000.000/0000-00"
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none font-mono"
+                    className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-750 focus:border-slate-800 dark:focus:border-slate-600 outline-none font-mono"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                     Inscrição Estadual
                   </label>
                   <input
@@ -491,12 +672,12 @@ export function EmpresasManagement({ currentUser, readOnly = false }: EmpresasMa
                     value={inscricaoEstadual}
                     onChange={(e) => setInscricaoEstadual(e.target.value)}
                     placeholder="Ex: ISENTO ou 112.334..."
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none"
+                    className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-750 focus:border-slate-800 dark:focus:border-slate-600 outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                     Inscrição Municipal
                   </label>
                   <input
@@ -504,7 +685,7 @@ export function EmpresasManagement({ currentUser, readOnly = false }: EmpresasMa
                     value={inscricaoMunicipal}
                     onChange={(e) => setInscricaoMunicipal(e.target.value)}
                     placeholder="Ex: 123.456-7"
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none"
+                    className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-750 focus:border-slate-800 dark:focus:border-slate-600 outline-none"
                   />
                 </div>
               </div>
@@ -512,7 +693,7 @@ export function EmpresasManagement({ currentUser, readOnly = false }: EmpresasMa
               {/* Endereço, Número, Complemento */}
               <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
                 <div className="sm:col-span-2">
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                     Endereço *
                   </label>
                   <input
@@ -520,13 +701,13 @@ export function EmpresasManagement({ currentUser, readOnly = false }: EmpresasMa
                     required
                     value={endereco}
                     onChange={(e) => setEndereco(e.target.value)}
-                    placeholder="Ex: Av. Paulista ou SCS Quadra 4"
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none"
+                    placeholder="Ex: SBS Quadra 02 Lote 15"
+                    className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-750 focus:border-slate-800 dark:focus:border-slate-600 outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                     Número *
                   </label>
                   <input
@@ -534,21 +715,21 @@ export function EmpresasManagement({ currentUser, readOnly = false }: EmpresasMa
                     required
                     value={numero}
                     onChange={(e) => setNumero(e.target.value)}
-                    placeholder="Ex: 120 ou S/N"
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none"
+                    placeholder="Ex: S/N ou 402"
+                    className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-750 focus:border-slate-800 dark:focus:border-slate-600 outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                     Complemento
                   </label>
                   <input
                     type="text"
                     value={complemento}
                     onChange={(e) => setComplemento(e.target.value)}
-                    placeholder="Ex: Sala 501"
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none"
+                    placeholder="Ex: Sala 601 Bloco A"
+                    className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-750 focus:border-slate-800 dark:focus:border-slate-600 outline-none"
                   />
                 </div>
               </div>
@@ -556,20 +737,21 @@ export function EmpresasManagement({ currentUser, readOnly = false }: EmpresasMa
               {/* Bairro, Cidade, UF, CEP */}
               <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Bairro
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Bairro *
                   </label>
                   <input
                     type="text"
+                    required
                     value={bairro}
                     onChange={(e) => setBairro(e.target.value)}
                     placeholder="Ex: Asa Sul"
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none"
+                    className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-750 focus:border-slate-800 dark:focus:border-slate-600 outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                     Cidade *
                   </label>
                   <input
@@ -578,88 +760,100 @@ export function EmpresasManagement({ currentUser, readOnly = false }: EmpresasMa
                     value={cidade}
                     onChange={(e) => setCidade(e.target.value)}
                     placeholder="Ex: Brasília"
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none"
+                    className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-750 focus:border-slate-800 dark:focus:border-slate-600 outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                     UF *
                   </label>
                   <input
                     type="text"
-                    maxLength={2}
                     required
+                    maxLength={2}
                     value={uf}
                     onChange={(e) => setUf(e.target.value.toUpperCase())}
                     placeholder="DF"
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none uppercase"
+                    className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-750 focus:border-slate-800 dark:focus:border-slate-600 outline-none uppercase font-mono"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    CEP
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    CEP *
                   </label>
                   <input
                     type="text"
+                    required
                     value={cep}
                     onChange={(e) => setCep(mascaraCep(e.target.value))}
-                    placeholder="00000-000"
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none font-mono"
+                    placeholder="70070-120"
+                    className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-750 focus:border-slate-800 dark:focus:border-slate-600 outline-none font-mono"
                   />
                 </div>
               </div>
 
-              {/* E-mail e Telefone */}
+              {/* Email e Telefone */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    E-mail
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    E-mail Corporativo
                   </label>
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="contato@empresa.com.br"
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none"
+                    placeholder="financeiro@empresa.com.br"
+                    className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-750 focus:border-slate-800 dark:focus:border-slate-600 outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Telefone
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Telefone de Contato
                   </label>
                   <input
                     type="text"
                     value={telefone}
                     onChange={(e) => setTelefone(mascaraTelefone(e.target.value))}
-                    placeholder="(00) 0000-0000"
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none"
+                    placeholder="(61) 3321-0000"
+                    className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-750 focus:border-slate-800 dark:focus:border-slate-600 outline-none font-mono"
                   />
                 </div>
               </div>
 
-              {/* Anexo de Logotipo da Empresa */}
-              <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-800 mb-0.5">
-                    Logo da Empresa (para Recibos e Documentos)
-                  </label>
-                  <p className="text-[11px] text-slate-500">
-                    Anexe o logotipo da empresa para sair impresso automaticamente no cabeçalho dos recibos.
-                  </p>
+              {/* Logotipo da Empresa */}
+              <div className="border border-slate-200 dark:border-slate-700 rounded-xl p-4 bg-slate-50 dark:bg-slate-800/60 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      Logotipo da Empresa (Opcional)
+                    </label>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                      Exibido no cabeçalho dos recibos emitidos por esta empresa.
+                    </p>
+                  </div>
+                  {logoUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setLogoUrl('')}
+                      className="text-xs text-red-600 dark:text-red-400 hover:underline font-medium"
+                    >
+                      Remover Logo
+                    </button>
+                  )}
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
-                  <div>
-                    <label className="flex flex-col items-center justify-center p-3 border-2 border-dashed border-slate-300 hover:border-slate-800 rounded-lg cursor-pointer bg-white transition-colors">
-                      <Upload className="w-5 h-5 text-slate-500 mb-1" />
-                      <span className="text-xs font-semibold text-slate-800">
-                        Clique para anexar imagem
+                <div className="flex flex-col sm:flex-row items-center gap-4">
+                  <div className="flex-1 w-full">
+                    <label className="flex flex-col items-center justify-center border-2 border-dashed border-slate-300 dark:border-slate-600 hover:border-slate-400 dark:hover:border-slate-500 rounded-lg p-4 cursor-pointer bg-white dark:bg-slate-800 transition-colors">
+                      <Upload className="w-5 h-5 text-slate-400 dark:text-slate-500 mb-1" />
+                      <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Clique para selecionar arquivo de imagem
                       </span>
-                      <span className="text-[10px] text-slate-400 mt-0.5">
-                        PNG, JPG ou SVG (máx. 2MB)
+                      <span className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">
+                        PNG, JPG ou SVG até 2MB
                       </span>
                       <input
                         type="file"
@@ -668,41 +862,21 @@ export function EmpresasManagement({ currentUser, readOnly = false }: EmpresasMa
                         className="hidden"
                       />
                     </label>
-
-                    <div className="mt-2">
-                      <span className="text-[10px] text-slate-400 block mb-0.5">Ou cole o link da imagem (URL):</span>
-                      <input
-                        type="url"
-                        value={logoUrl}
-                        onChange={(e) => setLogoUrl(e.target.value)}
-                        placeholder="https://exemplo.com/logo.png"
-                        className="w-full px-2.5 py-1 text-xs bg-white border border-slate-200 rounded text-slate-900 outline-none focus:border-slate-800"
-                      />
-                    </div>
                   </div>
 
-                  {/* Pré-visualização da Logo */}
-                  <div className="flex flex-col items-center justify-center p-3 bg-white border border-slate-200 rounded-lg min-h-[96px]">
+                  <div className="w-28 h-20 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex items-center justify-center p-2 shrink-0">
                     {logoUrl ? (
-                      <div className="relative group flex flex-col items-center">
+                      <div className="relative w-full h-full flex items-center justify-center">
                         <img
                           src={logoUrl}
-                          alt="Pré-visualização do Logo"
-                          className="max-h-16 max-w-full object-contain mb-2"
+                          alt="Prévia do logotipo"
+                          className="max-h-full max-w-full object-contain"
                         />
-                        <button
-                          type="button"
-                          onClick={() => setLogoUrl('')}
-                          className="text-[11px] text-red-600 hover:text-red-800 hover:underline flex items-center gap-1"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                          <span>Remover Logo</span>
-                        </button>
                       </div>
                     ) : (
-                      <div className="text-center text-slate-400">
+                      <div className="text-center text-slate-400 dark:text-slate-500">
                         <ImageIcon className="w-6 h-6 mx-auto mb-1 stroke-1" />
-                        <span className="text-[11px]">Nenhuma logo anexada</span>
+                        <span className="text-[10px]">Sem logo</span>
                       </div>
                     )}
                   </div>
@@ -710,58 +884,58 @@ export function EmpresasManagement({ currentUser, readOnly = false }: EmpresasMa
               </div>
 
               {/* Tipo de Empresa e Status */}
-              <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="p-4 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                     Tipo de Empresa *
                   </label>
                   <select
                     value={tipo}
                     onChange={(e) => setTipo(e.target.value as TipoEmpresa)}
-                    className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-lg text-slate-900 focus:border-slate-800 outline-none"
+                    className="w-full px-3 py-2 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 focus:border-slate-800 dark:focus:border-slate-600 outline-none"
                   >
                     <option value="ambas">Ambas (Emissora e Destinatária)</option>
                     <option value="emissora">Emissora (Apenas quem recebe)</option>
                     <option value="destinataria">Destinatária (Apenas quem paga)</option>
                   </select>
-                  <p className="text-[11px] text-slate-500 mt-1">
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
                     Define em quais campos de documento a empresa poderá ser selecionada.
                   </p>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                     Status da Empresa
                   </label>
                   <div className="flex items-center gap-3 pt-2">
-                    <label className="inline-flex items-center gap-2 cursor-pointer text-xs font-medium text-slate-800">
+                    <label className="inline-flex items-center gap-2 cursor-pointer text-xs font-medium text-slate-800 dark:text-slate-200">
                       <input
                         type="checkbox"
                         checked={status === 'ativa'}
                         onChange={(e) => setStatus(e.target.checked ? 'ativa' : 'inativa')}
-                        className="rounded border-slate-300 text-slate-900 focus:ring-slate-800"
+                        className="rounded border-slate-300 dark:border-slate-600 text-slate-900 dark:text-emerald-500 focus:ring-slate-800"
                       />
                       <span>Empresa Ativa</span>
                     </label>
                   </div>
-                  <p className="text-[11px] text-slate-500 mt-1">
-                    Empresas inativas não aparecem para novos recibos.
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                    Empresas inativas não aparecem para novas emissões.
                   </p>
                 </div>
               </div>
 
               {/* Botões */}
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200">
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => setModalAberto(false)}
-                  className="px-4 py-2 text-xs font-medium text-slate-600 hover:text-slate-900 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
+                  className="px-4 py-2 text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-lg shadow-sm transition-colors flex items-center gap-1.5"
+                  className="px-5 py-2 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 dark:bg-emerald-600 dark:hover:bg-emerald-500 rounded-lg shadow-sm transition-colors flex items-center gap-1.5"
                 >
                   <Check className="w-3.5 h-3.5" />
                   <span>SALVAR EMPRESA</span>

@@ -37,6 +37,7 @@ export interface Empresa {
   telefone?: string;
   tipo: TipoEmpresa;
   status: StatusEmpresa;
+  excluida_logica?: boolean; // Marcação de inativação/exclusão lógica para proteger histórico fiscal
   logo_url?: string; // Logo da empresa (Data URL base64 ou URL de imagem)
   created_at: string;
 }
@@ -94,7 +95,41 @@ export interface ItemGastoRdc {
   valor: number;
 }
 
+export interface ItemModeloDespesa {
+  id: string;
+  tipo_gasto: number;
+  tipo_doc: string;
+  descricao: string;
+  valor: number;
+}
+
+export interface ModeloDespesa {
+  id: string;
+  nome: string; // Ex: 'Viagem Técnica e Auditoria Institucional'
+  descricao?: string;
+  linha_gasto: 'viagem' | 'corporativa' | 'ambas';
+  local_partida_padrao?: string;
+  destino_padrao?: string;
+  setor_funcao_padrao?: string;
+  objetivo_padrao?: string;
+  valor_adiantamento_sugerido?: number;
+  nome_banco_padrao?: string;
+  agencia_padrao?: string;
+  conta_padrao?: string;
+  tipo_conta_padrao?: string;
+  chave_pix_padrao?: string;
+  diretoria_direta_padrao?: string;
+  contabil_financeiro_padrao?: string;
+  itens_padrao: ItemModeloDespesa[];
+  created_at: string;
+  updated_at?: string;
+}
+
 export interface DadosRdc {
+  // Modelo de Despesa de Origem
+  modelo_despesa_id?: string;
+  modelo_despesa_nome?: string;
+
   // Linha de despesa / gastos
   linha_gasto?: 'viagem' | 'corporativa' | 'ambas'; // Viagem ou Despesas Corporativas
 

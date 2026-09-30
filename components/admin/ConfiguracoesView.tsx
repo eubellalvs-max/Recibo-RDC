@@ -1,8 +1,20 @@
 'use client';
 
 import React, { useState } from 'react';
-import { SistemaConfig, TipoGastoConfig, TipoDocConfig } from '@/lib/types';
-import { StorageService, DEFAULT_TIPOS_GASTO, DEFAULT_TIPOS_DOC } from '@/lib/storage';
+import {
+  SistemaConfig,
+  TipoGastoConfig,
+  TipoDocConfig,
+  ModeloDespesa,
+  ItemModeloDespesa,
+} from '@/lib/types';
+import {
+  StorageService,
+  DEFAULT_TIPOS_GASTO,
+  DEFAULT_TIPOS_DOC,
+  INITIAL_MODELOS_DESPESA,
+} from '@/lib/storage';
+import { formatarMoeda } from '@/lib/masks';
 import {
   Settings,
   Save,
@@ -22,16 +34,25 @@ import {
   Palette,
   Sun,
   Moon,
+  Eye,
+  Info,
 } from 'lucide-react';
-import { ThemeToggle, useTheme } from '@/lib/theme';
+import { ThemeToggle } from '@/lib/theme';
 
-type TabConfig = 'geral' | 'tipos-gasto' | 'tipos-doc' | 'manutencao';
+type TabConfig = 'geral' | 'tipos-gasto' | 'tipos-doc' | 'modelos-despesa' | 'manutencao';
 
 export function ConfiguracoesView() {
   const [activeTab, setActiveTab] = useState<TabConfig>('geral');
   const [config, setConfig] = useState<SistemaConfig>(() => StorageService.getConfig());
-  const [tiposGasto, setTiposGasto] = useState<TipoGastoConfig[]>(() => StorageService.getTiposGasto());
-  const [tiposDoc, setTiposDoc] = useState<TipoDocConfig[]>(() => StorageService.getTiposDoc());
+  const [tiposGasto, setTiposGasto] = useState<TipoGastoConfig[]>(() =>
+    StorageService.getTiposGasto()
+  );
+  const [tiposDoc, setTiposDoc] = useState<TipoDocConfig[]>(() =>
+    StorageService.getTiposDoc()
+  );
+  const [modelosDespesa, setModelosDespesa] = useState<ModeloDespesa[]>(() =>
+    StorageService.getModelosDespesa()
+  );
 
   const [sucesso, setSucesso] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
@@ -52,12 +73,40 @@ export function ConfiguracoesView() {
   const [docDescricao, setDocDescricao] = useState('');
   const [erroDoc, setErroDoc] = useState<string | null>(null);
 
+  // --- Estados do Modal de Modelo de Despesa ---
+  const [modalModeloAberto, setModalModeloAberto] = useState(false);
+  const [modeloEditando, setModeloEditando] = useState<ModeloDespesa | null>(null);
+  const [modeloNome, setModeloNome] = useState('');
+  const [modeloDescricao, setModeloDescricao] = useState('');
+  const [modeloLinhaGasto, setModeloLinhaGasto] = useState<'viagem' | 'corporativa' | 'ambas'>('viagem');
+  const [modeloLocalPartida, setModeloLocalPartida] = useState('Brasília/DF');
+  const [modeloDestino, setModeloDestino] = useState('');
+  const [modeloSetorFuncao, setModeloSetorFuncao] = useState('');
+  const [modeloObjetivo, setModeloObjetivo] = useState('');
+  const [modeloAdiantamento, setModeloAdiantamento] = useState<number>(0);
+  const [modeloNomeBanco, setModeloNomeBanco] = useState('Banco do Brasil');
+  const [modeloAgencia, setModeloAgencia] = useState('');
+  const [modeloConta, setModeloConta] = useState('');
+  const [modeloTipoConta, setModeloTipoConta] = useState('Conta Corrente');
+  const [modeloPix, setModeloPix] = useState('');
+  const [modeloDiretoria, setModeloDiretoria] = useState('Carlos Eduardo Silva');
+  const [modeloContabil, setModeloContabil] = useState('Setor Contábil / Financeiro ABEAS');
+  const [modeloItens, setModeloItens] = useState<ItemModeloDespesa[]>([]);
+  const [erroModelo, setErroModelo] = useState<string | null>(null);
+
+  // Modal de Detalhes do Modelo
+  const [modeloVisualizando, setModeloVisualizando] = useState<ModeloDespesa | null>(null);
+
   // --- Estados de Confirmação de Exclusão ---
   const [itemExcluindo, setItemExcluindo] = useState<{
-    tipo: 'gasto' | 'doc';
+    tipo: 'gasto' | 'doc' | 'modelo';
     id: string;
     titulo: string;
   } | null>(null);
+
+  const [modalConfirmReset, setModalConfirmReset] = useState<
+    'gastos' | 'docs' | 'modelos' | 'fabrica' | null
+  >(null);
 
   const notificarSucesso = (msg: string) => {
     setSucesso(msg);
@@ -87,7 +136,6 @@ export function ConfiguracoesView() {
   // ==========================================
   const handleAbrirNovoGasto = () => {
     setGastoEditando(null);
-    // Sugerir o próximo código numérico livre
     const codigosExistentes = tiposGasto.map((g) => g.codigo);
     let proxCod = 1;
     while (codigosExistentes.includes(proxCod)) {
@@ -123,7 +171,6 @@ export function ConfiguracoesView() {
       return;
     }
 
-    // Verificar unicidade de código
     const codJaExiste = tiposGasto.some(
       (g) => g.codigo === gastoCodigo && (!gastoEditando || g.id !== gastoEditando.id)
     );
@@ -148,8 +195,6 @@ export function ConfiguracoesView() {
         : `Novo Tipo de Gasto "${itemSalvo.nome}" cadastrado com sucesso!`
     );
   };
-
-  const [modalConfirmReset, setModalConfirmReset] = useState<'gastos' | 'docs' | 'fabrica' | null>(null);
 
   const confirmarExcluirGasto = () => {
     if (!itemExcluindo || itemExcluindo.tipo !== 'gasto') return;
@@ -217,7 +262,6 @@ export function ConfiguracoesView() {
       return;
     }
 
-    // Verificar unicidade da sigla
     const siglaExiste = tiposDoc.some(
       (d) =>
         d.codigo.toLowerCase() === siglaLimpa.toLowerCase() &&
@@ -271,6 +315,160 @@ export function ConfiguracoesView() {
   };
 
   // ==========================================
+  // MANIPULAÇÃO DE MODELOS DE DESPESA (RDC)
+  // ==========================================
+  const handleAbrirNovoModelo = () => {
+    setModeloEditando(null);
+    setModeloNome('');
+    setModeloDescricao('');
+    setModeloLinhaGasto('viagem');
+    setModeloLocalPartida('Brasília/DF');
+    setModeloDestino('');
+    setModeloSetorFuncao('');
+    setModeloObjetivo('');
+    setModeloAdiantamento(1000);
+    setModeloNomeBanco('Banco do Brasil');
+    setModeloAgencia('1820-1');
+    setModeloConta('45.890-2');
+    setModeloTipoConta('Conta Corrente');
+    setModeloPix('');
+    setModeloDiretoria('Carlos Eduardo Silva');
+    setModeloContabil('Setor Contábil / Financeiro ABEAS');
+    setModeloItens([
+      {
+        id: `item-${Date.now()}-1`,
+        tipo_gasto: 1,
+        tipo_doc: 'NF',
+        descricao: 'Almoço de trabalho equipe',
+        valor: 150.0,
+      },
+    ]);
+    setErroModelo(null);
+    setModalModeloAberto(true);
+  };
+
+  const handleAbrirEditarModelo = (mod: ModeloDespesa) => {
+    setModeloEditando(mod);
+    setModeloNome(mod.nome);
+    setModeloDescricao(mod.descricao || '');
+    setModeloLinhaGasto(mod.linha_gasto || 'viagem');
+    setModeloLocalPartida(mod.local_partida_padrao || 'Brasília/DF');
+    setModeloDestino(mod.destino_padrao || '');
+    setModeloSetorFuncao(mod.setor_funcao_padrao || '');
+    setModeloObjetivo(mod.objetivo_padrao || '');
+    setModeloAdiantamento(mod.valor_adiantamento_sugerido || 0);
+    setModeloNomeBanco(mod.nome_banco_padrao || 'Banco do Brasil');
+    setModeloAgencia(mod.agencia_padrao || '');
+    setModeloConta(mod.conta_padrao || '');
+    setModeloTipoConta(mod.tipo_conta_padrao || 'Conta Corrente');
+    setModeloPix(mod.chave_pix_padrao || '');
+    setModeloDiretoria(mod.diretoria_direta_padrao || 'Carlos Eduardo Silva');
+    setModeloContabil(mod.contabil_financeiro_padrao || 'Setor Contábil / Financeiro ABEAS');
+    setModeloItens(
+      mod.itens_padrao && mod.itens_padrao.length > 0
+        ? [...mod.itens_padrao]
+        : []
+    );
+    setErroModelo(null);
+    setModalModeloAberto(true);
+  };
+
+  const handleAdicionarItemModelo = () => {
+    const novo: ItemModeloDespesa = {
+      id: `mod-item-${Date.now()}`,
+      tipo_gasto: tiposGasto[0]?.codigo || 1,
+      tipo_doc: tiposDoc[0]?.codigo || 'NF',
+      descricao: '',
+      valor: 0,
+    };
+    setModeloItens([...modeloItens, novo]);
+  };
+
+  const handleRemoverItemModelo = (id: string) => {
+    setModeloItens(modeloItens.filter((it) => it.id !== id));
+  };
+
+  const handleAtualizarItemModelo = (
+    id: string,
+    campo: keyof ItemModeloDespesa,
+    valor: string | number
+  ) => {
+    setModeloItens(
+      modeloItens.map((it) => {
+        if (it.id === id) {
+          return { ...it, [campo]: valor };
+        }
+        return it;
+      })
+    );
+  };
+
+  const handleSalvarModelo = (e: React.FormEvent) => {
+    e.preventDefault();
+    setErroModelo(null);
+
+    if (!modeloNome.trim()) {
+      setErroModelo('O nome do modelo de despesa é obrigatório.');
+      return;
+    }
+
+    const modeloSalvo: ModeloDespesa = {
+      id: modeloEditando ? modeloEditando.id : `mod-${Date.now()}`,
+      nome: modeloNome.trim(),
+      descricao: modeloDescricao.trim() || undefined,
+      linha_gasto: modeloLinhaGasto,
+      local_partida_padrao: modeloLocalPartida.trim() || undefined,
+      destino_padrao: modeloDestino.trim() || undefined,
+      setor_funcao_padrao: modeloSetorFuncao.trim() || undefined,
+      objetivo_padrao: modeloObjetivo.trim() || undefined,
+      valor_adiantamento_sugerido: Number(modeloAdiantamento) || 0,
+      nome_banco_padrao: modeloNomeBanco.trim() || undefined,
+      agencia_padrao: modeloAgencia.trim() || undefined,
+      conta_padrao: modeloConta.trim() || undefined,
+      tipo_conta_padrao: modeloTipoConta.trim() || undefined,
+      chave_pix_padrao: modeloPix.trim() || undefined,
+      diretoria_direta_padrao: modeloDiretoria.trim() || undefined,
+      contabil_financeiro_padrao: modeloContabil.trim() || undefined,
+      itens_padrao: modeloItens.map((it) => ({
+        id: it.id,
+        tipo_gasto: Number(it.tipo_gasto) || 1,
+        tipo_doc: String(it.tipo_doc || 'NF'),
+        descricao: it.descricao.trim(),
+        valor: Number(it.valor) || 0,
+      })),
+      created_at: modeloEditando ? modeloEditando.created_at : new Date().toISOString(),
+    };
+
+    StorageService.saveModeloDespesa(modeloSalvo);
+    setModelosDespesa(StorageService.getModelosDespesa());
+    setModalModeloAberto(false);
+    notificarSucesso(
+      modeloEditando
+        ? `Modelo de despesa "${modeloSalvo.nome}" atualizado com sucesso!`
+        : `Modelo de despesa "${modeloSalvo.nome}" salvo com sucesso no banco de dados!`
+    );
+  };
+
+  const confirmarExcluirModelo = () => {
+    if (!itemExcluindo || itemExcluindo.tipo !== 'modelo') return;
+    StorageService.deleteModeloDespesa(itemExcluindo.id);
+    setModelosDespesa(StorageService.getModelosDespesa());
+    setItemExcluindo(null);
+    notificarSucesso(`Modelo de Despesa "${itemExcluindo.titulo}" excluído.`);
+  };
+
+  const handleRestaurarPadraoModelos = () => {
+    setModalConfirmReset('modelos');
+  };
+
+  const executarRestaurarPadraoModelos = () => {
+    INITIAL_MODELOS_DESPESA.forEach((m) => StorageService.saveModeloDespesa(m));
+    setModelosDespesa(StorageService.getModelosDespesa());
+    setModalConfirmReset(null);
+    notificarSucesso('Modelos de Despesa padrão restaurados com sucesso!');
+  };
+
+  // ==========================================
   // MANUTENÇÃO & BACKUP
   // ==========================================
   const handleResetDemo = () => {
@@ -282,6 +480,7 @@ export function ConfiguracoesView() {
     setConfig(StorageService.getConfig());
     setTiposGasto(StorageService.getTiposGasto());
     setTiposDoc(StorageService.getTiposDoc());
+    setModelosDespesa(StorageService.getModelosDespesa());
     setModalConfirmReset(null);
     notificarSucesso('Todos os dados foram restaurados para o padrão original com sucesso!');
   };
@@ -292,6 +491,7 @@ export function ConfiguracoesView() {
       empresas: StorageService.getEmpresas(),
       documentos: StorageService.getDocumentos(),
       config: StorageService.getConfig(),
+      modelos_despesa: StorageService.getModelosDespesa(),
       exportado_em: new Date().toISOString(),
     };
 
@@ -309,27 +509,27 @@ export function ConfiguracoesView() {
   return (
     <div className="p-6 md:p-8 space-y-6 max-w-5xl mx-auto">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
         <div>
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-slate-900 text-white flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-slate-900 dark:bg-emerald-600 text-white flex items-center justify-center">
               <Settings className="w-4 h-4" />
             </div>
-            <h1 className="text-xl font-bold tracking-tight text-slate-900">
+            <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
               Configurações do Sistema
             </h1>
           </div>
-          <p className="text-xs text-slate-500 mt-1">
-            Controle institucional, numeração sequencial e parametrização dos Tipos de Gasto e Documentos da RDC
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            Controle institucional, numeração sequencial e parametrização dos Tipos de Gasto, Documentos e Modelos de Despesa da RDC
           </p>
         </div>
 
         <div className="flex items-center gap-2">
           <button
             onClick={handleExportJson}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg transition-colors shadow-2xs"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 border border-slate-200 dark:border-slate-700 rounded-lg transition-colors shadow-2xs"
           >
-            <Download className="w-3.5 h-3.5 text-slate-500" />
+            <Download className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
             <span>Exportar Backup (JSON)</span>
           </button>
         </div>
@@ -337,28 +537,28 @@ export function ConfiguracoesView() {
 
       {/* Alertas de Notificação */}
       {sucesso && (
-        <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-xs flex items-center gap-2.5 animate-fadeIn shadow-2xs">
-          <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+        <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 rounded-xl text-emerald-800 dark:text-emerald-300 text-xs flex items-center gap-2.5 animate-fadeIn shadow-2xs">
+          <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
           <span className="font-medium">{sucesso}</span>
         </div>
       )}
 
       {erro && (
-        <div className="p-3.5 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs flex items-center gap-2.5 animate-fadeIn shadow-2xs">
+        <div className="p-3.5 bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-900/60 rounded-xl text-red-700 dark:text-red-300 text-xs flex items-center gap-2.5 animate-fadeIn shadow-2xs">
           <AlertCircle className="w-4 h-4 shrink-0" />
           <span className="font-medium">{erro}</span>
         </div>
       )}
 
       {/* Navegação por Abas de Configuração */}
-      <div className="flex items-center gap-1.5 border-b border-slate-200 pb-2 overflow-x-auto">
+      <div className="flex items-center gap-1.5 border-b border-slate-200 dark:border-slate-800 pb-2 overflow-x-auto">
         <button
           type="button"
           onClick={() => setActiveTab('geral')}
           className={`flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap ${
             activeTab === 'geral'
-              ? 'bg-slate-900 text-white shadow-2xs'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+              ? 'bg-slate-900 text-white dark:bg-emerald-600 dark:text-white shadow-2xs'
+              : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
           }`}
         >
           <Settings className="w-3.5 h-3.5" />
@@ -370,13 +570,13 @@ export function ConfiguracoesView() {
           onClick={() => setActiveTab('tipos-gasto')}
           className={`flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap ${
             activeTab === 'tipos-gasto'
-              ? 'bg-slate-900 text-white shadow-2xs'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+              ? 'bg-slate-900 text-white dark:bg-emerald-600 dark:text-white shadow-2xs'
+              : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
           }`}
         >
           <Layers className="w-3.5 h-3.5" />
           <span>Tipos de Gasto na RDC</span>
-          <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-slate-200 text-slate-800 font-bold">
+          <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold">
             {tiposGasto.length}
           </span>
         </button>
@@ -386,14 +586,30 @@ export function ConfiguracoesView() {
           onClick={() => setActiveTab('tipos-doc')}
           className={`flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap ${
             activeTab === 'tipos-doc'
-              ? 'bg-slate-900 text-white shadow-2xs'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+              ? 'bg-slate-900 text-white dark:bg-emerald-600 dark:text-white shadow-2xs'
+              : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
           }`}
         >
           <FileSpreadsheet className="w-3.5 h-3.5" />
           <span>Tipos de Doc na RDC</span>
-          <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-slate-200 text-slate-800 font-bold">
+          <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold">
             {tiposDoc.length}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('modelos-despesa')}
+          className={`flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap ${
+            activeTab === 'modelos-despesa'
+              ? 'bg-slate-900 text-white dark:bg-emerald-600 dark:text-white shadow-2xs'
+              : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
+          }`}
+        >
+          <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+          <span>Modelos de Despesa</span>
+          <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 font-bold">
+            {modelosDespesa.length}
           </span>
         </button>
 
@@ -402,8 +618,8 @@ export function ConfiguracoesView() {
           onClick={() => setActiveTab('manutencao')}
           className={`flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap ${
             activeTab === 'manutencao'
-              ? 'bg-slate-900 text-white shadow-2xs'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+              ? 'bg-slate-900 text-white dark:bg-emerald-600 dark:text-white shadow-2xs'
+              : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
           }`}
         >
           <RotateCcw className="w-3.5 h-3.5" />
@@ -450,194 +666,122 @@ export function ConfiguracoesView() {
                 <div>
                   <div className="font-semibold text-slate-800 dark:text-slate-200">Aparência Escura</div>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                    Reduz a fadiga visual durante jornadas prolongadas com contraste otimizado e visual moderno.
+                    Proporciona alto contraste, conforto visual prolongado e preserva a nitidez em ambientes com pouca luz.
                   </p>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Bloco 1: Numeração Sequencial Automática */}
+          {/* Bloco 1: Organização Institucional */}
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-2xs space-y-4 transition-colors">
-            <div className="border-b border-slate-100 dark:border-slate-800 pb-3">
-              <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <Receipt className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-                <span>Controle de Numeração Automática Sequencial</span>
-              </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                O sistema controla a sequência numérica independente para Recibos e RDC com sufixo do ano corrente.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Próximo Número de RECIBO
-                </label>
-                <input
-                  type="number"
-                  min={1}
-                  value={config.proximo_recibo_num}
-                  onChange={(e) =>
-                    setConfig({
-                      ...config,
-                      proximo_recibo_num: parseInt(e.target.value) || 1,
-                    })
-                  }
-                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none font-mono"
-                />
-                <p className="text-[11px] text-slate-400 mt-1">
-                  Ex: RECIBO Nº {String(config.proximo_recibo_num).padStart(6, '0')}/{config.ano_corrente}
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Próximo RECIBO MÉDICO
-                </label>
-                <input
-                  type="number"
-                  min={1}
-                  value={config.proximo_recibo_medico_num || 1}
-                  onChange={(e) =>
-                    setConfig({
-                      ...config,
-                      proximo_recibo_medico_num: parseInt(e.target.value) || 1,
-                    })
-                  }
-                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none font-mono"
-                />
-                <p className="text-[11px] text-slate-400 mt-1">
-                  Ex: Nº {String(config.proximo_recibo_medico_num || 1).padStart(3, '0')}/{config.ano_corrente}
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Próximo Número de RDC
-                </label>
-                <input
-                  type="number"
-                  min={1}
-                  value={config.proximo_rdc_num}
-                  onChange={(e) =>
-                    setConfig({
-                      ...config,
-                      proximo_rdc_num: parseInt(e.target.value) || 1,
-                    })
-                  }
-                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none font-mono"
-                />
-                <p className="text-[11px] text-slate-400 mt-1">
-                  Ex: RDC Nº {String(config.proximo_rdc_num).padStart(6, '0')}/{config.ano_corrente}
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Ano do Exercício
-                </label>
-                <input
-                  type="number"
-                  value={config.ano_corrente}
-                  onChange={(e) =>
-                    setConfig({
-                      ...config,
-                      ano_corrente: parseInt(e.target.value) || 2026,
-                    })
-                  }
-                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none font-mono"
-                />
-                <p className="text-[11px] text-slate-400 mt-1">
-                  Sufixo aplicado aos documentos
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Bloco 2: Cabeçalho do Documento e Cidade Padrão */}
-          <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-2xs space-y-4">
-            <div className="border-b border-slate-100 pb-3">
-              <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                <FileText className="w-4 h-4 text-slate-600" />
-                <span>Dados do Cabeçalho e Emissão Padrão</span>
-              </h2>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Informações impressas no topo de cada folha de Recibo e RDC gerado.
-              </p>
-            </div>
+            <h2 className="text-sm font-bold text-slate-900 dark:text-white pb-2 border-b border-slate-100 dark:border-slate-800">
+              Identificação Institucional
+            </h2>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Nome da Organização no Cabeçalho
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Nome da Organização / Instituição
                 </label>
                 <input
                   type="text"
                   value={config.nome_organizacao}
-                  onChange={(e) =>
-                    setConfig({ ...config, nome_organizacao: e.target.value })
-                  }
-                  placeholder="Ex: ABEAS - Associação Brasileira..."
-                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none"
+                  onChange={(e) => setConfig({ ...config, nome_organizacao: e.target.value })}
+                  className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-750 focus:border-slate-800 dark:focus:border-slate-600 outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Sigla da Organização
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Ano Fiscal Corrente
                 </label>
                 <input
-                  type="text"
-                  value={config.sigla_organizacao}
-                  onChange={(e) =>
-                    setConfig({ ...config, sigla_organizacao: e.target.value })
-                  }
-                  placeholder="Ex: ABEAS"
-                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none font-bold"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Cidade / UF Padrão para Emissão
-                </label>
-                <input
-                  type="text"
-                  value={config.cidade_padrao}
-                  onChange={(e) =>
-                    setConfig({ ...config, cidade_padrao: e.target.value })
-                  }
-                  placeholder="Ex: Brasília/DF"
-                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none"
-                />
-                <p className="text-[11px] text-slate-400 mt-1">
-                  Utilizada para a data por extenso nos documentos
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Mensagem Institucional do Rodapé
-                </label>
-                <input
-                  type="text"
-                  value={config.mensagem_rodape}
-                  onChange={(e) =>
-                    setConfig({ ...config, mensagem_rodape: e.target.value })
-                  }
-                  placeholder="Ex: Documento emitido eletronicamente..."
-                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none"
+                  type="number"
+                  value={config.ano_corrente}
+                  onChange={(e) => setConfig({ ...config, ano_corrente: parseInt(e.target.value, 10) || 2026 })}
+                  className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-750 focus:border-slate-800 dark:focus:border-slate-600 outline-none"
                 />
               </div>
             </div>
           </div>
 
-          {/* Botão de Salvar Configurações Gerais */}
-          <div className="flex items-center justify-end">
+          {/* Bloco 2: Numeração Sequencial */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-2xs space-y-4 transition-colors">
+            <h2 className="text-sm font-bold text-slate-900 dark:text-white pb-2 border-b border-slate-100 dark:border-slate-800">
+              Controle de Numeração Sequencial de Documentos
+            </h2>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-lg border border-slate-200 dark:border-slate-700 space-y-2">
+                <div className="flex items-center gap-2">
+                  <Receipt className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                    Próximo Nº Recibo Geral
+                  </span>
+                </div>
+                <input
+                  type="number"
+                  min="1"
+                  value={config.proximo_recibo_num}
+                  onChange={(e) =>
+                    setConfig({ ...config, proximo_recibo_num: parseInt(e.target.value, 10) || 1 })
+                  }
+                  className="w-full px-3 py-1.5 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 font-mono font-bold"
+                />
+                <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                  Próximo formato: {String(config.proximo_recibo_num).padStart(6, '0')}/{config.ano_corrente}
+                </p>
+              </div>
+
+              <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-lg border border-slate-200 dark:border-slate-700 space-y-2">
+                <div className="flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                    Próximo Nº RDC
+                  </span>
+                </div>
+                <input
+                  type="number"
+                  min="1"
+                  value={config.proximo_rdc_num}
+                  onChange={(e) =>
+                    setConfig({ ...config, proximo_rdc_num: parseInt(e.target.value, 10) || 1 })
+                  }
+                  className="w-full px-3 py-1.5 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 font-mono font-bold"
+                />
+                <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                  Próximo formato: {String(config.proximo_rdc_num).padStart(6, '0')}/{config.ano_corrente}
+                </p>
+              </div>
+
+              <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-lg border border-slate-200 dark:border-slate-700 space-y-2">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                    Próximo Nº Recibo Médico
+                  </span>
+                </div>
+                <input
+                  type="number"
+                  min="1"
+                  value={config.proximo_recibo_medico_num || 1}
+                  onChange={(e) =>
+                    setConfig({ ...config, proximo_recibo_medico_num: parseInt(e.target.value, 10) || 1 })
+                  }
+                  className="w-full px-3 py-1.5 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 font-mono font-bold"
+                />
+                <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                  Próximo formato: {String(config.proximo_recibo_medico_num || 1).padStart(6, '0')}/{config.ano_corrente}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end pt-2">
             <button
               type="submit"
-              className="flex items-center gap-1.5 px-5 py-2.5 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-lg shadow-sm transition-colors"
+              className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 dark:bg-emerald-600 dark:hover:bg-emerald-500 rounded-lg shadow-sm transition-colors"
             >
               <Save className="w-3.5 h-3.5" />
               <span>Salvar Configurações Gerais</span>
@@ -647,307 +791,404 @@ export function ConfiguracoesView() {
       )}
 
       {/* ======================================================== */}
-      {/* ABA 2: TIPOS DE GASTO NA RDC (INCLUIR / EDITAR / EXCLUIR) */}
+      {/* ABA 2: TIPOS DE GASTO NA RDC */}
       {/* ======================================================== */}
       {activeTab === 'tipos-gasto' && (
         <div className="space-y-4">
-          <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-2xs space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
-              <div>
-                <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                  <Layers className="w-4 h-4 text-slate-700" />
-                  <span>Tipos de Gasto na RDC (Natureza dos Gastos)</span>
-                </h2>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Gerencie as naturezas de despesas disponibilizadas na emissão da RDC e totalizadas no quadro resumo da folha oficial.
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handleRestaurarPadraoGastos}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg transition-colors"
-                  title="Restaura os 6 tipos clássicos (1 Alimentação a 6 Outros gastos)"
-                >
-                  <RotateCcw className="w-3.5 h-3.5 text-slate-400" />
-                  <span>Padrões RDC</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleAbrirNovoGasto}
-                  className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-lg shadow-2xs transition-colors"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Incluir Tipo de Gasto</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Tabela de Tipos de Gasto */}
-            <div className="overflow-x-auto border border-slate-200 rounded-lg">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 border-b border-slate-200 text-slate-700 font-semibold">
-                  <tr>
-                    <th className="px-3.5 py-2.5 w-24 text-center">Código</th>
-                    <th className="px-3.5 py-2.5 font-semibold">Nome da Categoria / Natureza</th>
-                    <th className="px-3.5 py-2.5 text-slate-500 hidden md:table-cell">Descrição / Finalidade</th>
-                    <th className="px-3.5 py-2.5 w-28 text-center">Ações</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {tiposGasto.map((tg) => (
-                    <tr key={tg.id} className="hover:bg-slate-50/70 transition-colors">
-                      <td className="px-3.5 py-2.5 text-center font-mono font-bold text-slate-900">
-                        <span className="inline-block px-2.5 py-0.5 bg-slate-100 border border-slate-200 rounded text-xs">
-                          {tg.codigo}
-                        </span>
-                      </td>
-                      <td className="px-3.5 py-2.5 font-semibold text-slate-900">
-                        {tg.nome}
-                      </td>
-                      <td className="px-3.5 py-2.5 text-slate-500 text-[11px] hidden md:table-cell">
-                        {tg.descricao || <span className="text-slate-300 italic">Sem observações</span>}
-                      </td>
-                      <td className="px-3.5 py-2.5 text-center">
-                        <div className="flex items-center justify-center gap-1">
-                          <button
-                            type="button"
-                            onClick={() => handleAbrirEditarGasto(tg)}
-                            className="p-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded transition-colors"
-                            title="Editar Tipo de Gasto"
-                          >
-                            <Pencil className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setItemExcluindo({
-                                tipo: 'gasto',
-                                id: tg.id,
-                                titulo: `${tg.codigo} - ${tg.nome}`,
-                              })
-                            }
-                            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                            title="Excluir Tipo de Gasto"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                  {tiposGasto.length === 0 && (
-                    <tr>
-                      <td colSpan={4} className="p-8 text-center text-slate-400">
-                        Nenhum tipo de gasto cadastrado. Clique no botão acima para incluir.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-[11px] text-slate-600 flex items-start gap-2">
-              <Sparkles className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-              <div>
-                <b>Dica de parametrização:</b> Todos os tipos de gastos cadastrados aqui aparecem instantaneamente no seletor de linhas da emissão de RDC e geram o somatório automático no <i>Quadro Resumo de Gastos</i> na folha de impressão.
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ======================================================== */}
-      {/* ABA 3: TIPOS DE DOC NA RDC (INCLUIR / EDITAR / EXCLUIR)  */}
-      {/* ======================================================== */}
-      {activeTab === 'tipos-doc' && (
-        <div className="space-y-4">
-          <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-2xs space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
-              <div>
-                <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                  <FileSpreadsheet className="w-4 h-4 text-slate-700" />
-                  <span>Tipos de Documento na RDC (Tipo Doc)</span>
-                </h2>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Gerencie os comprovantes fiscais e recibos aceitos na prestação de contas da RDC (Rec, Nf, CF, etc.).
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handleRestaurarPadraoDocs}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg transition-colors"
-                  title="Restaura os tipos padrão (Rec, Nf, CF)"
-                >
-                  <RotateCcw className="w-3.5 h-3.5 text-slate-400" />
-                  <span>Padrões RDC</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleAbrirNovoDoc}
-                  className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-lg shadow-2xs transition-colors"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Incluir Tipo de Doc</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Tabela de Tipos de Doc */}
-            <div className="overflow-x-auto border border-slate-200 rounded-lg">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 border-b border-slate-200 text-slate-700 font-semibold">
-                  <tr>
-                    <th className="px-3.5 py-2.5 w-28 text-center">Sigla / Código</th>
-                    <th className="px-3.5 py-2.5 font-semibold">Nome Completo do Documento</th>
-                    <th className="px-3.5 py-2.5 text-slate-500 hidden md:table-cell">Descrição / Exemplos</th>
-                    <th className="px-3.5 py-2.5 w-28 text-center">Ações</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {tiposDoc.map((td) => (
-                    <tr key={td.id} className="hover:bg-slate-50/70 transition-colors">
-                      <td className="px-3.5 py-2.5 text-center font-mono font-bold text-slate-900">
-                        <span className="inline-block px-2.5 py-0.5 bg-slate-100 border border-slate-200 rounded text-xs uppercase">
-                          {td.codigo}
-                        </span>
-                      </td>
-                      <td className="px-3.5 py-2.5 font-semibold text-slate-900">
-                        {td.nome}
-                      </td>
-                      <td className="px-3.5 py-2.5 text-slate-500 text-[11px] hidden md:table-cell">
-                        {td.descricao || <span className="text-slate-300 italic">Sem observações</span>}
-                      </td>
-                      <td className="px-3.5 py-2.5 text-center">
-                        <div className="flex items-center justify-center gap-1">
-                          <button
-                            type="button"
-                            onClick={() => handleAbrirEditarDoc(td)}
-                            className="p-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded transition-colors"
-                            title="Editar Tipo de Doc"
-                          >
-                            <Pencil className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setItemExcluindo({
-                                tipo: 'doc',
-                                id: td.id,
-                                titulo: `${td.codigo} (${td.nome})`,
-                              })
-                            }
-                            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                            title="Excluir Tipo de Doc"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                  {tiposDoc.length === 0 && (
-                    <tr>
-                      <td colSpan={4} className="p-8 text-center text-slate-400">
-                        Nenhum tipo de documento cadastrado. Clique no botão acima para incluir.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-[11px] text-slate-600 flex items-start gap-2">
-              <Sparkles className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-              <div>
-                <b>Legenda oficial no rodapé:</b> As siglas e nomes cadastrados são formatados automaticamente na coluna <i>Legenda</i> do quadro de conferência da RDC (ex: <i>{tiposDoc.map((d) => `${d.codigo}: ${d.nome}`).join(' | ')}</i>).
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ======================================================== */}
-      {/* ABA 4: MANUTENÇÃO & RESTAURAÇÃO */}
-      {/* ======================================================== */}
-      {activeTab === 'manutencao' && (
-        <div className="space-y-4">
-          <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-2xs space-y-4">
-            <div className="border-b border-slate-100 pb-3">
-              <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                <RotateCcw className="w-4 h-4 text-slate-700" />
-                <span>Restauração e Manutenção dos Dados</span>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+                Tabela de Tipos de Gastos (Coluna 1 da RDC)
               </h2>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Opções para restaurar o estado original de fábrica ou efetuar cópia de segurança dos dados locais.
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Códigos e naturezas de despesas utilizados no preenchimento e no rateio da Prestação de Contas
               </p>
             </div>
 
-            <div className="space-y-3 pt-2">
-              <div className="p-4 bg-red-50/60 border border-red-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                  <h3 className="text-xs font-bold text-red-900">
-                    Restaurar Dados Iniciais de Demonstração
-                  </h3>
-                  <p className="text-[11px] text-red-700 mt-0.5">
-                    Restaura as empresas oficiais, usuários padrão, tipos de gastos clássicos e zera documentos de teste.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleResetDemo}
-                  className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg shadow-2xs transition-colors shrink-0"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  <span>Restaurar Fábrica</span>
-                </button>
-              </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleRestaurarPadraoGastos}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+              >
+                <RotateCcw className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                <span>Restaurar Padrão</span>
+              </button>
 
-              <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                  <h3 className="text-xs font-bold text-slate-900">
-                    Backup Completo do Sistema (JSON)
-                  </h3>
-                  <p className="text-[11px] text-slate-600 mt-0.5">
-                    Faça download de todo o banco de dados local com empresas, usuários, documentos emitidos e configurações.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleExportJson}
-                  className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg shadow-2xs transition-colors shrink-0"
-                >
-                  <Download className="w-3.5 h-3.5 text-slate-600" />
-                  <span>Baixar Backup JSON</span>
-                </button>
+              <button
+                type="button"
+                onClick={handleAbrirNovoGasto}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 dark:bg-emerald-600 dark:hover:bg-emerald-500 rounded-lg shadow-2xs transition-colors"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Novo Tipo de Gasto</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-2xs transition-colors">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 font-semibold">
+                <tr>
+                  <th className="px-4 py-3 w-20 text-center">Código</th>
+                  <th className="px-4 py-3">Natureza do Gasto</th>
+                  <th className="px-4 py-3">Descrição / Exemplos de Aplicação</th>
+                  <th className="px-4 py-3 text-center w-28">Ações</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                {tiposGasto.map((tg) => (
+                  <tr key={tg.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                    <td className="px-4 py-3 text-center font-mono font-bold text-slate-900 dark:text-white">
+                      <span className="inline-block w-6 h-6 leading-6 rounded bg-blue-100 dark:bg-blue-950 text-blue-900 dark:text-blue-300 text-xs">
+                        {tg.codigo}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 font-semibold text-slate-900 dark:text-white">
+                      {tg.nome}
+                    </td>
+                    <td className="px-4 py-3 text-slate-500 dark:text-slate-400">
+                      {tg.descricao || '—'}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <div className="flex items-center justify-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleAbrirEditarGasto(tg)}
+                          className="p-1 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors"
+                          title="Editar Tipo de Gasto"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setItemExcluindo({
+                              tipo: 'gasto',
+                              id: tg.id,
+                              titulo: `${tg.codigo} - ${tg.nome}`,
+                            })
+                          }
+                          className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded transition-colors"
+                          title="Excluir Tipo de Gasto"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* ABA 3: TIPOS DE DOC NA RDC */}
+      {/* ======================================================== */}
+      {activeTab === 'tipos-doc' && (
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+                Tipos de Comprovantes Aceitos (Coluna 2 da RDC)
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Documentos fiscais e comprobatórios (Rec, NF, CF, Ticket) válidos para prestação de contas
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleRestaurarPadraoDocs}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+              >
+                <RotateCcw className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                <span>Restaurar Padrão</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleAbrirNovoDoc}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 dark:bg-emerald-600 dark:hover:bg-emerald-500 rounded-lg shadow-2xs transition-colors"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Novo Tipo de Documento</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-2xs transition-colors">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 font-semibold">
+                <tr>
+                  <th className="px-4 py-3 w-28 text-center">Sigla / Código</th>
+                  <th className="px-4 py-3">Nome do Comprovante</th>
+                  <th className="px-4 py-3">Descrição / Requisitos de Auditoria</th>
+                  <th className="px-4 py-3 text-center w-28">Ações</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                {tiposDoc.map((td) => (
+                  <tr key={td.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                    <td className="px-4 py-3 text-center font-mono font-bold text-slate-900 dark:text-white">
+                      <span className="inline-block px-2.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-900 dark:text-emerald-300 text-xs">
+                        {td.codigo}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 font-semibold text-slate-900 dark:text-white">
+                      {td.nome}
+                    </td>
+                    <td className="px-4 py-3 text-slate-500 dark:text-slate-400">
+                      {td.descricao || '—'}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <div className="flex items-center justify-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleAbrirEditarDoc(td)}
+                          className="p-1 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors"
+                          title="Editar Tipo de Doc"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setItemExcluindo({
+                              tipo: 'doc',
+                              id: td.id,
+                              titulo: `${td.codigo} - ${td.nome}`,
+                            })
+                          }
+                          className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded transition-colors"
+                          title="Excluir Tipo de Doc"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* ABA 4: MODELOS DE DESPESA (RDC) */}
+      {/* ======================================================== */}
+      {activeTab === 'modelos-despesa' && (
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-amber-500" />
+                <span>Modelos de Despesa Pré-Configurados (RDC)</span>
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Configure modelos pré-definidos para agilizar a emissão de RDCs. As alterações salvas aqui são transmitidas imediatamente para novas emissões.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleRestaurarPadraoModelos}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+              >
+                <RotateCcw className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                <span>Restaurar Padrão</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleAbrirNovoModelo}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 dark:bg-emerald-600 dark:hover:bg-emerald-500 rounded-lg shadow-2xs transition-colors"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Criar Novo Modelo</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-2xs transition-colors">
+            {modelosDespesa.length === 0 ? (
+              <div className="p-12 text-center text-xs text-slate-500 dark:text-slate-400">
+                Nenhum modelo de despesa cadastrado. Clique no botão &ldquo;Criar Novo Modelo&rdquo; para adicionar.
               </div>
+            ) : (
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 font-semibold">
+                  <tr>
+                    <th className="px-4 py-3">Nome do Modelo</th>
+                    <th className="px-4 py-3">Linha de Gasto</th>
+                    <th className="px-4 py-3">Origem / Destino Padrão</th>
+                    <th className="px-4 py-3">Adiantamento Sugerido</th>
+                    <th className="px-4 py-3 text-center">Itens Padrão</th>
+                    <th className="px-4 py-3 text-center w-28">Ações</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {modelosDespesa.map((mod) => {
+                    const totalItens = mod.itens_padrao?.length || 0;
+                    const somaValorItens =
+                      mod.itens_padrao?.reduce((acc, it) => acc + (Number(it.valor) || 0), 0) || 0;
+
+                    return (
+                      <tr
+                        key={mod.id}
+                        className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                      >
+                        <td className="px-4 py-3 max-w-[260px]">
+                          <div className="font-semibold text-slate-900 dark:text-white">
+                            {mod.nome}
+                          </div>
+                          {mod.descricao && (
+                            <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                              {mod.descricao}
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <span
+                            className={`px-2 py-0.5 rounded text-[10px] font-semibold uppercase ${
+                              mod.linha_gasto === 'viagem'
+                                ? 'bg-sky-100 dark:bg-sky-950 text-sky-800 dark:text-sky-300'
+                                : mod.linha_gasto === 'corporativa'
+                                ? 'bg-purple-100 dark:bg-purple-950 text-purple-800 dark:text-purple-300'
+                                : 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300'
+                            }`}
+                          >
+                            {mod.linha_gasto === 'corporativa'
+                              ? '🏢 Corporativa'
+                              : mod.linha_gasto === 'ambas'
+                              ? '🔄 Ambas'
+                              : '✈️ Viagem'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-slate-600 dark:text-slate-300 whitespace-nowrap">
+                          {mod.local_partida_padrao || '—'} → {mod.destino_padrao || '—'}
+                        </td>
+                        <td className="px-4 py-3 font-mono font-medium text-slate-900 dark:text-white whitespace-nowrap">
+                          {formatarMoeda(mod.valor_adiantamento_sugerido || 0)}
+                        </td>
+                        <td className="px-4 py-3 text-center whitespace-nowrap">
+                          <span className="px-2 py-0.5 rounded-full text-[11px] bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold">
+                            {totalItens} {totalItens === 1 ? 'item' : 'itens'} ({formatarMoeda(somaValorItens)})
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <div className="flex items-center justify-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => setModeloVisualizando(mod)}
+                              className="p-1 text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors"
+                              title="Visualizar Configurações do Modelo"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleAbrirEditarModelo(mod)}
+                              className="p-1 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors"
+                              title="Editar Modelo de Despesa"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setItemExcluindo({
+                                  tipo: 'modelo',
+                                  id: mod.id,
+                                  titulo: mod.nome,
+                                })
+                              }
+                              className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded transition-colors"
+                              title="Excluir Modelo de Despesa"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* ABA 5: MANUTENÇÃO & RESTAURAÇÃO */}
+      {/* ======================================================== */}
+      {activeTab === 'manutencao' && (
+        <div className="space-y-6">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-2xs space-y-4 transition-colors">
+            <h2 className="text-sm font-bold text-slate-900 dark:text-white pb-2 border-b border-slate-100 dark:border-slate-800">
+              Exportação e Backup
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Faça download de todos os cadastros de usuários, empresas, recibos emitidos, RDCs e parametrizações em formato JSON para arquivo de segurança.
+            </p>
+
+            <div>
+              <button
+                type="button"
+                onClick={handleExportJson}
+                className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-750 rounded-lg transition-colors"
+              >
+                <Download className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+                <span>Baixar Cópia de Segurança Completa</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-slate-900 border border-red-200 dark:border-red-900/60 rounded-xl p-6 shadow-2xs space-y-4 transition-colors">
+            <h2 className="text-sm font-bold text-red-700 dark:text-red-400 pb-2 border-b border-red-100 dark:border-red-900/40 flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-red-600" />
+              <span>Zona de Manutenção Crítica</span>
+            </h2>
+            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+              Restaura todo o banco de dados local com as empresas oficiais (ABEAS, Associação), modelos de despesa e usuários de teste. Útil para resetar demonstrações e testes de validação contábil.
+            </p>
+
+            <div>
+              <button
+                type="button"
+                onClick={handleResetDemo}
+                className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg shadow-sm transition-colors"
+              >
+                <RotateCcw className="w-4 h-4" />
+                <span>Restaurar Base de Dados Inicial (Reset de Demonstração)</span>
+              </button>
             </div>
           </div>
         </div>
       )}
 
       {/* ======================================================== */}
-      {/* MODAL: INCLUIR / EDITAR TIPO DE GASTO */}
+      {/* MODAL: TIPO DE GASTO */}
       {/* ======================================================== */}
       {modalGastoAberto && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
-          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-md overflow-hidden animate-scaleIn">
-            <div className="px-5 py-4 bg-slate-900 text-white flex items-center justify-between">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-xs animate-fadeIn">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 w-full max-w-md overflow-hidden transition-colors">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-850">
               <div className="flex items-center gap-2">
-                <Layers className="w-4 h-4 text-slate-300" />
-                <h3 className="text-sm font-bold">
-                  {gastoEditando ? 'Editar Tipo de Gasto' : 'Incluir Novo Tipo de Gasto'}
+                <Layers className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                  {gastoEditando ? 'Editar Tipo de Gasto' : 'Novo Tipo de Gasto'}
                 </h3>
               </div>
               <button
-                type="button"
                 onClick={() => setModalGastoAberto(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -955,7 +1196,7 @@ export function ConfiguracoesView() {
 
             <form onSubmit={handleSalvarGasto} className="p-5 space-y-4">
               {erroGasto && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-xs flex items-center gap-2">
+                <div className="p-3 bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-900/60 rounded-lg text-red-700 dark:text-red-300 text-xs flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 shrink-0" />
                   <span>{erroGasto}</span>
                 </div>
@@ -963,61 +1204,57 @@ export function ConfiguracoesView() {
 
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Código Numérico *
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Código *
                   </label>
                   <input
                     type="number"
-                    min={1}
-                    max={999}
+                    min="1"
                     required
                     value={gastoCodigo}
-                    onChange={(e) => setGastoCodigo(parseInt(e.target.value) || 1)}
-                    className="w-full px-3 py-2 text-xs font-mono font-bold bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none"
+                    onChange={(e) => setGastoCodigo(parseInt(e.target.value, 10) || 1)}
+                    className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 font-mono font-bold outline-none"
                   />
-                  <p className="text-[10px] text-slate-400 mt-1">Ex: 1, 2, 7...</p>
                 </div>
-
                 <div className="col-span-2">
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Nome da Natureza do Gasto *
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Nome da Natureza *
                   </label>
                   <input
                     type="text"
                     required
                     value={gastoNome}
                     onChange={(e) => setGastoNome(e.target.value)}
-                    placeholder="Ex: Alimentação, Combustível, Correios"
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none font-semibold"
+                    placeholder="Ex: Hospedagem, Alimentação..."
+                    className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 outline-none"
                   />
-                  <p className="text-[10px] text-slate-400 mt-1">Impresso na folha da RDC</p>
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Descrição / Finalidade das Despesas (Opcional)
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Descrição / Exemplos de Aplicação
                 </label>
                 <textarea
                   rows={2}
                   value={gastoDescricao}
                   onChange={(e) => setGastoDescricao(e.target.value)}
-                  placeholder="Ex: Despesas com refeições, café da manhã, almoço e jantar corporativo..."
-                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none"
+                  placeholder="Ex: Despesas com refeições durante viagens ou eventos corporativos..."
+                  className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 outline-none"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => setModalGastoAberto(false)}
-                  className="px-3.5 py-2 text-xs font-medium text-slate-600 hover:text-slate-800 rounded-lg transition-colors"
+                  className="px-3.5 py-2 text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 rounded-lg transition-colors"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-lg shadow-sm transition-colors"
+                  className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 dark:bg-emerald-600 dark:hover:bg-emerald-500 rounded-lg shadow-sm transition-colors"
                 >
                   <Save className="w-3.5 h-3.5" />
                   <span>Salvar Tipo de Gasto</span>
@@ -1029,22 +1266,21 @@ export function ConfiguracoesView() {
       )}
 
       {/* ======================================================== */}
-      {/* MODAL: INCLUIR / EDITAR TIPO DE DOC */}
+      {/* MODAL: TIPO DE DOCUMENTO */}
       {/* ======================================================== */}
       {modalDocAberto && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
-          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-md overflow-hidden animate-scaleIn">
-            <div className="px-5 py-4 bg-slate-900 text-white flex items-center justify-between">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-xs animate-fadeIn">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 w-full max-w-md overflow-hidden transition-colors">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-850">
               <div className="flex items-center gap-2">
-                <FileSpreadsheet className="w-4 h-4 text-slate-300" />
-                <h3 className="text-sm font-bold">
-                  {docEditando ? 'Editar Tipo de Documento' : 'Incluir Novo Tipo de Documento'}
+                <FileSpreadsheet className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                  {docEditando ? 'Editar Tipo de Documento' : 'Novo Tipo de Documento'}
                 </h3>
               </div>
               <button
-                type="button"
                 onClick={() => setModalDocAberto(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1052,7 +1288,7 @@ export function ConfiguracoesView() {
 
             <form onSubmit={handleSalvarDoc} className="p-5 space-y-4">
               {erroDoc && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-xs flex items-center gap-2">
+                <div className="p-3 bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-900/60 rounded-lg text-red-700 dark:text-red-300 text-xs flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 shrink-0" />
                   <span>{erroDoc}</span>
                 </div>
@@ -1060,7 +1296,7 @@ export function ConfiguracoesView() {
 
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                     Sigla / Código *
                   </label>
                   <input
@@ -1069,52 +1305,49 @@ export function ConfiguracoesView() {
                     maxLength={8}
                     value={docCodigo}
                     onChange={(e) => setDocCodigo(e.target.value)}
-                    placeholder="Ex: Rec, NF, CF"
-                    className="w-full px-3 py-2 text-xs font-mono font-bold bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none uppercase"
+                    placeholder="NF, Rec, CF"
+                    className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 font-mono font-bold outline-none uppercase"
                   />
-                  <p className="text-[10px] text-slate-400 mt-1">Ex: Rec, NF, CF</p>
                 </div>
-
                 <div className="col-span-2">
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Nome Completo do Documento *
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Nome Completo *
                   </label>
                   <input
                     type="text"
                     required
                     value={docNome}
                     onChange={(e) => setDocNome(e.target.value)}
-                    placeholder="Ex: Recibo, Nota Fiscal, Cupom"
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none font-semibold"
+                    placeholder="Ex: Nota Fiscal, Recibo Comercial..."
+                    className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 outline-none"
                   />
-                  <p className="text-[10px] text-slate-400 mt-1">Impresso na legenda oficial</p>
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Descrição / Observações (Opcional)
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Descrição / Instrução de Auditoria
                 </label>
                 <textarea
                   rows={2}
                   value={docDescricao}
                   onChange={(e) => setDocDescricao(e.target.value)}
                   placeholder="Ex: Nota fiscal eletrônica (NFe, NFCe ou NFSe modelo 55/65)..."
-                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none"
+                  className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 outline-none"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => setModalDocAberto(false)}
-                  className="px-3.5 py-2 text-xs font-medium text-slate-600 hover:text-slate-800 rounded-lg transition-colors"
+                  className="px-3.5 py-2 text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 rounded-lg transition-colors"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-lg shadow-sm transition-colors"
+                  className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 dark:bg-emerald-600 dark:hover:bg-emerald-500 rounded-lg shadow-sm transition-colors"
                 >
                   <Save className="w-3.5 h-3.5" />
                   <span>Salvar Tipo de Doc</span>
@@ -1126,22 +1359,486 @@ export function ConfiguracoesView() {
       )}
 
       {/* ======================================================== */}
+      {/* MODAL: CADASTRO / EDIÇÃO DE MODELO DE DESPESA */}
+      {/* ======================================================== */}
+      {modalModeloAberto && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-xs animate-fadeIn overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-3xl overflow-hidden my-4 transition-colors max-h-[92vh] flex flex-col">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-850 shrink-0">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-amber-500" />
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                  {modeloEditando ? 'EDITAR MODELO DE DESPESA' : 'NOVO MODELO DE DESPESA PARA RDC'}
+                </h3>
+              </div>
+              <button
+                onClick={() => setModalModeloAberto(false)}
+                className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSalvarModelo} className="p-6 space-y-4 overflow-y-auto flex-1">
+              {erroModelo && (
+                <div className="p-3 bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-900/60 rounded-lg text-red-700 dark:text-red-300 text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{erroModelo}</span>
+                </div>
+              )}
+
+              {/* Informações Básicas do Modelo */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Nome do Modelo *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={modeloNome}
+                    onChange={(e) => setModeloNome(e.target.value)}
+                    placeholder="Ex: Viagem Técnica e Auditoria Institucional"
+                    className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Linha de Gasto *
+                  </label>
+                  <select
+                    value={modeloLinhaGasto}
+                    onChange={(e) =>
+                      setModeloLinhaGasto(e.target.value as 'viagem' | 'corporativa' | 'ambas')
+                    }
+                    className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 outline-none"
+                  >
+                    <option value="viagem">✈️ Viagem</option>
+                    <option value="corporativa">🏢 Corporativa</option>
+                    <option value="ambas">🔄 Ambas</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Descrição / Finalidade do Modelo
+                </label>
+                <input
+                  type="text"
+                  value={modeloDescricao}
+                  onChange={(e) => setModeloDescricao(e.target.value)}
+                  placeholder="Ex: Padrão para deslocamentos de inspeção predial e visitas técnicas..."
+                  className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 outline-none"
+                />
+              </div>
+
+              {/* Origem, Destino, Setor e Objetivo Padrão */}
+              <div className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700 space-y-3">
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide block">
+                  Valores Padrão do Solicitante / Viagem
+                </span>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">
+                      Local de Partida Padrão
+                    </label>
+                    <input
+                      type="text"
+                      value={modeloLocalPartida}
+                      onChange={(e) => setModeloLocalPartida(e.target.value)}
+                      placeholder="Ex: Brasília/DF"
+                      className="w-full px-2.5 py-1.5 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">
+                      Destino Padrão
+                    </label>
+                    <input
+                      type="text"
+                      value={modeloDestino}
+                      onChange={(e) => setModeloDestino(e.target.value)}
+                      placeholder="Ex: São Paulo/SP"
+                      className="w-full px-2.5 py-1.5 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">
+                      Setor / Função Padrão
+                    </label>
+                    <input
+                      type="text"
+                      value={modeloSetorFuncao}
+                      onChange={(e) => setModeloSetorFuncao(e.target.value)}
+                      placeholder="Ex: Auditor de Sistemas"
+                      className="w-full px-2.5 py-1.5 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">
+                    Objetivo Padrão
+                  </label>
+                  <input
+                    type="text"
+                    value={modeloObjetivo}
+                    onChange={(e) => setModeloObjetivo(e.target.value)}
+                    placeholder="Ex: Auditoria técnica e vistoria in loco de infraestrutura predial..."
+                    className="w-full px-2.5 py-1.5 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Informações Financeiras e Bancárias */}
+              <div className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700 space-y-3">
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide block">
+                  Informações Bancárias e Adiantamento Padrão
+                </span>
+
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">
+                      Adiantamento Sugerido (R$)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={modeloAdiantamento}
+                      onChange={(e) => setModeloAdiantamento(parseFloat(e.target.value) || 0)}
+                      className="w-full px-2.5 py-1.5 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 font-mono font-bold outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">
+                      Banco
+                    </label>
+                    <input
+                      type="text"
+                      value={modeloNomeBanco}
+                      onChange={(e) => setModeloNomeBanco(e.target.value)}
+                      placeholder="Ex: Banco do Brasil"
+                      className="w-full px-2.5 py-1.5 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">
+                      Agência
+                    </label>
+                    <input
+                      type="text"
+                      value={modeloAgencia}
+                      onChange={(e) => setModeloAgencia(e.target.value)}
+                      placeholder="Ex: 1820-1"
+                      className="w-full px-2.5 py-1.5 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 outline-none font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">
+                      Conta
+                    </label>
+                    <input
+                      type="text"
+                      value={modeloConta}
+                      onChange={(e) => setModeloConta(e.target.value)}
+                      placeholder="Ex: 45.890-2"
+                      className="w-full px-2.5 py-1.5 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 outline-none font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">
+                      Diretoria Direta (Assinatura Padrão)
+                    </label>
+                    <input
+                      type="text"
+                      value={modeloDiretoria}
+                      onChange={(e) => setModeloDiretoria(e.target.value)}
+                      placeholder="Ex: Carlos Eduardo Silva"
+                      className="w-full px-2.5 py-1.5 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">
+                      Contábil / Financeiro (Assinatura Padrão)
+                    </label>
+                    <input
+                      type="text"
+                      value={modeloContabil}
+                      onChange={(e) => setModeloContabil(e.target.value)}
+                      placeholder="Ex: Setor Contábil / Financeiro ABEAS"
+                      className="w-full px-2.5 py-1.5 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Tabela de Itens de Despesa Padrão */}
+              <div className="space-y-2 border border-slate-200 dark:border-slate-700 rounded-xl p-4 bg-white dark:bg-slate-850">
+                <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+                  <div>
+                    <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wide">
+                      Itens de Gastos Padrão ({modeloItens.length})
+                    </span>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                      Estes itens serão preenchidos automaticamente na RDC ao selecionar este modelo.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleAdicionarItemModelo}
+                    className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 dark:bg-emerald-600 dark:hover:bg-emerald-500 rounded-lg transition-colors shadow-2xs"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Adicionar Despesa</span>
+                  </button>
+                </div>
+
+                {modeloItens.length === 0 ? (
+                  <div className="text-center py-6 text-xs text-slate-400">
+                    Nenhuma despesa pré-configurada neste modelo. Clique em &ldquo;Adicionar Despesa&rdquo;.
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-56 overflow-y-auto">
+                    {modeloItens.map((item, index) => (
+                      <div
+                        key={item.id}
+                        className="flex flex-col sm:flex-row items-center gap-2 p-2 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700"
+                      >
+                        <span className="text-[10px] font-mono font-bold text-slate-500 dark:text-slate-400 w-5 text-center">
+                          {index + 1}
+                        </span>
+
+                        <div className="w-full sm:w-44">
+                          <select
+                            value={item.tipo_gasto}
+                            onChange={(e) =>
+                              handleAtualizarItemModelo(
+                                item.id,
+                                'tipo_gasto',
+                                parseInt(e.target.value, 10) || 1
+                              )
+                            }
+                            className="w-full px-2 py-1 text-xs bg-white dark:bg-slate-750 border border-slate-200 dark:border-slate-650 rounded text-slate-900 dark:text-slate-100 outline-none"
+                          >
+                            {tiposGasto.map((tg) => (
+                              <option key={tg.id} value={tg.codigo}>
+                                {tg.codigo} - {tg.nome}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div className="w-full sm:w-28">
+                          <select
+                            value={item.tipo_doc}
+                            onChange={(e) =>
+                              handleAtualizarItemModelo(item.id, 'tipo_doc', e.target.value)
+                            }
+                            className="w-full px-2 py-1 text-xs bg-white dark:bg-slate-750 border border-slate-200 dark:border-slate-650 rounded text-slate-900 dark:text-slate-100 outline-none uppercase font-mono"
+                          >
+                            {tiposDoc.map((td) => (
+                              <option key={td.id} value={td.codigo}>
+                                {td.codigo}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div className="flex-1 w-full">
+                          <input
+                            type="text"
+                            value={item.descricao}
+                            onChange={(e) =>
+                              handleAtualizarItemModelo(item.id, 'descricao', e.target.value)
+                            }
+                            placeholder="Descrição da despesa..."
+                            className="w-full px-2.5 py-1 text-xs bg-white dark:bg-slate-750 border border-slate-200 dark:border-slate-650 rounded text-slate-900 dark:text-slate-100 outline-none"
+                          />
+                        </div>
+
+                        <div className="w-full sm:w-28">
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={item.valor}
+                            onChange={(e) =>
+                              handleAtualizarItemModelo(
+                                item.id,
+                                'valor',
+                                parseFloat(e.target.value) || 0
+                              )
+                            }
+                            className="w-full px-2 py-1 text-xs bg-white dark:bg-slate-750 border border-slate-200 dark:border-slate-650 rounded text-slate-900 dark:text-slate-100 font-mono font-bold outline-none text-right"
+                          />
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleRemoverItemModelo(item.id)}
+                          className="p-1 text-slate-400 hover:text-red-600 rounded transition-colors"
+                          title="Remover Item"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-200 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setModalModeloAberto(false)}
+                  className="px-4 py-2 text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 rounded-lg transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="flex items-center gap-1.5 px-5 py-2 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 dark:bg-emerald-600 dark:hover:bg-emerald-500 rounded-lg shadow-sm transition-colors"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  <span>SALVAR MODELO DE DESPESA</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* MODAL: VISUALIZAÇÃO DE DETALHES DO MODELO */}
+      {/* ======================================================== */}
+      {modeloVisualizando && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-xs animate-fadeIn overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 w-full max-w-lg overflow-hidden transition-colors">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-850">
+              <div className="flex items-center gap-2">
+                <Info className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                  DETALHES DO MODELO: {modeloVisualizando.nome}
+                </h3>
+              </div>
+              <button
+                onClick={() => setModeloVisualizando(null)}
+                className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4 text-xs">
+              <div className="space-y-1">
+                <span className="font-semibold text-slate-700 dark:text-slate-300">Linha de Gastos:</span>
+                <p className="text-slate-900 dark:text-white capitalize font-medium">
+                  {modeloVisualizando.linha_gasto}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <span className="font-semibold text-slate-700 dark:text-slate-300">Origem:</span>
+                  <p className="text-slate-900 dark:text-white">
+                    {modeloVisualizando.local_partida_padrao || '—'}
+                  </p>
+                </div>
+                <div>
+                  <span className="font-semibold text-slate-700 dark:text-slate-300">Destino:</span>
+                  <p className="text-slate-900 dark:text-white">
+                    {modeloVisualizando.destino_padrao || '—'}
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <span className="font-semibold text-slate-700 dark:text-slate-300">Objetivo Padrão:</span>
+                <p className="text-slate-900 dark:text-white">
+                  {modeloVisualizando.objetivo_padrao || '—'}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <span className="font-semibold text-slate-700 dark:text-slate-300">Adiantamento:</span>
+                  <p className="text-emerald-700 dark:text-emerald-400 font-bold font-mono">
+                    {formatarMoeda(modeloVisualizando.valor_adiantamento_sugerido || 0)}
+                  </p>
+                </div>
+                <div>
+                  <span className="font-semibold text-slate-700 dark:text-slate-300">Banco:</span>
+                  <p className="text-slate-900 dark:text-white">
+                    {modeloVisualizando.nome_banco_padrao || '—'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="border-t border-slate-100 dark:border-slate-800 pt-3">
+                <span className="font-semibold text-slate-700 dark:text-slate-300 block mb-2">
+                  Itens de Despesa ({modeloVisualizando.itens_padrao?.length || 0}):
+                </span>
+                <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                  {modeloVisualizando.itens_padrao?.map((it, idx) => (
+                    <div
+                      key={it.id || idx}
+                      className="flex items-center justify-between p-2 rounded bg-slate-50 dark:bg-slate-800 text-[11px]"
+                    >
+                      <span className="text-slate-800 dark:text-slate-200">
+                        [{it.tipo_gasto} - {it.tipo_doc}] {it.descricao}
+                      </span>
+                      <span className="font-mono font-bold text-slate-900 dark:text-white">
+                        {formatarMoeda(it.valor)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-3 border-t border-slate-100 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setModeloVisualizando(null)}
+                  className="px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-750 rounded-lg transition-colors"
+                >
+                  Fechar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
       {/* MODAL: CONFIRMAÇÃO DE EXCLUSÃO */}
       {/* ======================================================== */}
       {itemExcluindo && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
-          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-sm overflow-hidden p-5 space-y-4 animate-scaleIn">
-            <div className="w-10 h-10 rounded-full bg-red-50 text-red-600 flex items-center justify-center mx-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-xs animate-fadeIn">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 w-full max-w-sm overflow-hidden p-5 space-y-4 animate-scaleIn transition-colors">
+            <div className="w-10 h-10 rounded-full bg-red-50 dark:bg-red-950/60 text-red-600 dark:text-red-400 flex items-center justify-center mx-auto">
               <Trash2 className="w-5 h-5" />
             </div>
 
             <div className="text-center space-y-1">
-              <h3 className="text-sm font-bold text-slate-900">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">
                 Confirmar Exclusão
               </h3>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 Tem certeza que deseja excluir o item{' '}
-                <strong className="text-slate-800">{itemExcluindo.titulo}</strong>?
+                <strong className="text-slate-800 dark:text-slate-200">{itemExcluindo.titulo}</strong>?
               </p>
             </div>
 
@@ -1149,13 +1846,19 @@ export function ConfiguracoesView() {
               <button
                 type="button"
                 onClick={() => setItemExcluindo(null)}
-                className="px-4 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+                className="px-4 py-2 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
               >
                 Cancelar
               </button>
               <button
                 type="button"
-                onClick={itemExcluindo.tipo === 'gasto' ? confirmarExcluirGasto : confirmarExcluirDoc}
+                onClick={
+                  itemExcluindo.tipo === 'gasto'
+                    ? confirmarExcluirGasto
+                    : itemExcluindo.tipo === 'doc'
+                    ? confirmarExcluirDoc
+                    : confirmarExcluirModelo
+                }
                 className="px-4 py-2 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg shadow-sm transition-colors"
               >
                 Excluir Definitivamente
@@ -1169,23 +1872,26 @@ export function ConfiguracoesView() {
       {/* MODAL: CONFIRMAÇÃO DE RESTAURAÇÃO */}
       {/* ======================================================== */}
       {modalConfirmReset && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
-          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-sm overflow-hidden p-5 space-y-4 animate-scaleIn">
-            <div className="w-10 h-10 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center mx-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-xs animate-fadeIn">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 w-full max-w-sm overflow-hidden p-5 space-y-4 animate-scaleIn transition-colors">
+            <div className="w-10 h-10 rounded-full bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto">
               <RotateCcw className="w-5 h-5" />
             </div>
 
             <div className="text-center space-y-1">
-              <h3 className="text-sm font-bold text-slate-900">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">
                 {modalConfirmReset === 'gastos' && 'Restaurar Tipos de Gastos Padrão?'}
                 {modalConfirmReset === 'docs' && 'Restaurar Tipos de Documentos Padrão?'}
+                {modalConfirmReset === 'modelos' && 'Restaurar Modelos de Despesa Padrão?'}
                 {modalConfirmReset === 'fabrica' && 'Restaurar Padrão de Fábrica?'}
               </h3>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 {modalConfirmReset === 'gastos' &&
                   'Deseja restaurar os 6 Tipos de Gastos originais padrão da RDC (1 Alimentação a 6 Outros gastos)? Itens personalizados serão substituídos.'}
                 {modalConfirmReset === 'docs' &&
                   'Deseja restaurar os Tipos de Documentos originais (Rec: Recibo, Nf: Nota Fiscal, CF: Cupom Fiscal)?'}
+                {modalConfirmReset === 'modelos' &&
+                  'Deseja restaurar os Modelos de Despesa originais (Viagem Técnica, Despesas Corporativas)?'}
                 {modalConfirmReset === 'fabrica' &&
                   'ATENÇÃO: Todas as empresas, documentos e configurações serão redefinidos para os valores de demonstração inicial.'}
               </p>
@@ -1195,7 +1901,7 @@ export function ConfiguracoesView() {
               <button
                 type="button"
                 onClick={() => setModalConfirmReset(null)}
-                className="px-4 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+                className="px-4 py-2 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
               >
                 Cancelar
               </button>
@@ -1204,9 +1910,10 @@ export function ConfiguracoesView() {
                 onClick={() => {
                   if (modalConfirmReset === 'gastos') executarRestaurarPadraoGastos();
                   else if (modalConfirmReset === 'docs') executarRestaurarPadraoDocs();
+                  else if (modalConfirmReset === 'modelos') executarRestaurarPadraoModelos();
                   else if (modalConfirmReset === 'fabrica') executarResetFabrica();
                 }}
-                className="px-4 py-2 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-lg shadow-sm transition-colors"
+                className="px-4 py-2 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 dark:bg-emerald-600 dark:hover:bg-emerald-500 rounded-lg shadow-sm transition-colors"
               >
                 Confirmar Restauração
               </button>

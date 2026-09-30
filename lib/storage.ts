@@ -8,6 +8,7 @@ import {
   DadosReciboMedico,
   TipoGastoConfig,
   TipoDocConfig,
+  ModeloDespesa,
 } from './types';
 import { valorPorExtenso } from './extenso';
 
@@ -28,6 +29,7 @@ const STORAGE_KEYS = {
   DOCUMENTOS: 'recibos_rdc_documentos_v1',
   CONFIG: 'recibos_rdc_config_v1',
   CURRENT_USER: 'recibos_rdc_current_user_v1',
+  MODELOS_DESPESA: 'recibos_rdc_modelos_despesa_v1',
 };
 
 export const DEFAULT_TIPOS_GASTO: TipoGastoConfig[] = [
@@ -421,6 +423,86 @@ export const INITIAL_DOCUMENTOS: Documento[] = [
   },
 ];
 
+export const INITIAL_MODELOS_DESPESA: ModeloDespesa[] = [
+  {
+    id: 'mod-viagem-auditoria',
+    nome: 'Viagem Técnica e Auditoria Institucional',
+    descricao: 'Modelo padrão para viagens de auditoria in loco, conferência documental e inspeções.',
+    linha_gasto: 'viagem',
+    local_partida_padrao: 'Brasília/DF',
+    destino_padrao: 'São Paulo/SP',
+    setor_funcao_padrao: 'Auditor de Sistemas / TI',
+    objetivo_padrao: 'Auditoria técnica e vistoria in loco de infraestrutura predial e contábil.',
+    valor_adiantamento_sugerido: 2000.0,
+    nome_banco_padrao: 'Banco do Brasil',
+    agencia_padrao: '1820-1',
+    conta_padrao: '45.890-2',
+    tipo_conta_padrao: 'Conta Corrente',
+    chave_pix_padrao: '',
+    diretoria_direta_padrao: 'Carlos Eduardo Silva',
+    contabil_financeiro_padrao: 'Setor Contábil / Financeiro ABEAS',
+    itens_padrao: [
+      { id: 'mod-item-1', tipo_gasto: 1, tipo_doc: 'NF', descricao: 'Restaurante Sabor & Arte - Almoço de trabalho equipe - NF 1042', valor: 380.0 },
+      { id: 'mod-item-2', tipo_gasto: 2, tipo_doc: 'NF', descricao: 'Posto Petrobras Paulista - Abastecimento de veículo locado - NF 8892', valor: 320.0 },
+      { id: 'mod-item-3', tipo_gasto: 3, tipo_doc: 'Rec', descricao: 'Uber do Brasil - Deslocamentos Aeroporto x Hotel x Escritório', valor: 195.0 },
+      { id: 'mod-item-4', tipo_gasto: 4, tipo_doc: 'NF', descricao: 'Hotel Ibis Paulista - 2 diárias de hospedagem - NF 4421', valor: 850.0 },
+      { id: 'mod-item-5', tipo_gasto: 5, tipo_doc: 'Rec', descricao: 'GOL Linhas Aéreas - Taxa de embarque e despacho bagagem', valor: 210.0 },
+      { id: 'mod-item-6', tipo_gasto: 6, tipo_doc: 'Rec', descricao: 'Papelaria Express - Cópias de documentos e encadernações técnicas', valor: 145.0 },
+    ],
+    created_at: '2026-01-01T08:00:00.000Z',
+  },
+  {
+    id: 'mod-despesas-corporativas',
+    nome: 'Despesas Administrativas & Operacionais Corporativas',
+    descricao: 'Modelo para compras de expediente, cartório, suprimentos e serviços locais.',
+    linha_gasto: 'corporativa',
+    local_partida_padrao: 'Sede Central ABEAS',
+    destino_padrao: 'Unidades e Departamentos Locais',
+    setor_funcao_padrao: 'Administração & Logística Corporativa',
+    objetivo_padrao: 'Suprimento de materiais de expediente, serviços de cartório e despesas correntes de escritório.',
+    valor_adiantamento_sugerido: 1200.0,
+    nome_banco_padrao: 'Caixa Econômica Federal',
+    agencia_padrao: '0210',
+    conta_padrao: '10982-3',
+    tipo_conta_padrao: 'Conta Corrente',
+    chave_pix_padrao: '',
+    diretoria_direta_padrao: 'Diretoria Administrativa',
+    contabil_financeiro_padrao: 'Controladoria Geral ABEAS',
+    itens_padrao: [
+      { id: 'mod-item-c1', tipo_gasto: 6, tipo_doc: 'NF', descricao: 'Kalunga Papelaria - Suprimento de toners, papéis A4 e pastas - NF 5541', valor: 420.0 },
+      { id: 'mod-item-c2', tipo_gasto: 6, tipo_doc: 'Rec', descricao: '1º Cartório de Notas e Protestos - Reconhecimento de firma e autenticações', valor: 180.0 },
+      { id: 'mod-item-c3', tipo_gasto: 6, tipo_doc: 'Rec', descricao: 'Correios Sedex - Envio de relatórios fiscais e malotes contábeis', valor: 150.0 },
+      { id: 'mod-item-c4', tipo_gasto: 1, tipo_doc: 'NF', descricao: 'Cafeteria & Padaria Central - Coffee break para reunião de prestação de contas', valor: 250.0 },
+    ],
+    created_at: '2026-01-05T08:00:00.000Z',
+  },
+  {
+    id: 'mod-representacao-social',
+    nome: 'Visita Institucional e Representação Social',
+    descricao: 'Modelo para visitas a conselhos municipais, entidades parceiras e encontros institucionais.',
+    linha_gasto: 'ambas',
+    local_partida_padrao: 'Brasília/DF',
+    destino_padrao: 'Goiânia/GO',
+    setor_funcao_padrao: 'Relações Institucionais e Diretoria',
+    objetivo_padrao: 'Reunião com conselhos comunitários, entidades assistenciais parceiras e alinhamento de diretrizes.',
+    valor_adiantamento_sugerido: 1500.0,
+    nome_banco_padrao: 'Banco do Brasil',
+    agencia_padrao: '1820-1',
+    conta_padrao: '45.890-2',
+    tipo_conta_padrao: 'Conta Corrente',
+    chave_pix_padrao: '',
+    diretoria_direta_padrao: 'Presidência / Diretoria Executiva',
+    contabil_financeiro_padrao: 'Setor Contábil / Financeiro ABEAS',
+    itens_padrao: [
+      { id: 'mod-item-r1', tipo_gasto: 2, tipo_doc: 'NF', descricao: 'Auto Posto Alvorada - Abastecimento ida e volta Goiânia/DF - NF 7721', valor: 380.0 },
+      { id: 'mod-item-r2', tipo_gasto: 1, tipo_doc: 'NF', descricao: 'Restaurante Piquiras - Almoço institucional com representação social - NF 3319', valor: 420.0 },
+      { id: 'mod-item-r3', tipo_gasto: 4, tipo_doc: 'NF', descricao: 'Castro\'s Park Hotel - Diária de hospedagem representação - NF 9912', valor: 490.0 },
+      { id: 'mod-item-r4', tipo_gasto: 6, tipo_doc: 'Rec', descricao: 'Pedágios Triunfo Concebra - Trecho Brasília x Goiânia ida e volta', valor: 64.0 },
+    ],
+    created_at: '2026-01-10T08:00:00.000Z',
+  },
+];
+
 // Helper seguro para LocalStorage no Next.js (SSR safe)
 function getLocalStorageItem<T>(key: string, defaultValue: T): T {
   if (typeof window === 'undefined') return defaultValue;
@@ -458,6 +540,9 @@ export const StorageService = {
     if (!window.localStorage.getItem(STORAGE_KEYS.CONFIG)) {
       setLocalStorageItem(STORAGE_KEYS.CONFIG, INITIAL_CONFIG);
     }
+    if (!window.localStorage.getItem(STORAGE_KEYS.MODELOS_DESPESA)) {
+      setLocalStorageItem(STORAGE_KEYS.MODELOS_DESPESA, INITIAL_MODELOS_DESPESA);
+    }
   },
 
   resetToDefault() {
@@ -466,6 +551,7 @@ export const StorageService = {
     setLocalStorageItem(STORAGE_KEYS.EMPRESAS, INITIAL_EMPRESAS);
     setLocalStorageItem(STORAGE_KEYS.DOCUMENTOS, INITIAL_DOCUMENTOS);
     setLocalStorageItem(STORAGE_KEYS.CONFIG, INITIAL_CONFIG);
+    setLocalStorageItem(STORAGE_KEYS.MODELOS_DESPESA, INITIAL_MODELOS_DESPESA);
   },
 
   // --- Usuários ---
@@ -513,6 +599,98 @@ export const StorageService = {
     }
     setLocalStorageItem(STORAGE_KEYS.EMPRESAS, list);
     return empresa;
+  },
+
+  verificarVinculosEmpresa(empresaId: string): {
+    podeExcluirFisicamente: boolean;
+    totalDocumentos: number;
+    totalUsuarios: number;
+    detalhes: string[];
+  } {
+    const docs = this.getDocumentos().filter(
+      (d) => d.empresa_emissora_id === empresaId || d.empresa_destinataria_id === empresaId
+    );
+    const usuarios = this.getUsuarios().filter(
+      (u) => u.empresas_permitidas && u.empresas_permitidas.includes(empresaId)
+    );
+    const detalhes: string[] = [];
+    if (docs.length > 0) {
+      detalhes.push(`${docs.length} documento(s) emitido(s) vinculado(s)`);
+    }
+    if (usuarios.length > 0) {
+      detalhes.push(`${usuarios.length} emissor(es) com permissão autorizada`);
+    }
+    return {
+      podeExcluirFisicamente: docs.length === 0,
+      totalDocumentos: docs.length,
+      totalUsuarios: usuarios.length,
+      detalhes,
+    };
+  },
+
+  excluirEmpresa(id: string): {
+    sucesso: boolean;
+    tipo: 'fisica' | 'logica';
+    mensagem: string;
+  } {
+    const vinculos = this.verificarVinculosEmpresa(id);
+    const empresas = this.getEmpresas();
+    const emp = empresas.find((e) => e.id === id);
+    if (!emp) {
+      return { sucesso: false, tipo: 'fisica', mensagem: 'Empresa não encontrada no cadastro.' };
+    }
+
+    if (!vinculos.podeExcluirFisicamente) {
+      // Exclusão lógica / inativação para proteger rastreabilidade e histórico fiscal
+      const index = empresas.findIndex((e) => e.id === id);
+      if (index >= 0) {
+        empresas[index] = { ...emp, status: 'inativa', excluida_logica: true };
+        setLocalStorageItem(STORAGE_KEYS.EMPRESAS, empresas);
+      }
+      return {
+        sucesso: true,
+        tipo: 'logica',
+        mensagem: `A empresa "${emp.razao_social}" possui ${vinculos.totalDocumentos} documento(s) histórico(s) emitido(s). Para preservar a validade jurídica e contábil, ela foi inativada e removida das seleções de novas emissões.`,
+      };
+    } else {
+      // Exclusão física permitida
+      const novaLista = empresas.filter((e) => e.id !== id);
+      setLocalStorageItem(STORAGE_KEYS.EMPRESAS, novaLista);
+      return {
+        sucesso: true,
+        tipo: 'fisica',
+        mensagem: `A empresa "${emp.razao_social}" foi excluída com sucesso do sistema.`,
+      };
+    }
+  },
+
+  // --- Modelos de Despesa (RDC) ---
+  getModelosDespesa(): ModeloDespesa[] {
+    return getLocalStorageItem<ModeloDespesa[]>(
+      STORAGE_KEYS.MODELOS_DESPESA,
+      INITIAL_MODELOS_DESPESA
+    );
+  },
+
+  getModeloDespesaById(id: string): ModeloDespesa | undefined {
+    return this.getModelosDespesa().find((m) => m.id === id);
+  },
+
+  saveModeloDespesa(modelo: ModeloDespesa): ModeloDespesa {
+    const list = this.getModelosDespesa();
+    const index = list.findIndex((m) => m.id === modelo.id);
+    if (index >= 0) {
+      list[index] = { ...modelo, updated_at: new Date().toISOString() };
+    } else {
+      list.push(modelo);
+    }
+    setLocalStorageItem(STORAGE_KEYS.MODELOS_DESPESA, list);
+    return modelo;
+  },
+
+  deleteModeloDespesa(id: string): void {
+    const list = this.getModelosDespesa().filter((m) => m.id !== id);
+    setLocalStorageItem(STORAGE_KEYS.MODELOS_DESPESA, list);
   },
 
   // --- Documentos ---
