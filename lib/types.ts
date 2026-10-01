@@ -19,11 +19,16 @@ export type TipoEmpresa = 'emissora' | 'destinataria' | 'ambas';
 
 export type StatusEmpresa = 'ativa' | 'inativa';
 
+export type TipoPessoa = 'PJ' | 'PF';
+
 export interface Empresa {
   id: string;
-  razao_social: string;
-  nome_fantasia: string;
-  cnpj: string;
+  tipo_pessoa?: TipoPessoa; // 'PJ' (Pessoa Jurídica) ou 'PF' (Pessoa Física)
+  razao_social: string; // Razão Social se PJ ou Nome Completo se PF
+  nome_fantasia: string; // Nome Fantasia se PJ ou Apelido/Nome Social se PF
+  cnpj: string; // CNPJ (14 dígitos) ou CPF (11 dígitos) com máscara
+  cpf?: string; // CPF espelhado quando tipo_pessoa === 'PF'
+  rg?: string; // RG opcional para PF
   inscricao_estadual?: string;
   inscricao_municipal?: string;
   endereco: string;

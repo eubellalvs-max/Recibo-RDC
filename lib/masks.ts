@@ -40,6 +40,15 @@ export function mascaraTelefone(valor: string): string {
     .replace(/(\d{5})(\d)/, '$1-$2');
 }
 
+export function mascaraCpfOuCnpj(valor: string): string {
+  if (!valor) return '';
+  const clean = valor.replace(/\D/g, '');
+  if (clean.length <= 11) {
+    return mascaraCpf(clean);
+  }
+  return mascaraCnpj(clean);
+}
+
 export function formatarMoeda(valor: number): string {
   return new Intl.NumberFormat('pt-BR', {
     style: 'currency',

@@ -1,11 +1,12 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Empresa, TipoEmpresa, StatusEmpresa, Usuario } from '@/lib/types';
+import { Empresa, TipoEmpresa, StatusEmpresa, Usuario, TipoPessoa } from '@/lib/types';
 import { StorageService } from '@/lib/storage';
-import { mascaraCnpj, mascaraCep, mascaraTelefone, validarCnpj } from '@/lib/masks';
+import { mascaraCnpj, mascaraCpf, mascaraCep, mascaraTelefone, validarCnpj, validarCpf } from '@/lib/masks';
 import {
   Building2,
+  User,
   Plus,
   Search,
   Edit2,
@@ -31,6 +32,7 @@ export function EmpresasManagement({ currentUser, readOnly = false }: EmpresasMa
   const [empresas, setEmpresas] = useState<Empresa[]>(() => StorageService.getEmpresas());
   const [busca, setBusca] = useState('');
   const [filtroTipo, setFiltroTipo] = useState<string>('todos');
+  const [filtroTipoPessoa, setFiltroTipoPessoa] = useState<string>('todos');
   const [filtroStatus, setFiltroStatus] = useState<string>('todos');
 
   // Modal de Criação / Edição
@@ -54,9 +56,11 @@ export function EmpresasManagement({ currentUser, readOnly = false }: EmpresasMa
   } | null>(null);
 
   // Campos do formulário
+  const [tipoPessoa, setTipoPessoa] = useState<TipoPessoa>('PJ');
   const [razaoSocial, setRazaoSocial] = useState('');
   const [nomeFantasia, setNomeFantasia] = useState('');
   const [cnpj, setCnpj] = useState('');
+  const [rg, setRg] = useState('');
   const [inscricaoEstadual, setInscricaoEstadual] = useState('');
   const [inscricaoMunicipal, setInscricaoMunicipal] = useState('');
   const [endereco, setEndereco] = useState('');
@@ -98,9 +102,11 @@ export function EmpresasManagement({ currentUser, readOnly = false }: EmpresasMa
 
   const abrirNovo = () => {
     setEmpresaEditando(null);
+    setTipoPessoa('PJ');
     setRazaoSocial('');
     setNomeFantasia('');
     setCnpj('');
+    setRg('');
     setInscricaoEstadual('');
     setInscricaoMunicipal('');
     setEndereco('');
@@ -121,9 +127,12 @@ export function EmpresasManagement({ currentUser, readOnly = false }: EmpresasMa
 
   const abrirEdicao = (emp: Empresa) => {
     setEmpresaEditando(emp);
+    const isPf = emp.tipo_pessoa === 'PF' || emp.cnpj.replace(/\D/g, '').length === 11;
+    setTipoPessoa(isPf ? 'PF' : 'PJ');
     setRazaoSocial(emp.razao_social);
     setNomeFantasia(emp.nome_fantasia || '');
-    setCnpj(emp.cnpj);
+    setCnpj(isPf ? mascaraCpf(emp.cnpj) : mascaraCnpj(emp.cnpj));
+    setRg(emp.rg || '');
     setInscricaoEstadual(emp.inscricao_estadual || '');
     setInscricaoMunicipal(emp.inscricao_municipal || '');
     setEndereco(emp.endereco);
@@ -146,23 +155,40 @@ export function EmpresasManagement({ currentUser, readOnly = false }: EmpresasMa
     e.preventDefault();
     setErroForm(null);
 
-    if (!razaoSocial.trim()) {
-      setErroForm('A Razão Social é obrigatória.');
-      return;
-    }
+    const docLimpo = cnpj.replace(/\D/g, '');
 
-    const cnpjLimpo = cnpj.replace(/\D/g, '');
-    if (!validarCnpj(cnpjLimpo)) {
-      setErroForm('Informe um CNPJ válido com dígitos verificadores corretos.');
-      return;
-    }
-
-    const cnpjJaExiste = empresas.some(
-      (e) => e.cnpj.replace(/\D/g, '') === cnpjLimpo && (!empresaEditando || e.id !== empresaEditando.id)
-    );
-    if (cnpjJaExiste) {
-      setErroForm(`O CNPJ informado já está cadastrado para outra empresa.`);
-      return;
+    if (tipoPessoa === 'PF') {
+      if (!razaoSocial.trim()) {
+        setErroForm('O Nome Completo da pessoa física é obrigatório.');
+        return;
+      }
+      if (!validarCpf(docLimpo)) {
+        setErroForm('Informe um CPF válido com 11 dígitos e dígitos verificadores corretos.');
+        return;
+      }
+      const docJaExiste = empresas.some(
+        (emp) => emp.cnpj.replace(/\D/g, '') === docLimpo && (!empresaEditando || emp.id !== empresaEditando.id)
+      );
+      if (docJaExiste) {
+        setErroForm('O CPF informado já está cadastrado para outro registro.');
+        return;
+      }
+    } else {
+      if (!razaoSocial.trim()) {
+        setErroForm('A Razão Social da empresa é obrigatória.');
+        return;
+      }
+      if (!validarCnpj(docLimpo)) {
+        setErroForm('Informe um CNPJ válido com 14 dígitos e dígitos verificadores corretos.');
+        return;
+      }
+      const docJaExiste = empresas.some(
+        (emp) => emp.cnpj.replace(/\D/g, '') === docLimpo && (!empresaEditando || emp.id !== empresaEditando.id)
+      );
+      if (docJaExiste) {
+        setErroForm('O CNPJ informado já está cadastrado para outra empresa.');
+        return;
+      }
     }
 
     if (!endereco.trim() || !numero.trim() || !cidade.trim() || !uf.trim()) {
@@ -172,9 +198,12 @@ export function EmpresasManagement({ currentUser, readOnly = false }: EmpresasMa
 
     const novaEmpresa: Empresa = {
       id: empresaEditando ? empresaEditando.id : `emp-${Date.now()}`,
+      tipo_pessoa: tipoPessoa,
       razao_social: razaoSocial.trim(),
       nome_fantasia: nomeFantasia.trim() || razaoSocial.trim(),
-      cnpj: mascaraCnpj(cnpj),
+      cnpj: tipoPessoa === 'PF' ? mascaraCpf(cnpj) : mascaraCnpj(cnpj),
+      cpf: tipoPessoa === 'PF' ? mascaraCpf(cnpj) : undefined,
+      rg: tipoPessoa === 'PF' ? rg.trim() || undefined : undefined,
       inscricao_estadual: inscricaoEstadual.trim() || undefined,
       inscricao_municipal: inscricaoMunicipal.trim() || undefined,
       endereco: endereco.trim(),
@@ -197,7 +226,7 @@ export function EmpresasManagement({ currentUser, readOnly = false }: EmpresasMa
     setModalAberto(false);
     setFeedback({
       tipo: 'sucesso',
-      mensagem: `Empresa "${novaEmpresa.razao_social}" salva com sucesso!`,
+      mensagem: `${tipoPessoa === 'PF' ? 'Pessoa Física' : 'Empresa'} "${novaEmpresa.razao_social}" salva com sucesso!`,
     });
     setTimeout(() => setFeedback(null), 5000);
   };
@@ -236,6 +265,9 @@ export function EmpresasManagement({ currentUser, readOnly = false }: EmpresasMa
 
   // Filtragem (ocultando empresas excluídas logicamente a menos que busquem pelo status)
   const empresasFiltradas = empresas.filter((emp) => {
+    const isPf = emp.tipo_pessoa === 'PF' || emp.cnpj.replace(/\D/g, '').length === 11;
+    if (filtroTipoPessoa === 'PJ' && isPf) return false;
+    if (filtroTipoPessoa === 'PF' && !isPf) return false;
     if (filtroTipo !== 'todos' && emp.tipo !== filtroTipo && emp.tipo !== 'ambas') {
       return false;
     }
@@ -247,8 +279,9 @@ export function EmpresasManagement({ currentUser, readOnly = false }: EmpresasMa
       const razao = emp.razao_social.toLowerCase().includes(q);
       const fantasia = emp.nome_fantasia?.toLowerCase().includes(q) || false;
       const cnpjMatch = emp.cnpj.includes(q);
+      const cpfMatch = emp.cpf ? emp.cpf.includes(q) : false;
       const cidadeMatch = emp.cidade.toLowerCase().includes(q);
-      return razao || fantasia || cnpjMatch || cidadeMatch;
+      return razao || fantasia || cnpjMatch || cpfMatch || cidadeMatch;
     }
     return true;
   });
@@ -259,12 +292,12 @@ export function EmpresasManagement({ currentUser, readOnly = false }: EmpresasMa
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
         <div>
           <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
-            {readOnly ? 'Consulta de Empresas' : 'Cadastro de Empresas'}
+            {readOnly ? 'Consulta de Empresas e Pessoas Físicas' : 'Cadastro de Empresas e Pessoas Físicas'}
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             {readOnly
-              ? 'Consulte as empresas autorizadas para emissão e cobrança de documentos'
-              : 'Gerencie as empresas emissoras e destinatárias disponíveis no sistema'}
+              ? 'Consulte as pessoas jurídicas (CNPJ) e pessoas físicas (CPF) autorizadas para emissão e cobrança'
+              : 'Gerencie as entidades emissoras e destinatárias (PJ com CNPJ ou PF com CPF) disponíveis no sistema'}
           </p>
         </div>
 
@@ -274,7 +307,7 @@ export function EmpresasManagement({ currentUser, readOnly = false }: EmpresasMa
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 dark:bg-emerald-600 dark:hover:bg-emerald-500 rounded-lg shadow-2xs transition-colors"
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>Cadastrar Empresa</span>
+            <span>Cadastrar Empresa / PF</span>
           </button>
         )}
       </div>
@@ -311,10 +344,10 @@ export function EmpresasManagement({ currentUser, readOnly = false }: EmpresasMa
 
       {/* Barra de Filtros */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-2xs space-y-3 transition-colors">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
           <div className="md:col-span-2">
-            <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">
-              Buscar empresa
+            <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              Buscar registro
             </label>
             <div className="relative">
               <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400 dark:text-slate-500" />
@@ -322,30 +355,45 @@ export function EmpresasManagement({ currentUser, readOnly = false }: EmpresasMa
                 type="text"
                 value={busca}
                 onChange={(e) => setBusca(e.target.value)}
-                placeholder="Razão social, nome fantasia, CNPJ ou cidade..."
+                placeholder="Razão social, nome, CNPJ, CPF ou cidade..."
                 className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-750 focus:border-slate-800 dark:focus:border-slate-600 outline-none"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">
-              Tipo de Empresa
+            <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              Tipo de Pessoa
+            </label>
+            <select
+              value={filtroTipoPessoa}
+              onChange={(e) => setFiltroTipoPessoa(e.target.value)}
+              className="w-full px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-750 focus:border-slate-800 dark:focus:border-slate-600 outline-none"
+            >
+              <option value="todos">Todos (PJ e PF)</option>
+              <option value="PJ">Pessoa Jurídica (CNPJ)</option>
+              <option value="PF">Pessoa Física (CPF)</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              Classificação
             </label>
             <select
               value={filtroTipo}
               onChange={(e) => setFiltroTipo(e.target.value)}
               className="w-full px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-750 focus:border-slate-800 dark:focus:border-slate-600 outline-none"
             >
-              <option value="todos">Todos os tipos</option>
+              <option value="todos">Todas as funções</option>
               <option value="emissora">Emissora (Quem recebe)</option>
               <option value="destinataria">Destinatária (Quem paga)</option>
-              <option value="ambas">Ambas</option>
+              <option value="ambas">Ambas as funções</option>
             </select>
           </div>
 
           <div>
-            <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">
+            <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
               Status
             </label>
             <select
@@ -361,12 +409,13 @@ export function EmpresasManagement({ currentUser, readOnly = false }: EmpresasMa
         </div>
 
         <div className="text-xs text-slate-500 dark:text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-          <span>{empresasFiltradas.length} empresa(s) encontrada(s)</span>
-          {(busca || filtroTipo !== 'todos' || filtroStatus !== 'todos') && (
+          <span>{empresasFiltradas.length} registro(s) encontrado(s)</span>
+          {(busca || filtroTipo !== 'todos' || filtroTipoPessoa !== 'todos' || filtroStatus !== 'todos') && (
             <button
               onClick={() => {
                 setBusca('');
                 setFiltroTipo('todos');
+                setFiltroTipoPessoa('todos');
                 setFiltroStatus('todos');
               }}
               className="text-slate-700 dark:text-slate-300 hover:underline font-medium"
@@ -381,15 +430,15 @@ export function EmpresasManagement({ currentUser, readOnly = false }: EmpresasMa
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-2xs transition-colors">
         {empresasFiltradas.length === 0 ? (
           <div className="p-12 text-center text-xs text-slate-500 dark:text-slate-400">
-            Nenhuma empresa encontrada com os critérios pesquisados.
+            Nenhum registro encontrado com os critérios pesquisados.
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 font-semibold">
+              <thead className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 font-semibold">
                 <tr>
-                  <th className="px-4 py-3">Razão Social / Nome Fantasia</th>
-                  <th className="px-4 py-3">CNPJ</th>
+                  <th className="px-4 py-3">Razão Social / Nome Completo</th>
+                  <th className="px-4 py-3">Documento (CNPJ / CPF)</th>
                   <th className="px-4 py-3">Cidade / UF</th>
                   <th className="px-4 py-3">Tipo</th>
                   <th className="px-4 py-3 text-center">Status</th>
@@ -399,6 +448,8 @@ export function EmpresasManagement({ currentUser, readOnly = false }: EmpresasMa
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {empresasFiltradas.map((emp) => {
                   const isAtiva = emp.status === 'ativa';
+                  const isPf = emp.tipo_pessoa === 'PF' || emp.cnpj.replace(/\D/g, '').length === 11;
+
                   return (
                     <tr
                       key={emp.id}
@@ -416,25 +467,50 @@ export function EmpresasManagement({ currentUser, readOnly = false }: EmpresasMa
                             />
                           ) : (
                             <div className="w-8 h-8 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-400 shrink-0">
-                              <Building2 className="w-4 h-4" />
+                              {isPf ? (
+                                <User className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                              ) : (
+                                <Building2 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                              )}
                             </div>
                           )}
                           <div className="min-w-0">
-                            <div className="font-semibold text-slate-900 dark:text-slate-100 truncate">
-                              {emp.razao_social}
+                            <div className="flex items-center gap-1.5">
+                              <span
+                                className={`text-[10px] font-bold px-1.5 py-0.2 rounded shrink-0 ${
+                                  isPf
+                                    ? 'bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300'
+                                    : 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300'
+                                }`}
+                              >
+                                {isPf ? 'PF' : 'PJ'}
+                              </span>
+                              <span className="font-semibold text-slate-900 dark:text-white truncate">
+                                {emp.razao_social}
+                              </span>
                             </div>
-                            {emp.nome_fantasia && (
-                              <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                            {emp.nome_fantasia && emp.nome_fantasia !== emp.razao_social && (
+                              <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                                {isPf ? 'Apelido/Nome Social: ' : 'Fantasia: '}
                                 {emp.nome_fantasia}
                               </div>
                             )}
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-3 font-mono text-slate-700 dark:text-slate-300 whitespace-nowrap">
-                        {emp.cnpj}
+                      <td className="px-4 py-3 font-mono text-slate-800 dark:text-slate-200 whitespace-nowrap">
+                        <div className="flex flex-col">
+                          <span className="font-medium">
+                            {isPf ? mascaraCpf(emp.cnpj) : mascaraCnpj(emp.cnpj)}
+                          </span>
+                          {isPf && emp.rg && (
+                            <span className="text-[10px] text-slate-400 dark:text-slate-500 font-sans">
+                              RG: {emp.rg}
+                            </span>
+                          )}
+                        </div>
                       </td>
-                      <td className="px-4 py-3 text-slate-600 dark:text-slate-400 whitespace-nowrap">
+                      <td className="px-4 py-3 text-slate-700 dark:text-slate-300 whitespace-nowrap">
                         {emp.cidade}/{emp.uf}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
@@ -596,9 +672,17 @@ export function EmpresasManagement({ currentUser, readOnly = false }: EmpresasMa
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl max-w-2xl w-full my-8 overflow-hidden transition-colors">
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-850">
               <div className="flex items-center gap-2">
-                <Building2 className="w-5 h-5 text-slate-700 dark:text-slate-300" />
+                {tipoPessoa === 'PF' ? (
+                  <User className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                ) : (
+                  <Building2 className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                )}
                 <h2 className="text-sm font-bold text-slate-900 dark:text-white">
-                  {empresaEditando ? 'EDITAR EMPRESA' : 'CADASTRO DE EMPRESA'}
+                  {empresaEditando
+                    ? tipoPessoa === 'PF'
+                      ? 'EDITAR PESSOA FÍSICA'
+                      : 'EDITAR EMPRESA'
+                    : 'CADASTRO DE EMPRESA / PESSOA FÍSICA'}
                 </h2>
               </div>
               <button
@@ -617,74 +701,134 @@ export function EmpresasManagement({ currentUser, readOnly = false }: EmpresasMa
                 </div>
               )}
 
-              {/* Razão Social e Nome Fantasia */}
+              {/* Seletor Tipo de Pessoa: PJ ou PF */}
+              <div className="p-1 bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center gap-1.5 border border-slate-200 dark:border-slate-700">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTipoPessoa('PJ');
+                    if (cnpj) setCnpj(mascaraCnpj(cnpj));
+                  }}
+                  className={`flex-1 py-2 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
+                    tipoPessoa === 'PJ'
+                      ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-300 shadow-xs'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  <Building2 className="w-4 h-4" />
+                  <span>Pessoa Jurídica (CNPJ)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTipoPessoa('PF');
+                    if (cnpj) setCnpj(mascaraCpf(cnpj));
+                  }}
+                  className={`flex-1 py-2 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
+                    tipoPessoa === 'PF'
+                      ? 'bg-white dark:bg-slate-700 text-purple-600 dark:text-purple-300 shadow-xs'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  <User className="w-4 h-4" />
+                  <span>Pessoa Física (CPF)</span>
+                </button>
+              </div>
+
+              {/* Nome Principal e Nome Secundário */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Razão Social *
+                    {tipoPessoa === 'PF' ? 'Nome Completo do Titular *' : 'Razão Social *'}
                   </label>
                   <input
                     type="text"
                     required
                     value={razaoSocial}
                     onChange={(e) => setRazaoSocial(e.target.value)}
-                    placeholder="Ex: Exemplo Serviços Empresariais Ltda"
+                    placeholder={
+                      tipoPessoa === 'PF'
+                        ? 'Ex: João Carlos da Silva'
+                        : 'Ex: Exemplo Serviços Empresariais Ltda'
+                    }
                     className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-750 focus:border-slate-800 dark:focus:border-slate-600 outline-none"
                   />
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Nome Fantasia
+                    {tipoPessoa === 'PF' ? 'Apelido / Nome Usual (Opcional)' : 'Nome Fantasia'}
                   </label>
                   <input
                     type="text"
                     value={nomeFantasia}
                     onChange={(e) => setNomeFantasia(e.target.value)}
-                    placeholder="Ex: Exemplo Serviços"
+                    placeholder={
+                      tipoPessoa === 'PF'
+                        ? 'Ex: Dr. João Silva ou Consultor João'
+                        : 'Ex: Exemplo Serviços'
+                    }
                     className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-750 focus:border-slate-800 dark:focus:border-slate-600 outline-none"
                   />
                 </div>
               </div>
 
-              {/* CNPJ, Inscrição Estadual e Municipal */}
+              {/* Documento (CNPJ/CPF), Inscrições/RG */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    CNPJ *
+                    {tipoPessoa === 'PF' ? 'CPF *' : 'CNPJ *'}
                   </label>
                   <input
                     type="text"
                     required
                     value={cnpj}
-                    onChange={(e) => setCnpj(mascaraCnpj(e.target.value))}
-                    placeholder="00.000.000/0000-00"
+                    onChange={(e) =>
+                      setCnpj(
+                        tipoPessoa === 'PF'
+                          ? mascaraCpf(e.target.value)
+                          : mascaraCnpj(e.target.value)
+                      )
+                    }
+                    placeholder={tipoPessoa === 'PF' ? '000.000.000-00' : '00.000.000/0000-00'}
                     className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-750 focus:border-slate-800 dark:focus:border-slate-600 outline-none font-mono"
                   />
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Inscrição Estadual
+                    {tipoPessoa === 'PF' ? 'RG (Opcional)' : 'Inscrição Estadual'}
                   </label>
                   <input
                     type="text"
-                    value={inscricaoEstadual}
-                    onChange={(e) => setInscricaoEstadual(e.target.value)}
-                    placeholder="Ex: ISENTO ou 112.334..."
+                    value={tipoPessoa === 'PF' ? rg : inscricaoEstadual}
+                    onChange={(e) =>
+                      tipoPessoa === 'PF'
+                        ? setRg(e.target.value)
+                        : setInscricaoEstadual(e.target.value)
+                    }
+                    placeholder={
+                      tipoPessoa === 'PF'
+                        ? 'Ex: SSP/DF 1.234.567'
+                        : 'Ex: ISENTO ou 112.334...'
+                    }
                     className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-750 focus:border-slate-800 dark:focus:border-slate-600 outline-none"
                   />
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Inscrição Municipal
+                    {tipoPessoa === 'PF' ? 'Registro / PIS (Opcional)' : 'Inscrição Municipal'}
                   </label>
                   <input
                     type="text"
                     value={inscricaoMunicipal}
                     onChange={(e) => setInscricaoMunicipal(e.target.value)}
-                    placeholder="Ex: 123.456-7"
+                    placeholder={
+                      tipoPessoa === 'PF'
+                        ? 'Ex: CRM, CRC, PIS...'
+                        : 'Ex: 123.456-7'
+                    }
                     className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-750 focus:border-slate-800 dark:focus:border-slate-600 outline-none"
                   />
                 </div>

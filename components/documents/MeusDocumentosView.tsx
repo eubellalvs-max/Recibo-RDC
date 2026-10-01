@@ -231,7 +231,7 @@ export function MeusDocumentosView({
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 font-semibold">
+              <thead className="bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 font-bold">
                 <tr>
                   <th className="px-4 py-3">Nº Documento</th>
                   <th className="px-4 py-3">Tipo</th>
@@ -251,26 +251,26 @@ export function MeusDocumentosView({
                   return (
                     <tr
                       key={doc.id}
-                      className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors ${
+                      className={`hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors ${
                         isCancelado ? 'opacity-60 bg-slate-50/50 dark:bg-slate-800/20' : ''
                       }`}
                     >
-                      <td className="px-4 py-3 font-mono font-semibold text-slate-900 dark:text-slate-100 whitespace-nowrap">
+                      <td className="px-4 py-3 font-mono font-bold text-slate-950 dark:text-white whitespace-nowrap">
                         {doc.numero}
                         {doc.competencia && (
-                          <div className="text-[10px] text-slate-500 dark:text-slate-400 font-sans font-normal">
+                          <div className="text-[10px] text-slate-600 dark:text-slate-300 font-sans font-medium">
                             Comp: {doc.competencia}
                           </div>
                         )}
                       </td>
                       <td className="px-4 py-3">
                         <span
-                          className={`text-[11px] font-semibold ${
+                          className={`text-[11px] font-bold ${
                             doc.tipo === 'recibo_medico'
-                              ? 'text-teal-700 bg-teal-50 dark:text-teal-300 dark:bg-teal-950/60 px-2 py-0.5 rounded'
+                              ? 'text-teal-800 bg-teal-100 dark:text-teal-200 dark:bg-teal-950/80 px-2 py-0.5 rounded'
                               : isRecibo
-                              ? 'text-emerald-700 bg-emerald-50 dark:text-emerald-300 dark:bg-emerald-950/60 px-2 py-0.5 rounded'
-                              : 'text-blue-700 bg-blue-50 dark:text-blue-300 dark:bg-blue-950/60 px-2 py-0.5 rounded'
+                              ? 'text-emerald-800 bg-emerald-100 dark:text-emerald-200 dark:bg-emerald-950/80 px-2 py-0.5 rounded'
+                              : 'text-blue-800 bg-blue-100 dark:text-blue-200 dark:bg-blue-950/80 px-2 py-0.5 rounded'
                           }`}
                         >
                           {doc.tipo === 'recibo_medico'
@@ -280,27 +280,27 @@ export function MeusDocumentosView({
                             : 'RDC'}
                         </span>
                       </td>
-                      <td className="px-4 py-3 font-medium text-slate-800 dark:text-slate-200 max-w-[200px] truncate">
+                      <td className="px-4 py-3 font-semibold text-slate-900 dark:text-slate-100 max-w-[200px] truncate">
                         {doc.recibo_medico_detalhes?.pagador_nome ||
                           getNomeEmpresa(doc.empresa_destinataria_id)}
                       </td>
-                      <td className="px-4 py-3 text-slate-600 dark:text-slate-400 max-w-[180px] truncate">
+                      <td className="px-4 py-3 text-slate-700 dark:text-slate-200 font-medium max-w-[180px] truncate">
                         {doc.recibo_medico_detalhes
                           ? 'ABEAS - Assistência Social'
                           : getNomeEmpresa(doc.empresa_emissora_id)}
                       </td>
-                      <td className="px-4 py-3 text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                      <td className="px-4 py-3 text-slate-700 dark:text-slate-200 font-medium whitespace-nowrap">
                         {formatarDataBr(doc.data_emissao)}
                       </td>
-                      <td className="px-4 py-3 text-right font-semibold text-slate-900 dark:text-slate-100 tabular-nums whitespace-nowrap">
+                      <td className="px-4 py-3 text-right font-black text-slate-950 dark:text-white tabular-nums whitespace-nowrap">
                         {formatarMoeda(doc.valor)}
                       </td>
                       <td className="px-4 py-3 text-center">
                         <span
-                          className={`text-[10px] font-medium px-2 py-0.5 rounded ${
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded ${
                             isCancelado
-                              ? 'bg-red-50 dark:bg-red-950/50 text-red-700 dark:text-red-300'
-                              : 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300'
+                              ? 'bg-red-100 dark:bg-red-950/70 text-red-800 dark:text-red-300'
+                              : 'bg-emerald-100 dark:bg-emerald-950/70 text-emerald-800 dark:text-emerald-300'
                           }`}
                         >
                           {isCancelado ? 'Cancelado' : 'Emitido'}
@@ -310,14 +310,14 @@ export function MeusDocumentosView({
                         <div className="flex items-center justify-center gap-1.5">
                           <button
                             onClick={() => onVisualizarDocumento(doc)}
-                            className="p-1 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors"
+                            className="p-1.5 text-slate-600 dark:text-slate-300 hover:text-black dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-colors"
                             title="Visualizar documento"
                           >
                             <Eye className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => onVisualizarDocumento(doc)}
-                            className="p-1 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors"
+                            className="p-1.5 text-slate-600 dark:text-slate-300 hover:text-black dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-colors"
                             title="Imprimir / PDF"
                           >
                             <Printer className="w-4 h-4" />

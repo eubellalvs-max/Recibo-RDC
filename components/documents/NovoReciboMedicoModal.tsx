@@ -416,13 +416,13 @@ export function NovoReciboMedicoModal({
               </div>
 
               {/* 2. DADOS DO RECIBO */}
-              <div className="border border-slate-200 rounded-xl p-4 space-y-4 bg-white">
-                <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-                  <div className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-blue-600" />
+              <div className="border border-slate-200 dark:border-slate-700 rounded-xl p-4 space-y-4 bg-white dark:bg-slate-850">
+                <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-750">
+                  <div className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                     <span>2. Dados do Recibo</span>
                   </div>
-                  <div className="text-[11px] text-slate-400">
+                  <div className="text-[11px] text-slate-600 dark:text-slate-300 font-medium">
                     Sequência automática e cálculo por extenso
                   </div>
                 </div>
@@ -430,24 +430,24 @@ export function NovoReciboMedicoModal({
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   {/* Número Automático */}
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    <label className="block text-xs font-bold text-slate-900 dark:text-white mb-1">
                       Recibo nº: (Automático)
                     </label>
-                    <div className="px-3 py-2 bg-slate-100 border border-slate-200 rounded-lg text-xs font-mono font-bold text-slate-800">
+                    <div className="px-3 py-2 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-xs font-mono font-bold text-slate-950 dark:text-white">
                       {numeroReciboAuto || 'Gerando...'}
                     </div>
-                    <span className="text-[10px] text-slate-400 mt-1 block">
+                    <span className="text-[10px] text-slate-600 dark:text-slate-300 font-medium mt-1 block">
                       Gravado sequencialmente no sistema
                     </span>
                   </div>
 
                   {/* Valor Manual */}
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    <label className="block text-xs font-bold text-slate-900 dark:text-white mb-1">
                       Valor: R$ (Manual) *
                     </label>
                     <div className="relative">
-                      <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-xs font-semibold text-slate-500">
+                      <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-xs font-black text-slate-800 dark:text-slate-200">
                         R$
                       </span>
                       <input
@@ -456,35 +456,35 @@ export function NovoReciboMedicoModal({
                         value={valorStr}
                         onChange={(e) => setValorStr(e.target.value)}
                         placeholder="350,00"
-                        className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg font-bold text-slate-900 focus:bg-white focus:border-slate-800 outline-none"
+                        className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg font-bold text-slate-950 dark:text-white focus:bg-white dark:focus:bg-slate-750 focus:border-slate-900 dark:focus:border-emerald-400 outline-none"
                       />
                     </div>
                   </div>
 
                   {/* Data de Emissão */}
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    <label className="block text-xs font-bold text-slate-900 dark:text-white mb-1">
                       Data de Emissão (Automática)
                     </label>
                     <input
                       type="date"
                       value={dataEmissao}
                       onChange={(e) => setDataEmissao(e.target.value)}
-                      className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none"
+                      className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-950 dark:text-white font-medium focus:bg-white dark:focus:bg-slate-750 focus:border-slate-900 dark:focus:border-emerald-400 outline-none"
                     />
                   </div>
                 </div>
 
                 {/* Exibição em tempo real do Extenso */}
-                <div className="p-3 bg-blue-50/70 border border-blue-200/80 rounded-lg text-xs flex items-start gap-2">
-                  <span className="font-bold text-blue-900 shrink-0">Valor por extenso:</span>
-                  <span className="text-blue-800 italic">{valorExtenso}</span>
+                <div className="p-3 bg-blue-50/70 dark:bg-blue-950/50 border border-blue-200/80 dark:border-blue-900/60 rounded-lg text-xs flex items-start gap-2">
+                  <span className="font-bold text-blue-900 dark:text-blue-300 shrink-0">Valor por extenso:</span>
+                  <span className="text-blue-950 dark:text-blue-100 font-semibold italic">{valorExtenso}</span>
                 </div>
 
                 {/* Localidade padrão */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    <label className="block text-xs font-bold text-slate-900 dark:text-white mb-1">
                       Cidade
                     </label>
                     <input
@@ -492,11 +492,11 @@ export function NovoReciboMedicoModal({
                       value={cidade}
                       onChange={(e) => setCidade(e.target.value)}
                       placeholder="Itapuranga"
-                      className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none"
+                      className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-950 dark:text-white font-medium focus:bg-white dark:focus:bg-slate-750 focus:border-slate-900 dark:focus:border-emerald-400 outline-none"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    <label className="block text-xs font-bold text-slate-900 dark:text-white mb-1">
                       Estado (UF)
                     </label>
                     <input
@@ -505,25 +505,25 @@ export function NovoReciboMedicoModal({
                       value={uf}
                       onChange={(e) => setUf(e.target.value.toUpperCase())}
                       placeholder="GO"
-                      className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none uppercase font-mono"
+                      className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-950 dark:text-white font-bold focus:bg-white dark:focus:bg-slate-750 focus:border-slate-900 dark:focus:border-emerald-400 outline-none uppercase font-mono"
                     />
                   </div>
                 </div>
               </div>
 
               {/* 3. DADOS DO PAGADOR */}
-              <div className="border border-slate-200 rounded-xl p-4 space-y-4 bg-white">
-                <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-                  <div className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
-                    <User className="w-4 h-4 text-emerald-600" />
+              <div className="border border-slate-200 dark:border-slate-700 rounded-xl p-4 space-y-4 bg-white dark:bg-slate-850">
+                <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-750">
+                  <div className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                    <User className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                     <span>3. Dados do Pagador</span>
                   </div>
-                  <span className="text-[11px] text-slate-400">Pessoa física ou jurídica pagadora</span>
+                  <span className="text-[11px] text-slate-600 dark:text-slate-300 font-medium">Pessoa física ou jurídica pagadora</span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    <label className="block text-xs font-bold text-slate-900 dark:text-white mb-1">
                       Nome / Razão Social *
                     </label>
                     <input
@@ -532,12 +532,12 @@ export function NovoReciboMedicoModal({
                       value={pagadorNome}
                       onChange={(e) => setPagadorNome(e.target.value)}
                       placeholder="Ex: Mariana de Souza Silva"
-                      className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none"
+                      className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-950 dark:text-white font-medium focus:bg-white dark:focus:bg-slate-750 focus:border-slate-900 dark:focus:border-emerald-400 outline-none"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    <label className="block text-xs font-bold text-slate-900 dark:text-white mb-1">
                       CPF / CNPJ *
                     </label>
                     <input
@@ -546,14 +546,14 @@ export function NovoReciboMedicoModal({
                       value={pagadorDocumento}
                       onChange={handlePagadorDocChange}
                       placeholder="000.000.000-00 ou 00.000.000/0000-00"
-                      className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none font-mono"
+                      className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-950 dark:text-white font-bold focus:bg-white dark:focus:bg-slate-750 focus:border-slate-900 dark:focus:border-emerald-400 outline-none font-mono"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    <label className="block text-xs font-bold text-slate-900 dark:text-white mb-1">
                       Telefone
                     </label>
                     <input
@@ -561,12 +561,12 @@ export function NovoReciboMedicoModal({
                       value={pagadorTelefone}
                       onChange={(e) => setPagadorTelefone(mascaraTelefone(e.target.value))}
                       placeholder="(62) 99999-0000"
-                      className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none font-mono"
+                      className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-950 dark:text-white font-bold focus:bg-white dark:focus:bg-slate-750 focus:border-slate-900 dark:focus:border-emerald-400 outline-none font-mono"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    <label className="block text-xs font-bold text-slate-900 dark:text-white mb-1">
                       Endereço
                     </label>
                     <input
@@ -574,24 +574,24 @@ export function NovoReciboMedicoModal({
                       value={pagadorEndereco}
                       onChange={(e) => setPagadorEndereco(e.target.value)}
                       placeholder="Ex: Av. Bernardo Sayão, 450 - Centro"
-                      className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none"
+                      className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-950 dark:text-white font-medium focus:bg-white dark:focus:bg-slate-750 focus:border-slate-900 dark:focus:border-emerald-400 outline-none"
                     />
                   </div>
                 </div>
               </div>
 
               {/* 4. DADOS DO PACIENTE */}
-              <div className="border border-slate-200 rounded-xl p-4 space-y-4 bg-white">
-                <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-                  <div className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
-                    <User className="w-4 h-4 text-blue-600" />
+              <div className="border border-slate-200 dark:border-slate-700 rounded-xl p-4 space-y-4 bg-white dark:bg-slate-850">
+                <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-750">
+                  <div className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                    <User className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                     <span>4. Dados do Paciente</span>
                   </div>
 
                   <button
                     type="button"
                     onClick={handleCopiarPagadorParaPaciente}
-                    className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-colors"
+                    className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950 hover:bg-blue-100 dark:hover:bg-blue-900 border border-blue-200 dark:border-blue-800 rounded-lg transition-colors"
                     title="Preencher com os mesmos dados do Pagador"
                   >
                     <Copy className="w-3 h-3" />
@@ -601,7 +601,7 @@ export function NovoReciboMedicoModal({
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    <label className="block text-xs font-bold text-slate-900 dark:text-white mb-1">
                       Nome do Paciente *
                     </label>
                     <input
@@ -610,12 +610,12 @@ export function NovoReciboMedicoModal({
                       value={pacienteNome}
                       onChange={(e) => setPacienteNome(e.target.value)}
                       placeholder="Ex: Mariana de Souza Silva"
-                      className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none"
+                      className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-950 dark:text-white font-medium focus:bg-white dark:focus:bg-slate-750 focus:border-slate-900 dark:focus:border-emerald-400 outline-none"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    <label className="block text-xs font-bold text-slate-900 dark:text-white mb-1">
                       CPF do Paciente *
                     </label>
                     <input
@@ -624,14 +624,14 @@ export function NovoReciboMedicoModal({
                       value={pacienteCpf}
                       onChange={handlePacienteCpfChange}
                       placeholder="000.000.000-00"
-                      className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none font-mono"
+                      className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-950 dark:text-white font-bold focus:bg-white dark:focus:bg-slate-750 focus:border-slate-900 dark:focus:border-emerald-400 outline-none font-mono"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    <label className="block text-xs font-bold text-slate-900 dark:text-white mb-1">
                       Telefone do Paciente
                     </label>
                     <input
@@ -639,12 +639,12 @@ export function NovoReciboMedicoModal({
                       value={pacienteTelefone}
                       onChange={(e) => setPacienteTelefone(mascaraTelefone(e.target.value))}
                       placeholder="(62) 99999-0000"
-                      className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none font-mono"
+                      className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-950 dark:text-white font-bold focus:bg-white dark:focus:bg-slate-750 focus:border-slate-900 dark:focus:border-emerald-400 outline-none font-mono"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    <label className="block text-xs font-bold text-slate-900 dark:text-white mb-1">
                       Endereço do Paciente
                     </label>
                     <input
@@ -652,25 +652,25 @@ export function NovoReciboMedicoModal({
                       value={pacienteEndereco}
                       onChange={(e) => setPacienteEndereco(e.target.value)}
                       placeholder="Ex: Av. Bernardo Sayão, 450 - Centro"
-                      className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none"
+                      className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-950 dark:text-white font-medium focus:bg-white dark:focus:bg-slate-750 focus:border-slate-900 dark:focus:border-emerald-400 outline-none"
                     />
                   </div>
                 </div>
               </div>
 
               {/* 5. DETALHES DO ATENDIMENTO */}
-              <div className="border border-slate-200 rounded-xl p-4 space-y-4 bg-white">
-                <div className="pb-2 border-b border-slate-100 text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
-                  <CreditCard className="w-4 h-4 text-emerald-600" />
+              <div className="border border-slate-200 dark:border-slate-700 rounded-xl p-4 space-y-4 bg-white dark:bg-slate-855">
+                <div className="pb-2 border-b border-slate-100 dark:border-slate-750 text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                  <CreditCard className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                   <span>5. Detalhes do Atendimento</span>
                 </div>
 
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <label className="block text-xs font-semibold text-slate-700">
+                    <label className="block text-xs font-bold text-slate-900 dark:text-white">
                       Serviço prestado *
                     </label>
-                    <span className="text-[10px] text-slate-400">Sugestões rápidas abaixo</span>
+                    <span className="text-[10px] text-slate-600 dark:text-slate-300 font-medium">Sugestões rápidas abaixo</span>
                   </div>
                   <input
                     type="text"
@@ -678,7 +678,7 @@ export function NovoReciboMedicoModal({
                     value={servicoPrestado}
                     onChange={(e) => setServicoPrestado(e.target.value)}
                     placeholder="Ex: Consulta médica em ginecologia"
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none"
+                    className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-950 dark:text-white font-medium focus:bg-white dark:focus:bg-slate-750 focus:border-slate-900 dark:focus:border-emerald-400 outline-none"
                   />
                   <div className="flex flex-wrap gap-1.5 mt-2">
                     {servicosSugeridos.map((sugestao) => (
@@ -688,8 +688,8 @@ export function NovoReciboMedicoModal({
                         onClick={() => setServicoPrestado(sugestao)}
                         className={`text-[10px] px-2 py-0.5 rounded border transition-colors ${
                           servicoPrestado === sugestao
-                            ? 'bg-slate-900 text-white border-slate-900'
-                            : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                            ? 'bg-slate-900 text-white border-slate-900 dark:bg-emerald-600 dark:border-emerald-600 font-bold'
+                            : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-750 font-medium'
                         }`}
                       >
                         {sugestao}
@@ -700,7 +700,7 @@ export function NovoReciboMedicoModal({
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    <label className="block text-xs font-bold text-slate-900 dark:text-white mb-1">
                       Médico(a) assistente *
                     </label>
                     <input
@@ -709,12 +709,12 @@ export function NovoReciboMedicoModal({
                       value={medicoAssistente}
                       onChange={(e) => setMedicoAssistente(e.target.value)}
                       placeholder="Ex: Dr(a). Morena Ciclano de Tal"
-                      className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none"
+                      className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-950 dark:text-white font-medium focus:bg-white dark:focus:bg-slate-750 focus:border-slate-900 dark:focus:border-emerald-400 outline-none"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    <label className="block text-xs font-bold text-slate-900 dark:text-white mb-1">
                       CRM *
                     </label>
                     <input
@@ -723,14 +723,14 @@ export function NovoReciboMedicoModal({
                       value={crm}
                       onChange={(e) => setCrm(e.target.value)}
                       placeholder="Ex: 0000/GO"
-                      className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none font-mono"
+                      className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-950 dark:text-white font-bold focus:bg-white dark:focus:bg-slate-750 focus:border-slate-900 dark:focus:border-emerald-400 outline-none font-mono"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    <label className="block text-xs font-bold text-slate-900 dark:text-white mb-1">
                       Data do atendimento *
                     </label>
                     <input
@@ -738,12 +738,12 @@ export function NovoReciboMedicoModal({
                       required
                       value={dataAtendimento}
                       onChange={(e) => setDataAtendimento(e.target.value)}
-                      className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none"
+                      className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-950 dark:text-white font-medium focus:bg-white dark:focus:bg-slate-750 focus:border-slate-900 dark:focus:border-emerald-400 outline-none"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    <label className="block text-xs font-bold text-slate-900 dark:text-white mb-1">
                       Forma de pagamento *
                     </label>
                     <input
@@ -752,7 +752,7 @@ export function NovoReciboMedicoModal({
                       value={formaPagamento}
                       onChange={(e) => setFormaPagamento(e.target.value)}
                       placeholder="Ex: Pix, Dinheiro, Cartão..."
-                      className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none"
+                      className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-950 dark:text-white font-medium focus:bg-white dark:focus:bg-slate-750 focus:border-slate-900 dark:focus:border-emerald-400 outline-none"
                     />
                     <div className="flex flex-wrap gap-1 mt-1.5">
                       {formasPagamentoSugeridas.map((fp) => (
@@ -762,8 +762,8 @@ export function NovoReciboMedicoModal({
                           onClick={() => setFormaPagamento(fp)}
                           className={`text-[10px] px-2 py-0.5 rounded border transition-colors ${
                             formaPagamento === fp
-                              ? 'bg-emerald-600 text-white border-emerald-600 font-semibold'
-                              : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                              ? 'bg-emerald-600 text-white border-emerald-600 font-bold'
+                              : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-750 font-medium'
                           }`}
                         >
                           {fp}

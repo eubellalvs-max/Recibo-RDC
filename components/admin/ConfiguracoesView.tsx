@@ -118,12 +118,37 @@ export function ConfiguracoesView() {
     e.preventDefault();
     setErro(null);
 
+    if (!config.nome_organizacao.trim()) {
+      setErro('O Nome da Organização / Instituição é obrigatório.');
+      return;
+    }
+
+    if (!config.sigla_organizacao?.trim()) {
+      setErro('A Sigla da Organização é obrigatória (ex: ABEAS).');
+      return;
+    }
+
+    if (!config.cidade_padrao?.trim()) {
+      setErro('A Cidade/UF Padrão é obrigatória (ex: Brasília/DF).');
+      return;
+    }
+
+    if (!config.ano_corrente || config.ano_corrente < 2000 || config.ano_corrente > 2100) {
+      setErro('Informe um Ano Fiscal Corrente válido (entre 2000 e 2100).');
+      return;
+    }
+
     if (
+      !config.proximo_recibo_num ||
+      isNaN(config.proximo_recibo_num) ||
       config.proximo_recibo_num <= 0 ||
+      !config.proximo_rdc_num ||
+      isNaN(config.proximo_rdc_num) ||
       config.proximo_rdc_num <= 0 ||
-      (config.proximo_recibo_medico_num !== undefined && config.proximo_recibo_medico_num <= 0)
+      (config.proximo_recibo_medico_num !== undefined &&
+        (isNaN(config.proximo_recibo_medico_num) || config.proximo_recibo_medico_num <= 0))
     ) {
-      setErro('Os números sequenciais devem ser maiores que zero.');
+      setErro('Os números sequenciais devem ser numéricos válidos e maiores que zero.');
       return;
     }
 
@@ -462,8 +487,8 @@ export function ConfiguracoesView() {
   };
 
   const executarRestaurarPadraoModelos = () => {
-    INITIAL_MODELOS_DESPESA.forEach((m) => StorageService.saveModeloDespesa(m));
-    setModelosDespesa(StorageService.getModelosDespesa());
+    const padroes = StorageService.resetModelosDespesaPadrao();
+    setModelosDespesa(padroes);
     setModalConfirmReset(null);
     notificarSucesso('Modelos de Despesa padrão restaurados com sucesso!');
   };
@@ -681,26 +706,59 @@ export function ConfiguracoesView() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Nome da Organização / Instituição
+                <label className="block text-xs font-semibold text-slate-900 dark:text-slate-100 mb-1">
+                  Nome da Organização / Instituição *
                 </label>
                 <input
                   type="text"
+                  required
                   value={config.nome_organizacao}
                   onChange={(e) => setConfig({ ...config, nome_organizacao: e.target.value })}
-                  className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-750 focus:border-slate-800 dark:focus:border-slate-600 outline-none"
+                  placeholder="Ex: ABEAS - Associação Brasileira de Entidades de Assistência Social"
+                  className="w-full px-3 py-2 text-xs bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-750 focus:border-slate-800 dark:focus:border-slate-500 outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Ano Fiscal Corrente
+                <label className="block text-xs font-semibold text-slate-900 dark:text-slate-100 mb-1">
+                  Sigla da Organização *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={config.sigla_organizacao || ''}
+                  onChange={(e) => setConfig({ ...config, sigla_organizacao: e.target.value })}
+                  placeholder="Ex: ABEAS"
+                  className="w-full px-3 py-2 text-xs bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white uppercase font-bold focus:bg-white dark:focus:bg-slate-750 focus:border-slate-800 dark:focus:border-slate-500 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-900 dark:text-slate-100 mb-1">
+                  Cidade / UF Padrão de Emissão *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={config.cidade_padrao || ''}
+                  onChange={(e) => setConfig({ ...config, cidade_padrao: e.target.value })}
+                  placeholder="Ex: Brasília/DF ou Itapuranga/GO"
+                  className="w-full px-3 py-2 text-xs bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-750 focus:border-slate-800 dark:focus:border-slate-500 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-900 dark:text-slate-100 mb-1">
+                  Ano Fiscal Corrente *
                 </label>
                 <input
                   type="number"
+                  required
+                  min="2000"
+                  max="2100"
                   value={config.ano_corrente}
                   onChange={(e) => setConfig({ ...config, ano_corrente: parseInt(e.target.value, 10) || 2026 })}
-                  className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-750 focus:border-slate-800 dark:focus:border-slate-600 outline-none"
+                  className="w-full px-3 py-2 text-xs bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-750 focus:border-slate-800 dark:focus:border-slate-500 outline-none font-bold"
                 />
               </div>
             </div>
@@ -713,10 +771,10 @@ export function ConfiguracoesView() {
             </h2>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-lg border border-slate-200 dark:border-slate-700 space-y-2">
+              <div className="p-3 bg-slate-50 dark:bg-slate-800/80 rounded-lg border border-slate-200 dark:border-slate-700 space-y-2">
                 <div className="flex items-center gap-2">
                   <Receipt className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                  <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                  <span className="text-xs font-semibold text-slate-900 dark:text-slate-100">
                     Próximo Nº Recibo Geral
                   </span>
                 </div>
@@ -727,17 +785,17 @@ export function ConfiguracoesView() {
                   onChange={(e) =>
                     setConfig({ ...config, proximo_recibo_num: parseInt(e.target.value, 10) || 1 })
                   }
-                  className="w-full px-3 py-1.5 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 font-mono font-bold"
+                  className="w-full px-3 py-1.5 text-xs bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white font-mono font-bold"
                 />
-                <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                <p className="text-[10px] text-slate-600 dark:text-slate-300 font-medium">
                   Próximo formato: {String(config.proximo_recibo_num).padStart(6, '0')}/{config.ano_corrente}
                 </p>
               </div>
 
-              <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-lg border border-slate-200 dark:border-slate-700 space-y-2">
+              <div className="p-3 bg-slate-50 dark:bg-slate-800/80 rounded-lg border border-slate-200 dark:border-slate-700 space-y-2">
                 <div className="flex items-center gap-2">
                   <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                  <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                  <span className="text-xs font-semibold text-slate-900 dark:text-slate-100">
                     Próximo Nº RDC
                   </span>
                 </div>
@@ -748,17 +806,17 @@ export function ConfiguracoesView() {
                   onChange={(e) =>
                     setConfig({ ...config, proximo_rdc_num: parseInt(e.target.value, 10) || 1 })
                   }
-                  className="w-full px-3 py-1.5 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 font-mono font-bold"
+                  className="w-full px-3 py-1.5 text-xs bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white font-mono font-bold"
                 />
-                <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                <p className="text-[10px] text-slate-600 dark:text-slate-300 font-medium">
                   Próximo formato: {String(config.proximo_rdc_num).padStart(6, '0')}/{config.ano_corrente}
                 </p>
               </div>
 
-              <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-lg border border-slate-200 dark:border-slate-700 space-y-2">
+              <div className="p-3 bg-slate-50 dark:bg-slate-800/80 rounded-lg border border-slate-200 dark:border-slate-700 space-y-2">
                 <div className="flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                  <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                  <span className="text-xs font-semibold text-slate-900 dark:text-slate-100">
                     Próximo Nº Recibo Médico
                   </span>
                 </div>
@@ -769,11 +827,50 @@ export function ConfiguracoesView() {
                   onChange={(e) =>
                     setConfig({ ...config, proximo_recibo_medico_num: parseInt(e.target.value, 10) || 1 })
                   }
-                  className="w-full px-3 py-1.5 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 font-mono font-bold"
+                  className="w-full px-3 py-1.5 text-xs bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white font-mono font-bold"
                 />
-                <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                <p className="text-[10px] text-slate-600 dark:text-slate-300 font-medium">
                   Próximo formato: {String(config.proximo_recibo_medico_num || 1).padStart(6, '0')}/{config.ano_corrente}
                 </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Bloco 3: Opções de Emissão e Rodapé Oficial */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-2xs space-y-4 transition-colors">
+            <h2 className="text-sm font-bold text-slate-900 dark:text-white pb-2 border-b border-slate-100 dark:border-slate-800">
+              Opções de Emissão e Rodapé Oficial
+            </h2>
+
+            <div className="space-y-4">
+              <label className="flex items-start gap-3 p-3 bg-slate-50 dark:bg-slate-800/80 rounded-lg border border-slate-200 dark:border-slate-700 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={config.incluir_segunda_via !== false}
+                  onChange={(e) => setConfig({ ...config, incluir_segunda_via: e.target.checked })}
+                  className="mt-0.5 rounded border-slate-300 dark:border-slate-600 text-slate-900 focus:ring-slate-800"
+                />
+                <div>
+                  <div className="text-xs font-semibold text-slate-900 dark:text-slate-100">
+                    Habilitar Emissão de 2ª Via nos Recibos
+                  </div>
+                  <p className="text-[11px] text-slate-600 dark:text-slate-300 mt-0.5">
+                    Quando ativo, permite alternar e emitir tanto a 1ª Via (Destinatário) quanto a 2ª Via (Emissor / Arquivo Contábil).
+                  </p>
+                </div>
+              </label>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-900 dark:text-slate-100 mb-1">
+                  Mensagem Padrão de Rodapé dos Recibos e Documentos
+                </label>
+                <textarea
+                  rows={2}
+                  value={config.mensagem_rodape || ''}
+                  onChange={(e) => setConfig({ ...config, mensagem_rodape: e.target.value })}
+                  placeholder="Ex: Documento emitido eletronicamente pelo Sistema Oficial de Recibos e RDC."
+                  className="w-full px-3 py-2 text-xs bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-750 focus:border-slate-800 dark:focus:border-slate-500 outline-none"
+                />
               </div>
             </div>
           </div>

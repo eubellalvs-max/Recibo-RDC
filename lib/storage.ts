@@ -202,6 +202,26 @@ export const INITIAL_EMPRESAS: Empresa[] = [
     status: 'ativa',
     created_at: '2026-02-25T10:00:00.000Z',
   },
+  {
+    id: 'emp-pf-1',
+    tipo_pessoa: 'PF',
+    razao_social: 'Roberto Moreira de Castro',
+    nome_fantasia: 'Roberto Castro Consultoria',
+    cnpj: '584.921.830-49',
+    cpf: '584.921.830-49',
+    rg: 'SSP/DF 2.458.910',
+    endereco: 'Rua das Palmeiras, Quadra 12',
+    numero: '45',
+    bairro: 'Setor de Mansões',
+    cidade: 'Brasília',
+    uf: 'DF',
+    cep: '71540-100',
+    email: 'roberto.castro@gmail.com',
+    telefone: '(61) 98112-3344',
+    tipo: 'ambas',
+    status: 'ativa',
+    created_at: '2026-02-28T11:00:00.000Z',
+  },
 ];
 
 export const INITIAL_USUARIOS: Usuario[] = [
@@ -919,6 +939,11 @@ export const StorageService = {
     config.tipos_doc = [...DEFAULT_TIPOS_DOC];
     this.saveConfig(config);
     return config.tipos_doc;
+  },
+
+  resetModelosDespesaPadrao(): ModeloDespesa[] {
+    setLocalStorageItem(STORAGE_KEYS.MODELOS_DESPESA, INITIAL_MODELOS_DESPESA);
+    return INITIAL_MODELOS_DESPESA;
   },
 
   // --- Sessão Atual ---

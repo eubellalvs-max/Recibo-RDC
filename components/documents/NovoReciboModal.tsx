@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Usuario, Empresa, Documento } from '@/lib/types';
 import { StorageService } from '@/lib/storage';
-import { mascaraCnpj, formatarMoeda, dataHojeIso } from '@/lib/masks';
+import { mascaraCnpj, mascaraCpf, formatarMoeda, dataHojeIso } from '@/lib/masks';
 import { valorPorExtenso } from '@/lib/extenso';
 import { X, Check, AlertCircle, Upload, Eye } from 'lucide-react';
 import { usePrint } from '@/lib/printContext';
@@ -291,13 +291,13 @@ export function NovoReciboModal({
                 🧾
               </div>
               <div>
-                <h2 className="text-sm font-bold text-slate-900 dark:text-white">NOVO RECIBO</h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Emissão com numeração sequencial e extenso automático</p>
+                <h2 className="text-sm font-bold text-slate-900 dark:text-white">NOVO RECIBO COMUM</h2>
+                <p className="text-xs text-slate-700 dark:text-slate-200 font-medium">Emissão com numeração sequencial e extenso automático</p>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg transition-colors"
+              className="p-1.5 text-slate-500 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
@@ -309,12 +309,12 @@ export function NovoReciboModal({
           {erro && (
             <div className="mb-4 p-3 bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-900/60 rounded-lg text-red-700 dark:text-red-300 text-xs flex items-center gap-2">
               <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>{erro}</span>
+              <span className="font-semibold">{erro}</span>
             </div>
           )}
 
           {modoPreVisualizar ? (
-            <div className="print-document bg-slate-100 dark:bg-slate-950 p-4 sm:p-6 rounded-xl flex justify-center print:bg-transparent print:p-0 print:m-0 print:block print:overflow-visible">
+            <div className="print-document bg-slate-200 dark:bg-slate-950 p-4 sm:p-6 rounded-xl flex justify-center print:bg-transparent print:p-0 print:m-0 print:block print:overflow-visible">
               <UnifiedReciboPrint
                 dados={{
                   numero: numeroReciboAuto,
@@ -338,63 +338,83 @@ export function NovoReciboModal({
               {/* Grid: Empresa Emissora e Destinatária */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Empresa Emissora (Quem recebe) *
+                  <label className="block text-xs font-bold text-slate-900 dark:text-white mb-1">
+                    Empresa / Pessoa Emissora (Quem recebe) *
                   </label>
                   <select
                     value={empresaEmissoraId}
                     onChange={(e) => handleEmissoraChange(e.target.value)}
-                    className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-750 focus:border-slate-800 dark:focus:border-slate-600 outline-none"
+                    className="w-full px-3 py-2 text-xs bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-950 dark:text-white font-semibold focus:bg-white dark:focus:bg-slate-750 focus:border-slate-900 dark:focus:border-emerald-400 outline-none"
                   >
-                    <option value="">Selecione uma empresa emissora...</option>
-                    {emissorasDisponiveis.map((emp) => (
-                      <option key={emp.id} value={emp.id}>
-                        {emp.nome_fantasia || emp.razao_social} ({mascaraCnpj(emp.cnpj)})
-                      </option>
-                    ))}
+                    <option value="" className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-medium">
+                      Selecione uma empresa ou pessoa física emissora...
+                    </option>
+                    {emissorasDisponiveis.map((emp) => {
+                      const isPf = emp.tipo_pessoa === 'PF' || emp.cnpj.replace(/\D/g, '').length === 11;
+                      const docStr = isPf ? `CPF: ${mascaraCpf(emp.cnpj)}` : `CNPJ: ${mascaraCnpj(emp.cnpj)}`;
+                      return (
+                        <option
+                          key={emp.id}
+                          value={emp.id}
+                          className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-medium"
+                        >
+                          {emp.nome_fantasia || emp.razao_social} ({docStr})
+                        </option>
+                      );
+                    })}
                   </select>
                   {empresaEmissoraObj && (
-                    <div className="mt-1 text-[11px] text-slate-500 dark:text-slate-400 truncate">
-                      CNPJ: {mascaraCnpj(empresaEmissoraObj.cnpj)} · {empresaEmissoraObj.cidade}/{empresaEmissoraObj.uf}
+                    <div className="mt-1.5 px-2.5 py-1 text-[11px] text-slate-900 dark:text-slate-100 bg-slate-100 dark:bg-slate-800/90 rounded border border-slate-200 dark:border-slate-700 font-semibold truncate">
+                      {empresaEmissoraObj.tipo_pessoa === 'PF' || empresaEmissoraObj.cnpj.replace(/\D/g, '').length === 11 ? 'CPF' : 'CNPJ'}: {empresaEmissoraObj.tipo_pessoa === 'PF' || empresaEmissoraObj.cnpj.replace(/\D/g, '').length === 11 ? mascaraCpf(empresaEmissoraObj.cnpj) : mascaraCnpj(empresaEmissoraObj.cnpj)} · {empresaEmissoraObj.cidade}/{empresaEmissoraObj.uf}
                     </div>
                   )}
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    RECEBEMOS DE: (Empresa Destinatária / Quem paga) *
+                  <label className="block text-xs font-bold text-slate-900 dark:text-white mb-1">
+                    RECEBEMOS DE: (Destinatário / Quem paga) *
                   </label>
                   <select
                     value={empresaDestinatariaId}
                     onChange={(e) => setEmpresaDestinatariaId(e.target.value)}
-                    className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-750 focus:border-slate-800 dark:focus:border-slate-600 outline-none"
+                    className="w-full px-3 py-2 text-xs bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-950 dark:text-white font-semibold focus:bg-white dark:focus:bg-slate-750 focus:border-slate-900 dark:focus:border-emerald-400 outline-none"
                   >
-                    <option value="">Selecione uma empresa destinatária...</option>
-                    {destinatariasDisponiveis.map((emp) => (
-                      <option key={emp.id} value={emp.id}>
-                        {emp.nome_fantasia || emp.razao_social} ({mascaraCnpj(emp.cnpj)})
-                      </option>
-                    ))}
+                    <option value="" className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-medium">
+                      Selecione uma empresa ou pessoa física pagadora...
+                    </option>
+                    {destinatariasDisponiveis.map((emp) => {
+                      const isPf = emp.tipo_pessoa === 'PF' || emp.cnpj.replace(/\D/g, '').length === 11;
+                      const docStr = isPf ? `CPF: ${mascaraCpf(emp.cnpj)}` : `CNPJ: ${mascaraCnpj(emp.cnpj)}`;
+                      return (
+                        <option
+                          key={emp.id}
+                          value={emp.id}
+                          className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-medium"
+                        >
+                          {emp.nome_fantasia || emp.razao_social} ({docStr})
+                        </option>
+                      );
+                    })}
                   </select>
                   {empresaDestinatariaObj && (
-                    <div className="mt-1 text-[11px] text-slate-500 dark:text-slate-400 truncate">
-                      CNPJ: {mascaraCnpj(empresaDestinatariaObj.cnpj)} · {empresaDestinatariaObj.cidade}/{empresaDestinatariaObj.uf}
+                    <div className="mt-1.5 px-2.5 py-1 text-[11px] text-slate-900 dark:text-slate-100 bg-slate-100 dark:bg-slate-800/90 rounded border border-slate-200 dark:border-slate-700 font-semibold truncate">
+                      {empresaDestinatariaObj.tipo_pessoa === 'PF' || empresaDestinatariaObj.cnpj.replace(/\D/g, '').length === 11 ? 'CPF' : 'CNPJ'}: {empresaDestinatariaObj.tipo_pessoa === 'PF' || empresaDestinatariaObj.cnpj.replace(/\D/g, '').length === 11 ? mascaraCpf(empresaDestinatariaObj.cnpj) : mascaraCnpj(empresaDestinatariaObj.cnpj)} · {empresaDestinatariaObj.cidade}/{empresaDestinatariaObj.uf}
                     </div>
                   )}
                 </div>
               </div>
 
               {/* Seção: Logo da Empresa */}
-              <div className="p-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-lg space-y-2">
+              <div className="p-3 bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-700 rounded-lg space-y-2">
                 <div className="flex items-center justify-between">
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                    Logotipo da Empresa Emissora <span className="font-normal text-slate-400 dark:text-slate-500">(opcional para este recibo)</span>
+                  <label className="block text-xs font-bold text-slate-900 dark:text-white">
+                    Logotipo da Empresa Emissora <span className="font-medium text-slate-600 dark:text-slate-300 text-[11px]">(opcional para este recibo)</span>
                   </label>
                   {logoUrl && (
                     <button
                       type="button"
                       onClick={() => setLogoUrl('')}
-                      className="text-[11px] text-red-600 dark:text-red-400 hover:underline"
+                      className="text-[11px] text-red-600 dark:text-red-400 hover:underline font-bold"
                     >
                       Remover Logo
                     </button>
@@ -402,8 +422,8 @@ export function NovoReciboModal({
                 </div>
 
                 <div className="flex flex-col sm:flex-row items-center gap-3">
-                  <label className="w-full sm:w-auto cursor-pointer flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-650 border border-slate-200 dark:border-slate-600 rounded-lg transition-colors shadow-2xs">
-                    <Upload className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                  <label className="w-full sm:w-auto cursor-pointer flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-800 dark:text-slate-100 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg transition-colors shadow-2xs">
+                    <Upload className="w-3.5 h-3.5 text-slate-700 dark:text-slate-200" />
                     <span>{logoUrl ? 'Alterar Logo / Imagem' : 'Anexar Logo da Empresa'}</span>
                     <input
                       type="file"
@@ -418,11 +438,11 @@ export function NovoReciboModal({
                     value={logoUrl}
                     onChange={(e) => setLogoUrl(e.target.value)}
                     placeholder="Ou cole a URL da imagem da logo..."
-                    className="flex-1 w-full px-2.5 py-1.5 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 outline-none"
+                    className="flex-1 w-full px-2.5 py-1.5 text-xs bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-950 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-400 outline-none"
                   />
 
                   {logoUrl ? (
-                    <div className="w-14 h-8 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded flex items-center justify-center p-1 shrink-0">
+                    <div className="w-14 h-8 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded flex items-center justify-center p-1 shrink-0">
                       <img
                         src={logoUrl}
                         alt="Logo"
@@ -430,7 +450,7 @@ export function NovoReciboModal({
                       />
                     </div>
                   ) : (
-                    <div className="text-[10px] text-slate-400 dark:text-slate-500 shrink-0">
+                    <div className="text-[10px] text-slate-600 dark:text-slate-300 font-semibold shrink-0">
                       Sem logo
                     </div>
                   )}
@@ -440,11 +460,11 @@ export function NovoReciboModal({
               {/* Grid: Valor Numérico e Extenso */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block text-xs font-bold text-slate-900 dark:text-white mb-1">
                     Valor (R$) *
                   </label>
                   <div className="relative">
-                    <span className="absolute left-3 top-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
+                    <span className="absolute left-3 top-2 text-xs font-black text-slate-800 dark:text-slate-200">
                       R$
                     </span>
                     <input
@@ -453,16 +473,16 @@ export function NovoReciboModal({
                       value={valorRaw}
                       onChange={handleValorChange}
                       placeholder="0,00"
-                      className="w-full pl-8 pr-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 font-bold focus:bg-white dark:focus:bg-slate-750 focus:border-slate-800 dark:focus:border-slate-600 outline-none"
+                      className="w-full pl-9 pr-3 py-2 text-xs bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-950 dark:text-white font-extrabold focus:bg-white dark:focus:bg-slate-750 focus:border-slate-900 dark:focus:border-emerald-400 outline-none"
                     />
                   </div>
                 </div>
 
                 <div className="md:col-span-2">
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Valor por Extenso <span className="font-normal text-slate-400 dark:text-slate-500">(gerado automaticamente)</span>
+                  <label className="block text-xs font-bold text-slate-900 dark:text-white mb-1">
+                    Valor por Extenso <span className="font-medium text-slate-600 dark:text-slate-300 text-[11px]">(gerado automaticamente)</span>
                   </label>
-                  <div className="px-3 py-2 text-xs bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-300 font-medium italic min-h-[38px] flex items-center">
+                  <div className="px-3 py-2 text-xs bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-950 dark:text-emerald-300 font-bold italic min-h-[38px] flex items-center leading-snug">
                     {valorExtenso}
                   </div>
                 </div>
@@ -470,7 +490,7 @@ export function NovoReciboModal({
 
               {/* Referente a */}
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-xs font-bold text-slate-900 dark:text-white mb-1">
                   Referente a (Descrição detalhada) *
                 </label>
                 <textarea
@@ -479,14 +499,14 @@ export function NovoReciboModal({
                   value={referente}
                   onChange={(e) => setReferente(e.target.value)}
                   placeholder="Ex: Serviços de consultoria em gestão contábil e tributária referente ao mês de Setembro/2026..."
-                  className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-750 focus:border-slate-800 dark:focus:border-slate-600 outline-none"
+                  className="w-full px-3 py-2 text-xs bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-950 dark:text-white font-medium placeholder:text-slate-400 dark:placeholder:text-slate-400 focus:bg-white dark:focus:bg-slate-750 focus:border-slate-900 dark:focus:border-emerald-400 outline-none leading-relaxed"
                 />
               </div>
 
               {/* Grid: Data de Emissão e Cidade */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block text-xs font-bold text-slate-900 dark:text-white mb-1">
                     Data de Emissão *
                   </label>
                   <input
@@ -494,12 +514,12 @@ export function NovoReciboModal({
                     required
                     value={dataEmissao}
                     onChange={(e) => setDataEmissao(e.target.value)}
-                    className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-750 focus:border-slate-800 dark:focus:border-slate-600 outline-none"
+                    className="w-full px-3 py-2 text-xs bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-950 dark:text-white font-semibold focus:bg-white dark:focus:bg-slate-750 focus:border-slate-900 dark:focus:border-emerald-400 outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block text-xs font-bold text-slate-900 dark:text-white mb-1">
                     Cidade / UF do Documento
                   </label>
                   <input
@@ -507,22 +527,22 @@ export function NovoReciboModal({
                     value={cidadeEmissao}
                     onChange={(e) => setCidadeEmissao(e.target.value)}
                     placeholder="Ex: Brasília/DF"
-                    className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-750 focus:border-slate-800 dark:focus:border-slate-600 outline-none"
+                    className="w-full px-3 py-2 text-xs bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-950 dark:text-white font-medium placeholder:text-slate-400 dark:placeholder:text-slate-400 focus:bg-white dark:focus:bg-slate-750 focus:border-slate-900 dark:focus:border-emerald-400 outline-none"
                   />
                 </div>
               </div>
 
               {/* Observações */}
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Observações <span className="font-normal text-slate-400 dark:text-slate-500">(opcional)</span>
+                <label className="block text-xs font-bold text-slate-900 dark:text-white mb-1">
+                  Observações <span className="font-medium text-slate-600 dark:text-slate-300 text-[11px]">(opcional)</span>
                 </label>
                 <textarea
                   rows={2}
                   value={observacoes}
                   onChange={(e) => setObservacoes(e.target.value)}
                   placeholder="Ex: Pagamento efetuado via PIX / Cheque nº... Quitação condicionada à compensação bancária."
-                  className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-750 focus:border-slate-800 dark:focus:border-slate-600 outline-none"
+                  className="w-full px-3 py-2 text-xs bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-950 dark:text-white font-medium placeholder:text-slate-400 dark:placeholder:text-slate-400 focus:bg-white dark:focus:bg-slate-750 focus:border-slate-900 dark:focus:border-emerald-400 outline-none leading-relaxed"
                 />
               </div>
 
@@ -531,7 +551,7 @@ export function NovoReciboModal({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="px-4 py-2 text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                  className="px-4 py-2 text-xs font-bold text-slate-800 dark:text-slate-200 hover:text-black dark:hover:text-white border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                 >
                   Cancelar
                 </button>
@@ -544,7 +564,7 @@ export function NovoReciboModal({
                         setModoPreVisualizar(true);
                       }
                     }}
-                    className="px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-lg transition-colors flex items-center gap-1.5 shadow-2xs"
+                    className="px-4 py-2 text-xs font-bold text-slate-900 dark:text-white bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg transition-colors flex items-center gap-1.5 shadow-2xs"
                   >
                     <Eye className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                     <span>PRÉ-VISUALIZAR RECIBO</span>
@@ -553,7 +573,7 @@ export function NovoReciboModal({
                   <button
                     type="submit"
                     disabled={salvando}
-                    className="px-5 py-2 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 dark:bg-emerald-600 dark:hover:bg-emerald-500 disabled:opacity-50 rounded-lg shadow-sm transition-colors flex items-center gap-1.5"
+                    className="px-5 py-2 text-xs font-bold text-white bg-slate-900 hover:bg-black dark:bg-emerald-600 dark:hover:bg-emerald-500 disabled:opacity-50 rounded-lg shadow-sm transition-colors flex items-center gap-1.5"
                   >
                     <Check className="w-3.5 h-3.5 text-emerald-400 dark:text-white" />
                     <span>{salvando ? 'EMITINDO...' : 'EMITIR RECIBO'}</span>
