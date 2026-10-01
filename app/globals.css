@@ -142,6 +142,97 @@
     box-shadow: none !important;
   }
 
+  /* 5. FOLHA ESPECÍFICA DO RECIBO MÉDICO (REC.M) - EXCLUSIVO 1 PÁGINA A4 */
+  .receipt-sheet-medico,
+  .print-sheet-medico {
+    display: block !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    max-width: 185mm !important;
+    margin: 0 auto !important;
+    padding: 4mm 6mm !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+    border: 1.5px solid #000000 !important;
+    border-radius: 4px !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+    page-break-before: avoid !important;
+    break-before: avoid !important;
+    box-shadow: none !important;
+    transform: none !important;
+    font-size: 8pt !important;
+    line-height: 1.22 !important;
+    overflow: visible !important;
+  }
+
+  .print-sheet-medico * {
+    box-shadow: none !important;
+  }
+
+  .print-sheet-medico .med-header {
+    border-bottom: 1.5px solid #64748b !important;
+    padding-bottom: 1.5mm !important;
+    margin-bottom: 1.5mm !important;
+  }
+
+  .print-sheet-medico .med-logo {
+    max-height: 11mm !important;
+    height: 11mm !important;
+    width: auto !important;
+    margin-bottom: 1mm !important;
+    object-fit: contain !important;
+  }
+
+  .print-sheet-medico .med-title {
+    font-size: 10.5pt !important;
+    line-height: 1.15 !important;
+    margin-top: 0.8mm !important;
+  }
+
+  .print-sheet-medico .med-destaque {
+    padding: 1.8mm 3mm !important;
+    margin-bottom: 2mm !important;
+    border-radius: 4px !important;
+  }
+
+  .print-sheet-medico .med-content {
+    margin-top: 0 !important;
+  }
+
+  .print-sheet-medico .med-content > * + * {
+    margin-top: 1.8mm !important;
+  }
+
+  .print-sheet-medico .med-card-header {
+    padding: 1mm 2.5mm !important;
+    font-size: 7.5pt !important;
+  }
+
+  .print-sheet-medico .med-card-body {
+    padding: 1.5mm 2.5mm !important;
+    font-size: 7.5pt !important;
+    line-height: 1.2 !important;
+  }
+
+  .print-sheet-medico .med-signature {
+    padding-top: 3mm !important;
+    margin-top: 1.2mm !important;
+  }
+
+  .print-sheet-medico .med-signature-line {
+    width: 60mm !important;
+    margin-bottom: 1mm !important;
+  }
+
+  .print-sheet-medico .med-footer {
+    margin-top: 2mm !important;
+    padding-top: 1mm !important;
+    font-size: 6.8pt !important;
+  }
+
   .avoid-page-break {
     page-break-inside: avoid !important;
     break-inside: avoid !important;
