@@ -2,157 +2,148 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-@layer utilities {
-  @media print {
-    @page {
-      size: A4 portrait;
-      margin: 6mm 8mm 6mm 8mm;
-    }
+/* =========================================================================
+   ESTRUTURA ESPECÍFICA DE IMPRESSÃO (PRINT LAYOUT INDEPENDENTE)
+   TELA DO SISTEMA ≠ DOCUMENTO DE IMPRESSÃO
+   ========================================================================= */
 
-    html, body {
-      background: #ffffff !important;
-      color: #000000 !important;
-      margin: 0 !important;
-      padding: 0 !important;
-      width: 100% !important;
-      height: auto !important;
-      min-height: 0 !important;
-      overflow: visible !important;
-      -webkit-print-color-adjust: exact !important;
-      print-color-adjust: exact !important;
-    }
+@media screen {
+  /* Em tela normal, a área física de impressão fica 100% oculta */
+  #print-area,
+  .print-area {
+    display: none !important;
+  }
+}
 
-    /* Ocultar COMPLETAMENTE toda a interface do sistema, navegações, barras e telas de fundo */
-    header,
-    nav,
-    aside,
-    main,
-    footer,
-    .sidebar,
-    .header,
-    .navigation,
-    .dashboard,
-    .buttons,
-    .actions,
-    .no-print,
-    button:not(.print-document *),
-    [role="dialog"] > div:first-child:not(.print-dialog-content) {
-      display: none !important;
-    }
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 8mm 10mm 8mm 10mm;
+  }
 
-    /* Resetar casca do aplicativo no print para não empurrar ou gerar páginas vazias */
-    body > div,
-    .min-h-screen,
-    .flex-1 {
-      min-height: 0 !important;
-      height: auto !important;
-      background: transparent !important;
-      display: block !important;
-      padding: 0 !important;
-      margin: 0 !important;
-      border: none !important;
-      box-shadow: none !important;
-    }
+  html, body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
 
-    /* Transformar contêineres modais em fluxo normal de página para impressão perfeita */
-    .print-modal-overlay {
-      position: static !important;
-      display: block !important;
-      padding: 0 !important;
-      margin: 0 !important;
-      background: transparent !important;
-      backdrop-filter: none !important;
-      -webkit-backdrop-filter: none !important;
-      width: 100% !important;
-      max-width: 100% !important;
-      min-height: 0 !important;
-      height: auto !important;
-      overflow: visible !important;
-      inset: auto !important;
-      z-index: auto !important;
-    }
+  /* 1. OCULTAÇÃO TOTAL DA INTERFACE DO SISTEMA
+     Remove menu, sidebar, cabeçalho, botões, abas, campos e toda a casca */
+  #system-app-root,
+  #system-app-root *,
+  header,
+  nav,
+  aside,
+  main,
+  footer,
+  .sidebar,
+  .header,
+  .navigation,
+  .dashboard,
+  .buttons,
+  .actions,
+  .no-print,
+  button,
+  [role="dialog"] {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    overflow: hidden !important;
+  }
 
-    .print-modal-content {
-      position: static !important;
-      display: block !important;
-      box-shadow: none !important;
-      border: none !important;
-      border-radius: 0 !important;
-      margin: 0 !important;
-      padding: 0 !important;
-      width: 100% !important;
-      max-width: 100% !important;
-      max-height: none !important;
-      height: auto !important;
-      overflow: visible !important;
-      background: transparent !important;
-    }
+  /* 2. ÁREA DE IMPRESSÃO EXCLUSIVA DO DOCUMENTO */
+  #print-area,
+  .print-area {
+    display: block !important;
+    visibility: visible !important;
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    border: none !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+  }
 
-    /* Remover paddings e backgrounds de fundo do contêiner da folha */
-    .print-modal-content > div:last-child {
-      padding: 0 !important;
-      margin: 0 !important;
-      background: transparent !important;
-      overflow: visible !important;
-      display: block !important;
-    }
+  #print-receipt,
+  .receipt {
+    display: block !important;
+    visibility: visible !important;
+    position: relative !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    max-width: 185mm !important; /* Segurança absoluta dentro da largura A4 (190mm) */
+    margin: 0 auto !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    border: none !important;
+    box-shadow: none !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
 
-    /* =========================================================================
-       ISOLAMENTO DO DOCUMENTO (.print-document)
-       Permanece visível com exclusividade absoluta e formatação 100% preservada
-       ========================================================================= */
-    .print-document {
-      display: block !important;
-      visibility: visible !important;
-      width: 100% !important;
-      max-width: 100% !important;
-      margin: 0 auto !important;
-      padding: 0 !important;
-      background: #ffffff !important;
-      box-shadow: none !important;
-      page-break-inside: avoid !important;
-      break-inside: avoid !important;
-    }
+  /* 3. FOLHA DO RECIBO COM BORDAS PRESERVADAS E SEM CORTE */
+  .receipt-sheet,
+  .print-sheet {
+    display: block !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    max-width: 185mm !important;
+    margin: 0 auto !important;
+    padding: 6mm 8mm !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+    border: 1.5px solid #000000 !important;
+    border-radius: 4px !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    box-shadow: none !important;
+    transform: none !important;
+    overflow: visible !important;
+  }
 
-    .print-sheet {
-      box-shadow: none !important;
-      border: 1px solid #1e293b !important;
-      border-radius: 0 !important;
-      margin: 0 auto !important;
-      padding: 6mm 8mm !important;
-      width: 100% !important;
-      max-width: 100% !important;
-      page-break-inside: avoid !important;
-      break-inside: avoid !important;
-      background: #ffffff !important;
-      color: #0f172a !important;
-      transform: none !important;
-    }
+  /* 4. FOLHA ESPECÍFICA DA RDC */
+  .receipt-sheet-rdc,
+  .print-sheet-rdc {
+    display: block !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    max-width: 188mm !important;
+    margin: 0 auto !important;
+    padding: 4mm 5mm !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    border: 1.5px solid #000000 !important;
+    border-radius: 0 !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    box-shadow: none !important;
+    transform: none !important;
+    font-size: 8pt !important;
+    line-height: 1.15 !important;
+    overflow: visible !important;
+  }
 
-    /* Formatação compacta e de alta precisão para a folha oficial da RDC caber inteira em 1 página */
-    .print-sheet-rdc {
-      box-shadow: none !important;
-      border: 1.5px solid #000000 !important;
-      border-radius: 0 !important;
-      margin: 0 auto !important;
-      padding: 4mm 5mm !important;
-      width: 100% !important;
-      max-width: 100% !important;
-      page-break-inside: avoid !important;
-      break-inside: avoid !important;
-      background: #ffffff !important;
-      color: #000000 !important;
-      font-size: 8pt !important;
-      line-height: 1.15 !important;
-    }
+  .print-sheet-rdc * {
+    box-shadow: none !important;
+  }
 
-    .print-sheet-rdc * {
-      box-shadow: none !important;
-    }
-
-    .avoid-page-break {
-      page-break-inside: avoid !important;
-      break-inside: avoid !important;
-    }
+  .avoid-page-break {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
 }

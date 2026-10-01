@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Usuario, Empresa, Documento, ItemGastoRdc, ModeloDespesa } from '@/lib/types';
 import { StorageService } from '@/lib/storage';
 import { formatarMoeda, mascaraCpf, formatarDataBr, dataHojeIso } from '@/lib/masks';
@@ -15,6 +15,7 @@ import {
   Eye,
   FileSpreadsheet,
 } from 'lucide-react';
+import { usePrint } from '@/lib/printContext';
 import { UnifiedPrintToolbar } from './unified/UnifiedPrintToolbar';
 import { UnifiedRdcPrint } from './unified/UnifiedRdcPrint';
 
@@ -97,8 +98,6 @@ export function NovoRdcModal({
   const [erro, setErro] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [modoPreVisualizar, setModoPreVisualizar] = useState(false);
-
-  if (!isOpen) return null;
 
   const config = StorageService.getConfig();
   const seqNum = config.proximo_rdc_num || 1;
@@ -333,10 +332,90 @@ export function NovoRdcModal({
     }
   };
 
+  const { setActivePrintItem } = usePrint();
+
+  useEffect(() => {
+    if (!isOpen || !modoPreVisualizar) {
+      return;
+    }
+
+    setActivePrintItem({
+      tipo: 'rdc',
+      numero: numeroRdcAuto,
+      dadosRdc: {
+        numero: numeroRdcAuto,
+        detalhes: {
+          linha_gasto: linhaGasto,
+          data_pedido: dataPedido,
+          numero_pedido: numeroPedido,
+          local_partida: localPartida,
+          destino: destino,
+          nome_solicitante: nomeSolicitante,
+          cpf_solicitante: cpfSolicitante,
+          setor_funcao: setorFuncao,
+          objetivo_viagem: objetivoViagem,
+          valor_solicitado: valorSolicitado,
+          nome_banco: nomeBanco,
+          agencia: agencia,
+          conta: conta,
+          tipo_conta: tipoConta,
+          chave_pix: chavePix,
+          data_entrega_rdc: dataEntregaRdc,
+          itens: itens,
+          total_despesas: totalDespesas,
+          valor_adiantamento: valorSolicitado,
+          saldo_devolucao_ressarcimento: saldoDevolucao,
+          valor_ressarcir_solicitante: valorARessarcir,
+          assinatura_profissional: assinaturaProfissional,
+          diretoria_direta: diretoriaDireta,
+          contabil_financeiro: contabilFinanceiro,
+        },
+        tiposGasto,
+        tiposDoc,
+      },
+    });
+
+    return () => {
+      setActivePrintItem(null);
+    };
+  }, [
+    isOpen,
+    modoPreVisualizar,
+    numeroRdcAuto,
+    linhaGasto,
+    dataPedido,
+    numeroPedido,
+    localPartida,
+    destino,
+    nomeSolicitante,
+    cpfSolicitante,
+    setorFuncao,
+    objetivoViagem,
+    valorSolicitado,
+    nomeBanco,
+    agencia,
+    conta,
+    tipoConta,
+    chavePix,
+    dataEntregaRdc,
+    itens,
+    totalDespesas,
+    saldoDevolucao,
+    valorARessarcir,
+    assinaturaProfissional,
+    diretoriaDireta,
+    contabilFinanceiro,
+    tiposGasto,
+    tiposDoc,
+    setActivePrintItem,
+  ]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     executarEmissao();
   };
+
+  if (!isOpen) return null;
 
   return (
     <div className={`fixed inset-0 z-50 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-y-auto ${

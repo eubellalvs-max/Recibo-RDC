@@ -19,6 +19,8 @@ import { NovoRdcModal } from '@/components/documents/NovoRdcModal';
 import { NovoReciboMedicoModal } from '@/components/documents/NovoReciboMedicoModal';
 import { DocumentSuccessModal } from '@/components/documents/DocumentSuccessModal';
 import { DocumentViewerModal } from '@/components/documents/DocumentViewerModal';
+import { PrintProvider } from '@/lib/printContext';
+import { PrintLayoutArea } from '@/components/documents/unified/PrintLayoutArea';
 
 export default function Home() {
   const [currentUser, setCurrentUser] = useState<Usuario | null>(() => {
@@ -98,8 +100,9 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 dark:bg-slate-950 flex flex-col font-sans text-slate-900 dark:text-slate-100 transition-colors">
-      {/* Top Bar seguindo o Top Bar Contract */}
+    <PrintProvider>
+      <div id="system-app-root" className="min-h-screen bg-slate-100 dark:bg-slate-950 flex flex-col font-sans text-slate-900 dark:text-slate-100 transition-colors">
+        {/* Top Bar seguindo o Top Bar Contract */}
       <Navbar
         user={currentUser}
         currentTab={currentTab}
@@ -242,12 +245,16 @@ export default function Home() {
         }}
       />
 
-      {/* Modal: Visualizador e Impressor de Documento */}
-      <DocumentViewerModal
-        isOpen={!!docVisualizando}
-        documento={docVisualizando}
-        onClose={() => setDocVisualizando(null)}
-      />
-    </div>
+        {/* Modal: Visualizador e Impressor de Documento */}
+        <DocumentViewerModal
+          isOpen={!!docVisualizando}
+          documento={docVisualizando}
+          onClose={() => setDocVisualizando(null)}
+        />
+      </div>
+
+      {/* ÁREA ESPECÍFICA DE IMPRESSÃO (PRINT LAYOUT INDEPENDENTE) */}
+      <PrintLayoutArea />
+    </PrintProvider>
   );
 }

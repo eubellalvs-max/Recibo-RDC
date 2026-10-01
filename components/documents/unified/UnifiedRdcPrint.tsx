@@ -36,7 +36,7 @@ export const UnifiedRdcPrint: React.FC<UnifiedRdcPrintProps> = ({ dados }) => {
   const linhasVaziasCount = Math.max(0, qtdLinhasTotais - itensAtuais.length);
 
   return (
-    <div className="print-document print-sheet-rdc print-sheet bg-white border border-slate-900 shadow-sm p-4 sm:p-6 max-w-3xl w-full text-slate-900 font-sans leading-tight text-xs mx-auto">
+    <div className="receipt-sheet-rdc receipt-sheet print-document print-sheet-rdc print-sheet bg-white border border-slate-900 shadow-sm p-4 sm:p-6 max-w-3xl w-full text-slate-900 font-sans leading-tight text-xs mx-auto">
       {/* CABEÇALHO DO MODELO ABEAS COM LOGO AO LADO E DEPOIS OS TEXTOS */}
       <div className="flex items-center justify-between gap-3 pb-2.5 border-b-2 border-slate-900 mb-2.5">
         <div className="flex items-center gap-3 flex-1">

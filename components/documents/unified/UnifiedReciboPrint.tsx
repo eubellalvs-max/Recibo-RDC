@@ -48,7 +48,7 @@ export const UnifiedReciboPrint: React.FC<UnifiedReciboPrintProps> = ({
     emissora?.nome_fantasia || emissora?.razao_social || config?.nome_organizacao || 'Empresa Emissora';
 
   return (
-    <div className="print-document print-sheet bg-white border border-slate-300 shadow-sm p-6 sm:p-10 max-w-2xl w-full text-slate-900 font-sans leading-relaxed text-xs sm:text-sm mx-auto">
+    <div className="receipt-sheet print-document print-sheet bg-white border border-slate-300 shadow-sm p-6 sm:p-10 max-w-2xl w-full text-slate-900 font-sans leading-relaxed text-xs sm:text-sm mx-auto">
       {/* Cabeçalho do Recibo */}
       <div className="text-center pb-5 border-b border-slate-300">
         {/* Logotipo da Empresa Emissora (se cadastrado ou anexado) - Sem logo da ABEAS fixo aqui */}

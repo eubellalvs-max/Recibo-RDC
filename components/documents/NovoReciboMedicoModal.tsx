@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Usuario, Documento, DadosReciboMedico } from '@/lib/types';
 import { StorageService, ABEAS_FIXA } from '@/lib/storage';
 import { valorPorExtenso, dataPorExtenso } from '@/lib/extenso';
@@ -27,6 +27,7 @@ import {
   Printer,
   Sparkles,
 } from 'lucide-react';
+import { usePrint } from '@/lib/printContext';
 import { UnifiedPrintToolbar } from './unified/UnifiedPrintToolbar';
 import { UnifiedReciboMedicoPrint } from './unified/UnifiedReciboMedicoPrint';
 
@@ -87,8 +88,6 @@ export function NovoReciboMedicoModal({
   const [modoPreVisualizar, setModoPreVisualizar] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  if (!isOpen) return null;
 
   // Cálculo do valor numérico
   const valorNumerico = parseFloat(
@@ -224,6 +223,73 @@ export function NovoReciboMedicoModal({
   ];
 
   const formasPagamentoSugeridas = ['Pix', 'Dinheiro', 'Cartão de Débito', 'Cartão de Crédito', 'Transferência'];
+
+  const { setActivePrintItem } = usePrint();
+
+  useEffect(() => {
+    if (!isOpen || !modoPreVisualizar) {
+      return;
+    }
+
+    setActivePrintItem({
+      tipo: 'recibo_medico',
+      numero: numeroReciboAuto,
+      dadosReciboMedico: {
+        numero: numeroReciboAuto,
+        valor: valorNumerico,
+        valor_extenso: valorExtenso,
+        data_emissao: dataEmissao,
+        usuario_nome: currentUser.nome,
+        detalhes: {
+          pagador_nome: pagadorNome.trim(),
+          pagador_documento: pagadorDocumento.trim(),
+          pagador_telefone: pagadorTelefone.trim() || undefined,
+          pagador_endereco: pagadorEndereco.trim() || undefined,
+          paciente_nome: pacienteNome.trim(),
+          paciente_cpf: pacienteCpf.trim(),
+          paciente_telefone: pacienteTelefone.trim() || undefined,
+          paciente_endereco: pacienteEndereco.trim() || undefined,
+          servico_prestado: servicoPrestado.trim(),
+          medico_assistente: medicoAssistente.trim(),
+          crm: crm.trim(),
+          data_atendimento: dataAtendimento,
+          forma_pagamento: formaPagamento.trim(),
+          cidade: cidade.trim() || 'Itapuranga',
+          uf: uf.trim().toUpperCase() || 'GO',
+        },
+      },
+    });
+
+    return () => {
+      setActivePrintItem(null);
+    };
+  }, [
+    isOpen,
+    modoPreVisualizar,
+    numeroReciboAuto,
+    valorNumerico,
+    valorExtenso,
+    dataEmissao,
+    currentUser.nome,
+    pagadorNome,
+    pagadorDocumento,
+    pagadorTelefone,
+    pagadorEndereco,
+    pacienteNome,
+    pacienteCpf,
+    pacienteTelefone,
+    pacienteEndereco,
+    servicoPrestado,
+    medicoAssistente,
+    crm,
+    dataAtendimento,
+    formaPagamento,
+    cidade,
+    uf,
+    setActivePrintItem,
+  ]);
+
+  if (!isOpen) return null;
 
   return (
     <div className={`fixed inset-0 z-50 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-y-auto ${

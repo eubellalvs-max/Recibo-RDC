@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Usuario, Empresa, Documento } from '@/lib/types';
 import { StorageService } from '@/lib/storage';
 import { mascaraCnpj, formatarMoeda, dataHojeIso } from '@/lib/masks';
 import { valorPorExtenso } from '@/lib/extenso';
 import { X, Check, AlertCircle, Upload, Eye } from 'lucide-react';
+import { usePrint } from '@/lib/printContext';
 import { UnifiedPrintToolbar } from './unified/UnifiedPrintToolbar';
 import { UnifiedReciboPrint } from './unified/UnifiedReciboPrint';
 
@@ -76,8 +77,7 @@ export function NovoReciboModal({
   const [salvando, setSalvando] = useState(false);
   const [modoPreVisualizar, setModoPreVisualizar] = useState(false);
   const [viaPrevia, setViaPrevia] = useState<'1' | '2'>('1');
-
-  if (!isOpen) return null;
+  const { setActivePrintItem } = usePrint();
 
   const config = StorageService.getConfig();
   const seqNum = config.proximo_recibo_num || 1;
@@ -101,6 +101,57 @@ export function NovoReciboModal({
 
   const empresaEmissoraObj = empresas.find((e) => e.id === empresaEmissoraId);
   const empresaDestinatariaObj = empresas.find((e) => e.id === empresaDestinatariaId);
+
+  useEffect(() => {
+    if (!isOpen || !modoPreVisualizar) {
+      return;
+    }
+
+    setActivePrintItem({
+      tipo: 'recibo',
+      numero: numeroReciboAuto,
+      via: viaPrevia,
+      dadosRecibo: {
+        numero: numeroReciboAuto,
+        valor: valorNumerico,
+        valor_extenso: valorExtenso,
+        referente: referente.trim(),
+        data_emissao: dataEmissao,
+        cidade_emissao: cidadeEmissao.trim() || 'Brasília/DF',
+        observacoes: observacoes.trim() || undefined,
+        logo_url: logoUrl.trim() || undefined,
+        usuario_nome: currentUser.nome,
+        emissora: empresaEmissoraObj,
+        destinataria: empresaDestinatariaObj,
+        config,
+      },
+    });
+
+    return () => {
+      setActivePrintItem(null);
+    };
+  }, [
+    isOpen,
+    modoPreVisualizar,
+    viaPrevia,
+    numeroReciboAuto,
+    valorNumerico,
+    valorExtenso,
+    referente,
+    dataEmissao,
+    cidadeEmissao,
+    observacoes,
+    logoUrl,
+    empresaEmissoraId,
+    empresaDestinatariaId,
+    currentUser.nome,
+    empresaEmissoraObj,
+    empresaDestinatariaObj,
+    config,
+    setActivePrintItem,
+  ]);
+
+  if (!isOpen) return null;
 
   const handleEmissoraChange = (id: string) => {
     setEmpresaEmissoraId(id);

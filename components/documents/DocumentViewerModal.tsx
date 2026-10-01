@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Documento, Empresa, TipoGastoConfig, TipoDocConfig } from '@/lib/types';
 import { StorageService } from '@/lib/storage';
 import { formatarDataBr } from '@/lib/masks';
 import { AlertCircle } from 'lucide-react';
+import { usePrint } from '@/lib/printContext';
 import { UnifiedPrintToolbar } from './unified/UnifiedPrintToolbar';
 import { UnifiedReciboPrint } from './unified/UnifiedReciboPrint';
 import { UnifiedReciboMedicoPrint } from './unified/UnifiedReciboMedicoPrint';
@@ -22,23 +23,22 @@ export function DocumentViewerModal({
   onClose,
 }: DocumentViewerModalProps) {
   const [via, setVia] = useState<'1' | '2'>('1');
-
-  if (!isOpen || !documento) return null;
+  const { setActivePrintItem } = usePrint();
 
   const empresas = StorageService.getEmpresas();
   const config = StorageService.getConfig();
 
-  const emissora: Empresa | undefined = empresas.find(
-    (e) => e.id === documento.empresa_emissora_id
-  );
-  const destinataria: Empresa | undefined = empresas.find(
-    (e) => e.id === documento.empresa_destinataria_id
-  );
+  const emissora: Empresa | undefined = documento
+    ? empresas.find((e) => e.id === documento.empresa_emissora_id)
+    : undefined;
+  const destinataria: Empresa | undefined = documento
+    ? empresas.find((e) => e.id === documento.empresa_destinataria_id)
+    : undefined;
 
-  const isRdc = documento.tipo === 'rdc';
-  const isReciboMedico = documento.tipo === 'recibo_medico';
-  const rdc = documento.rdc_detalhes;
-  const med = documento.recibo_medico_detalhes;
+  const isRdc = documento?.tipo === 'rdc';
+  const isReciboMedico = documento?.tipo === 'recibo_medico';
+  const rdc = documento?.rdc_detalhes;
+  const med = documento?.recibo_medico_detalhes;
 
   const tiposGasto: TipoGastoConfig[] = config.tipos_gasto || StorageService.getTiposGasto();
   const tiposDoc: TipoDocConfig[] = config.tipos_doc || StorageService.getTiposDoc();
@@ -48,6 +48,79 @@ export function DocumentViewerModal({
     : isReciboMedico
     ? 'RECIBO DE PRESTAÇÃO DE SERVIÇOS MÉDICOS'
     : 'RECIBO';
+
+  useEffect(() => {
+    if (!isOpen || !documento) {
+      setActivePrintItem(null);
+      return;
+    }
+
+    if (isRdc && rdc) {
+      setActivePrintItem({
+        tipo: 'rdc',
+        numero: documento.numero,
+        dadosRdc: {
+          numero: documento.numero,
+          detalhes: rdc,
+          tiposGasto,
+          tiposDoc,
+        },
+      });
+    } else if (isReciboMedico && med) {
+      setActivePrintItem({
+        tipo: 'recibo_medico',
+        numero: documento.numero,
+        dadosReciboMedico: {
+          numero: documento.numero,
+          valor: documento.valor,
+          valor_extenso: documento.valor_extenso,
+          data_emissao: documento.data_emissao,
+          usuario_nome: documento.usuario_nome,
+          detalhes: med,
+        },
+      });
+    } else {
+      setActivePrintItem({
+        tipo: 'recibo',
+        numero: documento.numero,
+        via,
+        dadosRecibo: {
+          numero: documento.numero,
+          valor: documento.valor,
+          valor_extenso: documento.valor_extenso,
+          referente: documento.referente,
+          data_emissao: documento.data_emissao,
+          cidade_emissao: documento.cidade_emissao,
+          observacoes: documento.observacoes,
+          logo_url: documento.logo_url,
+          usuario_nome: documento.usuario_nome,
+          emissora,
+          destinataria,
+          config,
+        },
+      });
+    }
+
+    return () => {
+      setActivePrintItem(null);
+    };
+  }, [
+    isOpen,
+    documento,
+    via,
+    isRdc,
+    rdc,
+    isReciboMedico,
+    med,
+    tiposGasto,
+    tiposDoc,
+    emissora,
+    destinataria,
+    config,
+    setActivePrintItem,
+  ]);
+
+  if (!isOpen || !documento) return null;
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-y-auto print-modal-overlay">
