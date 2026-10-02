@@ -1,6 +1,16 @@
 @import "tailwindcss";
 
-@custom-variant dark (&:where(.dark, .dark *));
+/* Desativa completamente o Dark Mode para que o Tailwind v4 não use @media (prefers-color-scheme: dark) */
+@custom-variant dark (&:where(.theme-dark-disabled-never-match));
+
+:root {
+  color-scheme: light !important;
+}
+
+html, body {
+  background-color: #f8fafc;
+  color: #0f172a;
+}
 
 /* =========================================================================
    ESTRUTURA ESPECÍFICA DE IMPRESSÃO (PRINT LAYOUT INDEPENDENTE)

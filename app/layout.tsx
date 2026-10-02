@@ -19,8 +19,15 @@ export const metadata: Metadata = {
 
 export default function RootLayout({children}: {children: React.ReactNode}) {
   return (
-    <html lang="pt-BR" suppressHydrationWarning>
-      <body className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 transition-colors" suppressHydrationWarning>
+    <html lang="pt-BR" className="light" style={{ colorScheme: 'light' }}>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `document.documentElement.classList.remove('dark');document.documentElement.classList.add('light');document.documentElement.style.colorScheme='light';try{localStorage.removeItem('recibo_rdc_theme');}catch(e){}`,
+          }}
+        />
+      </head>
+      <body className="min-h-screen bg-slate-50 text-slate-900 antialiased">
         <ThemeProvider>
           {children}
         </ThemeProvider>
