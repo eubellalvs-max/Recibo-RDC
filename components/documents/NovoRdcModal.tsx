@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Usuario, Empresa, Documento, ItemGastoRdc, ModeloDespesa } from '@/lib/types';
 import { StorageService } from '@/lib/storage';
 import { formatarMoeda, mascaraCpf, formatarDataBr, dataHojeIso } from '@/lib/masks';
@@ -87,8 +87,8 @@ export function NovoRdcModal({
  const [itens, setItens] = useState<ItemGastoRdc[]>([]);
 
  // Tipos de Gasto e Tipos de Documento lidos em tempo real das Configurações
- const tiposGasto = StorageService.getTiposGasto();
- const tiposDoc = StorageService.getTiposDoc();
+ const tiposGasto = useMemo(() => StorageService.getTiposGasto(), []);
+ const tiposDoc = useMemo(() => StorageService.getTiposDoc(), []);
 
  // Assinaturas
  const [assinaturaProfissional, setAssinaturaProfissional] = useState(currentUser.nome);
@@ -398,15 +398,12 @@ export function NovoRdcModal({
  tipoConta,
  chavePix,
  dataEntregaRdc,
- itens,
  totalDespesas,
  saldoDevolucao,
  valorARessarcir,
  assinaturaProfissional,
  diretoriaDireta,
  contabilFinanceiro,
- tiposGasto,
- tiposDoc,
  setActivePrintItem,
  ]);
 

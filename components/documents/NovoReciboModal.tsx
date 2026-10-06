@@ -145,9 +145,6 @@ export function NovoReciboModal({
  empresaEmissoraId,
  empresaDestinatariaId,
  currentUser.nome,
- empresaEmissoraObj,
- empresaDestinatariaObj,
- config,
  setActivePrintItem,
  ]);
 

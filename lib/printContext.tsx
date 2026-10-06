@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo, ReactNode } from 'react';
 import { Empresa, SistemaConfig, TipoGastoConfig, TipoDocConfig, DadosRdc, DadosReciboMedico } from './types';
 
 export interface PrintItem {
@@ -52,14 +52,35 @@ const PrintContext = createContext<PrintContextType>({
 export const usePrint = () => useContext(PrintContext);
 
 export const PrintProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [activePrintItem, setActivePrintItem] = useState<PrintItem | null>(null);
+  const [activePrintItem, setActivePrintItemState] = useState<PrintItem | null>(null);
 
-  const setVia = (via: '1' | '2') => {
-    setActivePrintItem((prev) => (prev ? { ...prev, via } : null));
-  };
+  const setActivePrintItem = useCallback((item: PrintItem | null) => {
+    setActivePrintItemState((prev) => {
+      if (!prev && !item) return null;
+      if (prev && item && prev.tipo === item.tipo && prev.numero === item.numero && prev.via === item.via) {
+        try {
+          if (JSON.stringify(prev) === JSON.stringify(item)) {
+            return prev;
+          }
+        } catch {
+          // fallback to updating
+        }
+      }
+      return item;
+    });
+  }, []);
+
+  const setVia = useCallback((via: '1' | '2') => {
+    setActivePrintItemState((prev) => (prev ? { ...prev, via } : null));
+  }, []);
+
+  const value = useMemo(
+    () => ({ activePrintItem, setActivePrintItem, setVia }),
+    [activePrintItem, setActivePrintItem, setVia]
+  );
 
   return (
-    <PrintContext.Provider value={{ activePrintItem, setActivePrintItem, setVia }}>
+    <PrintContext.Provider value={value}>
       {children}
     </PrintContext.Provider>
   );

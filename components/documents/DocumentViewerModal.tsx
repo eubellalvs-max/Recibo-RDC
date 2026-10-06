@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Documento, Empresa, TipoGastoConfig, TipoDocConfig } from '@/lib/types';
 import { StorageService } from '@/lib/storage';
 import { formatarDataBr } from '@/lib/masks';
@@ -40,8 +40,14 @@ export function DocumentViewerModal({
  const rdc = documento?.rdc_detalhes;
  const med = documento?.recibo_medico_detalhes;
 
- const tiposGasto: TipoGastoConfig[] = config.tipos_gasto || StorageService.getTiposGasto();
- const tiposDoc: TipoDocConfig[] = config.tipos_doc || StorageService.getTiposDoc();
+ const tiposGasto: TipoGastoConfig[] = useMemo(
+   () => config.tipos_gasto || StorageService.getTiposGasto(),
+   [config.tipos_gasto]
+ );
+ const tiposDoc: TipoDocConfig[] = useMemo(
+   () => config.tipos_doc || StorageService.getTiposDoc(),
+   [config.tipos_doc]
+ );
 
  const tituloDocumento = isRdc
  ? 'RDC - PRESTAÇÃO DE CONTAS'
@@ -106,17 +112,9 @@ export function DocumentViewerModal({
  };
  }, [
  isOpen,
- documento,
+ documento?.id,
+ documento?.numero,
  via,
- isRdc,
- rdc,
- isReciboMedico,
- med,
- tiposGasto,
- tiposDoc,
- emissora,
- destinataria,
- config,
  setActivePrintItem,
  ]);
 
