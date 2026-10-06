@@ -56,8 +56,9 @@ export const PrintProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   const setActivePrintItem = useCallback((item: PrintItem | null) => {
     setActivePrintItemState((prev) => {
+      if (prev === item) return prev;
       if (!prev && !item) return null;
-      if (prev && item && prev.tipo === item.tipo && prev.numero === item.numero && prev.via === item.via) {
+      if (prev && item) {
         try {
           if (JSON.stringify(prev) === JSON.stringify(item)) {
             return prev;

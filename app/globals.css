@@ -158,8 +158,8 @@ html, body {
     display: block !important;
     box-sizing: border-box !important;
     width: 100% !important;
-    max-width: 185mm !important;
-    margin: 0 auto 12mm auto !important;
+    max-width: 182mm !important;
+    margin: 0 auto !important;
     padding: 5mm 7mm !important;
     background: #ffffff !important;
     color: #000000 !important;
@@ -173,126 +173,11 @@ html, body {
     break-before: avoid !important;
     box-shadow: none !important;
     transform: none !important;
-    font-size: 8.5pt !important;
-    line-height: 1.25 !important;
     overflow: visible !important;
   }
 
   .print-sheet-medico * {
     box-shadow: none !important;
-  }
-
-  .print-sheet-medico .med-header {
-    border-bottom: 1.5px solid #000000 !important;
-    padding-bottom: 2mm !important;
-    margin-bottom: 2.5mm !important;
-    text-align: center !important;
-  }
-
-  .print-sheet-medico .med-logo {
-    max-height: 14mm !important;
-    height: 14mm !important;
-    width: auto !important;
-    margin-bottom: 1.2mm !important;
-    object-fit: contain !important;
-  }
-
-  .print-sheet-medico .med-subtitle {
-    font-size: 8pt !important;
-    font-weight: 700 !important;
-    margin-bottom: 0.5mm !important;
-    line-height: 1.15 !important;
-    color: #0f172a !important;
-  }
-
-  .print-sheet-medico .med-cnpj {
-    font-size: 7.5pt !important;
-    font-weight: 700 !important;
-    margin-bottom: 1.2mm !important;
-    line-height: 1.15 !important;
-    color: #000000 !important;
-  }
-
-  .print-sheet-medico .med-title {
-    font-size: 11pt !important;
-    line-height: 1.15 !important;
-    margin-top: 0.8mm !important;
-    font-weight: 900 !important;
-    color: #000000 !important;
-  }
-
-  .print-sheet-medico .med-destaque {
-    padding: 2mm 3.5mm !important;
-    margin-bottom: 2.5mm !important;
-    border-radius: 4px !important;
-    border: 1.5px solid #000000 !important;
-    background: #f8fafc !important;
-  }
-
-  .print-sheet-medico .med-content {
-    margin-top: 0 !important;
-  }
-
-  .print-sheet-medico .med-content > * + * {
-    margin-top: 2mm !important;
-  }
-
-  .print-sheet-medico .med-content p {
-    font-size: 8.2pt !important;
-    line-height: 1.25 !important;
-    color: #000000 !important;
-    text-align: justify !important;
-  }
-
-  .print-sheet-medico .med-card {
-    border: 1.5px solid #000000 !important;
-    border-radius: 4px !important;
-    overflow: hidden !important;
-    break-inside: avoid !important;
-    page-break-inside: avoid !important;
-  }
-
-  .print-sheet-medico .med-card-header {
-    padding: 1mm 2.5mm !important;
-    font-size: 7.5pt !important;
-    font-weight: 900 !important;
-    border-bottom: 1.2px solid #000000 !important;
-    background: #f1f5f9 !important;
-    color: #000000 !important;
-  }
-
-  .print-sheet-medico .med-card-body {
-    padding: 1.5mm 2.5mm !important;
-    font-size: 8pt !important;
-    line-height: 1.22 !important;
-    color: #000000 !important;
-  }
-
-  .print-sheet-medico .med-card-body > * + * {
-    padding-top: 1mm !important;
-    border-top: 1px solid #cbd5e1 !important;
-  }
-
-  .print-sheet-medico .med-signature {
-    padding-top: 3mm !important;
-    margin-top: 1.5mm !important;
-    text-align: center !important;
-    break-inside: avoid !important;
-    page-break-inside: avoid !important;
-  }
-
-  .print-sheet-medico .med-signature-line {
-    width: 60mm !important;
-    margin-bottom: 1mm !important;
-    border-top: 1.5px solid #000000 !important;
-  }
-
-  .print-sheet-medico .med-footer {
-    margin-top: 2mm !important;
-    padding-top: 1mm !important;
-    font-size: 7pt !important;
-    border-top: 1px solid #64748b !important;
-    color: #334155 !important;
   }
 
   .avoid-page-break {

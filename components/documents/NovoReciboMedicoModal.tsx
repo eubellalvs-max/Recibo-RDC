@@ -228,6 +228,7 @@ export function NovoReciboMedicoModal({
 
  useEffect(() => {
  if (!isOpen || !modoPreVisualizar) {
+ setActivePrintItem(null);
  return;
  }
 

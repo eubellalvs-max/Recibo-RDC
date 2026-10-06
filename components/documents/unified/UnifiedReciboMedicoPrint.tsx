@@ -24,60 +24,60 @@ export const UnifiedReciboMedicoPrint: React.FC<UnifiedReciboMedicoPrintProps> =
   const { numero, valor, valor_extenso, data_emissao, usuario_nome, detalhes: med } = dados;
 
   return (
-    <div className="receipt-sheet-medico print-sheet-medico receipt-sheet print-document print-sheet bg-white border border-slate-300 shadow-sm p-6 sm:p-10 max-w-3xl w-full text-slate-900 font-sans leading-relaxed text-xs sm:text-sm mx-auto">
+    <div className="receipt-sheet-medico print-sheet-medico receipt-sheet print-document print-sheet bg-white border-2 border-slate-900 shadow-sm p-5 sm:p-6 max-w-2xl w-full text-slate-950 font-sans leading-relaxed text-xs mx-auto">
       {/* Cabeçalho Oficial do Modelo com Logo ABEAS Acima e depois os textos */}
-      <div className="med-header text-center border-b-2 border-slate-300 pb-4 mb-4 print:pb-1.5 print:mb-1.5 print:border-slate-400">
-        <div className="flex justify-center mb-2 print:mb-0.5">
+      <div className="med-header text-center border-b-2 border-slate-900 pb-2.5 mb-2.5">
+        <div className="flex justify-center mb-1">
           <img
             src="/abeas_logo.png"
             alt="ABEAS"
-            className="med-logo h-16 sm:h-20 w-auto object-contain print:h-10 print:max-h-10"
+            className="med-logo h-12 w-auto object-contain mx-auto"
           />
         </div>
-        <div className="med-subtitle text-xs uppercase tracking-wider text-slate-800 font-bold mb-0.5 print:text-[7.5pt] print:mb-0">
+        <div className="med-subtitle text-[11px] uppercase tracking-wider text-slate-800 font-bold mb-0.5">
           ABEAS - Associação Brasileira de Entidades de Assistência Social
         </div>
-        <div className="med-cnpj text-xs text-slate-950 font-mono font-bold mb-2.5 print:text-[7pt] print:mb-0.5">
+        <div className="med-cnpj text-[10.5px] text-slate-950 font-mono font-bold mb-1.5">
           CNPJ: 04.547.278/0005-68.
         </div>
-        <h1 className="med-title text-lg md:text-xl font-black uppercase text-black tracking-tight print:text-[10pt] print:leading-none">
+        <h1 className="med-title text-base sm:text-lg font-black uppercase text-black tracking-tight">
           RECIBO DE PRESTAÇÃO DE SERVIÇOS MÉDICOS
         </h1>
       </div>
 
       {/* Linha com Número e Valor em Destaque */}
-      <div className="med-destaque flex flex-wrap items-center justify-between gap-3 p-3.5 bg-slate-100 border-2 border-slate-900 rounded-lg mb-5 print:p-1.5 print:mb-1.5 print:bg-slate-50 print:border-slate-300">
+      <div className="med-destaque flex flex-wrap items-center justify-between gap-2 px-3 py-1.5 bg-slate-100 border-2 border-slate-900 rounded-lg mb-2.5">
         <div>
-          <span className="text-xs font-black text-slate-950 uppercase tracking-wider print:text-[7pt]">
+          <span className="text-[11px] font-black text-slate-950 uppercase tracking-wider">
             Recibo nº:{' '}
           </span>
-          <span className="text-base font-black font-mono text-black print:text-[9.5pt]">
+          <span className="text-sm font-black font-mono text-black ml-1">
             {numero}
           </span>
         </div>
         <div className="text-right">
-          <span className="text-xs font-black text-slate-950 uppercase tracking-wider block print:text-[7pt]">
-            Valor:
+          <span className="text-[11px] font-black text-slate-950 uppercase tracking-wider">
+            Valor:{' '}
           </span>
-          <span className="text-lg md:text-xl font-black text-black print:text-[10.5pt]">
+          <span className="text-base font-black text-black ml-1">
             {formatarMoeda(valor)}
           </span>
         </div>
       </div>
 
-      <div className="med-content space-y-4 text-xs sm:text-sm text-slate-950 print:space-y-1.5 print:text-[7.8pt] print:leading-snug">
+      <div className="med-content space-y-2 text-[11px] text-slate-950 leading-snug">
         {/* Texto Fixo Declaratório da ABEAS */}
-        <p className="leading-relaxed text-justify font-medium text-black print:leading-snug">
+        <p className="leading-relaxed text-justify font-medium text-black">
           {ABEAS_FIXA.texto_declaracao}
         </p>
 
         {/* Seção: DADOS DO PAGADOR */}
-        <div className="med-card border-2 border-slate-900 rounded-lg overflow-hidden print:rounded-xs print:border-slate-400">
-          <div className="med-card-header bg-slate-100 px-3.5 py-1.5 border-b-2 border-slate-900 text-xs font-black text-black uppercase tracking-wider print:py-0.5 print:px-2 print:text-[7pt]">
+        <div className="med-card border border-slate-900 rounded-md overflow-hidden bg-white">
+          <div className="med-card-header bg-slate-100 px-3 py-1 border-b border-slate-900 text-[10px] font-black text-black uppercase tracking-wider">
             DADOS DO PAGADOR
           </div>
-          <div className="med-card-body p-3 space-y-1 text-xs text-slate-950 bg-white print:p-1.5 print:space-y-0.5 print:text-[7.2pt]">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 print:gap-1">
+          <div className="med-card-body p-2 space-y-0.5 text-[11px] text-slate-950 bg-white">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-0.5">
               <div>
                 <span className="font-bold text-black">Nome/Razão Social: </span>
                 <span className="font-semibold text-slate-950">{med.pagador_nome}</span>
@@ -87,7 +87,7 @@ export const UnifiedReciboMedicoPrint: React.FC<UnifiedReciboMedicoPrintProps> =
                 <span className="font-mono font-bold text-slate-950">{med.pagador_documento}</span>
               </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 border-t border-slate-200 print:pt-0.5 print:gap-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-0.5 pt-0.5 border-t border-slate-200">
               <div>
                 <span className="font-bold text-black">Telefone: </span>
                 <span className="text-slate-950">{med.pagador_telefone || '---'}</span>
@@ -101,17 +101,17 @@ export const UnifiedReciboMedicoPrint: React.FC<UnifiedReciboMedicoPrintProps> =
         </div>
 
         {/* Texto Intermediário com Valor e Extenso Automáticos */}
-        <p className="leading-relaxed text-justify print:leading-snug text-black">
+        <p className="leading-relaxed text-justify text-black">
           A quantia supra de <b>{formatarMoeda(valor)}</b> (<i>{valor_extenso}</i>), referente à prestação de serviços médicos particulares realizados no(a) paciente abaixo qualificado(a):
         </p>
 
         {/* Seção: DADOS DO PACIENTE */}
-        <div className="med-card border-2 border-slate-900 rounded-lg overflow-hidden print:rounded-xs print:border-slate-400">
-          <div className="med-card-header bg-slate-100 px-3.5 py-1.5 border-b-2 border-slate-900 text-xs font-black text-black uppercase tracking-wider print:py-0.5 print:px-2 print:text-[7pt]">
+        <div className="med-card border border-slate-900 rounded-md overflow-hidden bg-white">
+          <div className="med-card-header bg-slate-100 px-3 py-1 border-b border-slate-900 text-[10px] font-black text-black uppercase tracking-wider">
             DADOS DO PACIENTE
           </div>
-          <div className="med-card-body p-3 space-y-1 text-xs text-slate-950 bg-white print:p-1.5 print:space-y-0.5 print:text-[7.2pt]">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 print:gap-1">
+          <div className="med-card-body p-2 space-y-0.5 text-[11px] text-slate-950 bg-white">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-0.5">
               <div>
                 <span className="font-bold text-black">Nome do Paciente: </span>
                 <span className="font-semibold text-slate-950">{med.paciente_nome}</span>
@@ -121,7 +121,7 @@ export const UnifiedReciboMedicoPrint: React.FC<UnifiedReciboMedicoPrintProps> =
                 <span className="font-mono font-bold text-slate-950">{med.paciente_cpf}</span>
               </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 border-t border-slate-200 print:pt-0.5 print:gap-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-0.5 pt-0.5 border-t border-slate-200">
               <div>
                 <span className="font-bold text-black">Telefone: </span>
                 <span className="text-slate-950">{med.paciente_telefone || '---'}</span>
@@ -135,16 +135,16 @@ export const UnifiedReciboMedicoPrint: React.FC<UnifiedReciboMedicoPrintProps> =
         </div>
 
         {/* Seção: DETALHES DO ATENDIMENTO */}
-        <div className="med-card border-2 border-slate-900 rounded-lg overflow-hidden print:rounded-xs print:border-slate-400">
-          <div className="med-card-header bg-slate-100 px-3.5 py-1.5 border-b-2 border-slate-900 text-xs font-black text-black uppercase tracking-wider print:py-0.5 print:px-2 print:text-[7pt]">
+        <div className="med-card border border-slate-900 rounded-md overflow-hidden bg-white">
+          <div className="med-card-header bg-slate-100 px-3 py-1 border-b border-slate-900 text-[10px] font-black text-black uppercase tracking-wider">
             DETALHES DO ATENDIMENTO:
           </div>
-          <div className="med-card-body p-3 space-y-1 text-xs text-slate-950 bg-white print:p-1.5 print:space-y-0.5 print:text-[7.2pt]">
+          <div className="med-card-body p-2 space-y-0.5 text-[11px] text-slate-950 bg-white">
             <div>
               <span className="font-bold text-black">Serviço prestado: </span>
               <span className="font-semibold text-slate-950">{med.servico_prestado}</span>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 border-t border-slate-200 print:pt-0.5 print:gap-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-0.5 pt-0.5 border-t border-slate-200">
               <div>
                 <span className="font-bold text-black">Médico(a) assistente: </span>
                 <span className="font-semibold text-slate-950">{med.medico_assistente}</span>
@@ -154,7 +154,7 @@ export const UnifiedReciboMedicoPrint: React.FC<UnifiedReciboMedicoPrintProps> =
                 <span className="font-mono font-bold text-slate-950">{med.crm}</span>
               </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 border-t border-slate-200 print:pt-0.5 print:gap-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-0.5 pt-0.5 border-t border-slate-200">
               <div>
                 <span className="font-bold text-black">Data do atendimento: </span>
                 <span className="font-semibold text-slate-950">{med.data_atendimento.split('-').reverse().join('/')}</span>
@@ -168,29 +168,29 @@ export const UnifiedReciboMedicoPrint: React.FC<UnifiedReciboMedicoPrintProps> =
         </div>
 
         {/* Texto Final Fixo */}
-        <p className="leading-relaxed text-justify font-medium pt-1 print:pt-0 print:leading-snug text-black">
+        <p className="leading-relaxed text-justify font-medium pt-0.5 text-black">
           {ABEAS_FIXA.texto_final}
         </p>
 
         {/* Local e Data */}
-        <div className="pt-2 text-right text-xs text-black font-bold print:pt-0.5 print:text-[7.2pt]">
+        <div className="pt-1 text-right text-[11px] text-black font-bold">
           {med.cidade || 'Itapuranga'} - {med.uf || 'GO'}, {dataPorExtenso(data_emissao)}.
         </div>
 
         {/* Assinatura Oficial Fixa da ABEAS */}
-        <div className="med-signature pt-8 text-center avoid-page-break print:pt-2.5 print:mt-1">
-          <div className="med-signature-line w-80 mx-auto border-t-2 border-slate-900 mb-1.5 print:w-52 print:mb-0.5 print:border-slate-800" />
-          <div className="font-black text-xs uppercase text-black print:text-[7.5pt]">
+        <div className="med-signature pt-4 text-center avoid-page-break">
+          <div className="med-signature-line w-72 mx-auto border-t-2 border-slate-900 mb-1" />
+          <div className="font-black text-xs uppercase text-black">
             {ABEAS_FIXA.razao_social}
           </div>
-          <div className="text-[11px] text-slate-950 font-mono font-bold print:text-[6.8pt]">
+          <div className="text-[10.5px] text-slate-950 font-mono font-bold">
             CNPJ: {ABEAS_FIXA.cnpj}
           </div>
         </div>
       </div>
 
       {/* Rodapé Interno */}
-      <div className="med-footer mt-8 pt-3 border-t border-slate-900 flex items-center justify-between text-[10px] text-slate-950 font-bold print:mt-1.5 print:pt-1 print:text-[6.5pt] print:border-slate-300">
+      <div className="med-footer mt-4 pt-2 border-t border-slate-900 flex items-center justify-between text-[10px] text-slate-950 font-bold">
         <div>Documento Oficial de Prestação de Serviços Médicos Particulares</div>
         <div>Emissor: {usuario_nome || 'Sistema'}</div>
       </div>
