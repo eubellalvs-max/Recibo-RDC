@@ -24,7 +24,7 @@ export const UnifiedReciboMedicoPrint: React.FC<UnifiedReciboMedicoPrintProps> =
   const { numero, valor, valor_extenso, data_emissao, usuario_nome, detalhes: med } = dados;
 
   return (
-    <div className="receipt-sheet-medico print-sheet-medico receipt-sheet print-document print-sheet bg-white border border-slate-300 shadow-sm p-6 sm:p-10 max-w-3xl w-full text-slate-900 font-sans leading-relaxed text-xs sm:text-sm mx-auto print:p-0 print:border-slate-800 print:text-[8pt] print:leading-tight">
+    <div className="receipt-sheet-medico print-sheet-medico receipt-sheet print-document print-sheet bg-white border border-slate-300 shadow-sm p-6 sm:p-10 max-w-3xl w-full text-slate-900 font-sans leading-relaxed text-xs sm:text-sm mx-auto">
       {/* Cabeçalho Oficial do Modelo com Logo ABEAS Acima e depois os textos */}
       <div className="med-header text-center border-b-2 border-slate-300 pb-4 mb-4 print:pb-1.5 print:mb-1.5 print:border-slate-400">
         <div className="flex justify-center mb-2 print:mb-0.5">
