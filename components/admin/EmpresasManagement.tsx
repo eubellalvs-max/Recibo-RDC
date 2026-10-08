@@ -218,6 +218,7 @@ export function EmpresasManagement({ currentUser, readOnly = false }: EmpresasMa
  tipo,
  status,
  logo_url: logoUrl.trim() || undefined,
+ proximo_recibo_num: empresaEditando?.proximo_recibo_num || (empresaEditando ? StorageService.getProximoNumeroReciboFornecedor(empresaEditando.id) : 1),
  created_at: empresaEditando ? empresaEditando.created_at : new Date().toISOString(),
  };
 

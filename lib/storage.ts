@@ -59,6 +59,9 @@ export const INITIAL_CONFIG: SistemaConfig = {
   mensagem_rodape: 'Documento emitido eletronicamente pelo Sistema Oficial de Recibos e RDC.',
   tipos_gasto: DEFAULT_TIPOS_GASTO,
   tipos_doc: DEFAULT_TIPOS_DOC,
+  numeracao_fornecedores: {
+    'emp-2': 126, // Alpha Tech possui doc-125 emitido
+  },
 };
 
 export const INITIAL_EMPRESAS: Empresa[] = [
@@ -639,12 +642,29 @@ export const StorageService = {
   saveEmpresa(empresa: Empresa): Empresa {
     const list = this.getEmpresas();
     const index = list.findIndex((e) => e.id === empresa.id);
+
+    // Se o próximo número não foi informado ou é inválido, preservar o existente ou calcular
+    if (typeof empresa.proximo_recibo_num !== 'number' || empresa.proximo_recibo_num < 1) {
+      if (index >= 0 && typeof list[index].proximo_recibo_num === 'number' && list[index].proximo_recibo_num >= 1) {
+        empresa.proximo_recibo_num = list[index].proximo_recibo_num;
+      } else {
+        empresa.proximo_recibo_num = this.getProximoNumeroReciboFornecedor(empresa.id);
+      }
+    }
+
     if (index >= 0) {
       list[index] = empresa;
     } else {
       list.unshift(empresa);
     }
     setLocalStorageItem(STORAGE_KEYS.EMPRESAS, list);
+
+    // Sincronizar com config.numeracao_fornecedores
+    const config = this.getConfig();
+    if (!config.numeracao_fornecedores) config.numeracao_fornecedores = {};
+    config.numeracao_fornecedores[empresa.id] = empresa.proximo_recibo_num;
+    this.saveConfig(config);
+
     return empresa;
   },
 
@@ -771,6 +791,86 @@ export const StorageService = {
     return `${String(seqNum).padStart(3, '0')}/${ano}`;
   },
 
+  // --- Controle de Numeração Sequencial por Fornecedor (Recibos) ---
+  getProximoNumeroReciboFornecedor(fornecedorId?: string): number {
+    if (!fornecedorId) return 1;
+
+    const docs = this.getDocumentos().filter(
+      (d) => d.tipo === 'recibo' && d.empresa_emissora_id === fornecedorId
+    );
+    const numerosEmitidos = new Set(docs.map((d) => d.numero_sequencial || 0));
+
+    let candidato = 1;
+    // 1. Verificar mapa nas configurações do sistema
+    const config = this.getConfig();
+    if (config.numeracao_fornecedores && typeof config.numeracao_fornecedores[fornecedorId] === 'number') {
+      const val = config.numeracao_fornecedores[fornecedorId];
+      if (val >= 1) candidato = val;
+    } else {
+      // 2. Verificar campo no cadastro da empresa / fornecedor
+      const empresas = this.getEmpresas();
+      const emp = empresas.find((e) => e.id === fornecedorId);
+      if (emp && typeof emp.proximo_recibo_num === 'number' && emp.proximo_recibo_num >= 1) {
+        candidato = emp.proximo_recibo_num;
+      } else if (docs.length > 0) {
+        // 3. Caso não esteja configurado, calcular baseado no maior número já emitido
+        const maxSeq = Math.max(...docs.map((d) => d.numero_sequencial || 0), 0);
+        candidato = maxSeq + 1;
+      } else {
+        candidato = 1;
+      }
+    }
+
+    // Regra mandatória: Evitar duplicidade de número dentro do mesmo fornecedor
+    while (numerosEmitidos.has(candidato)) {
+      candidato++;
+    }
+
+    return Math.max(1, candidato);
+  },
+
+  getUltimoNumeroReciboFornecedor(fornecedorId?: string): number {
+    if (!fornecedorId) return 0;
+    const docs = this.getDocumentos().filter(
+      (d) => d.tipo === 'recibo' && d.empresa_emissora_id === fornecedorId
+    );
+    if (docs.length > 0) {
+      return Math.max(...docs.map((d) => d.numero_sequencial || 0), 0);
+    }
+    const prox = this.getProximoNumeroReciboFornecedor(fornecedorId);
+    if (prox > 1) {
+      return prox - 1;
+    }
+    return 0;
+  },
+
+  setProximoNumeroReciboFornecedor(fornecedorId: string, proximoNumero: number): void {
+    if (!fornecedorId) return;
+    const novoValor = Math.max(1, Math.floor(proximoNumero) || 1);
+
+    // 1. Atualizar no config
+    const config = this.getConfig();
+    if (!config.numeracao_fornecedores) {
+      config.numeracao_fornecedores = {};
+    }
+    config.numeracao_fornecedores[fornecedorId] = novoValor;
+    this.saveConfig(config);
+
+    // 2. Atualizar no cadastro da empresa
+    const empresas = this.getEmpresas();
+    const empIndex = empresas.findIndex((e) => e.id === fornecedorId);
+    if (empIndex >= 0) {
+      empresas[empIndex].proximo_recibo_num = novoValor;
+      setLocalStorageItem(STORAGE_KEYS.EMPRESAS, empresas);
+    }
+  },
+
+  formatarNumeroRecibo(seqNum: number, ano?: number): string {
+    const config = this.getConfig();
+    const anoRef = ano || config.ano_corrente || new Date().getFullYear();
+    return `${String(seqNum).padStart(3, '0')}/${anoRef}`;
+  },
+
   emitirDocumento(params: {
     tipo: TipoDocumento;
     empresa_emissora_id: string;
@@ -789,24 +889,26 @@ export const StorageService = {
     const config = this.getConfig();
     const ano = config.ano_corrente || new Date().getFullYear();
 
-    // Sequenciador automático
+    // Sequenciador automático independente por tipo e por fornecedor
     let seqNum = 1;
     let numeroFormatado = '';
 
     if (params.tipo === 'recibo_medico') {
       seqNum = config.proximo_recibo_medico_num || 2;
       config.proximo_recibo_medico_num = seqNum + 1;
+      this.saveConfig(config);
       numeroFormatado = `${String(seqNum).padStart(3, '0')}/${ano}`;
     } else if (params.tipo === 'recibo') {
-      seqNum = config.proximo_recibo_num;
-      config.proximo_recibo_num += 1;
-      numeroFormatado = `${String(seqNum).padStart(6, '0')}/${ano}`;
+      const fornecedorId = params.empresa_emissora_id;
+      seqNum = this.getProximoNumeroReciboFornecedor(fornecedorId);
+      this.setProximoNumeroReciboFornecedor(fornecedorId, seqNum + 1);
+      numeroFormatado = this.formatarNumeroRecibo(seqNum, ano);
     } else {
       seqNum = config.proximo_rdc_num;
       config.proximo_rdc_num += 1;
+      this.saveConfig(config);
       numeroFormatado = `${String(seqNum).padStart(6, '0')}/${ano}`;
     }
-    this.saveConfig(config);
 
     const extenso = valorPorExtenso(params.valor);
 

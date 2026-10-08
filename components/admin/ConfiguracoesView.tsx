@@ -7,6 +7,7 @@ import {
  TipoDocConfig,
  ModeloDespesa,
  ItemModeloDespesa,
+ Empresa,
 } from '@/lib/types';
 import {
  StorageService,
@@ -14,7 +15,7 @@ import {
  DEFAULT_TIPOS_DOC,
  INITIAL_MODELOS_DESPESA,
 } from '@/lib/storage';
-import { formatarMoeda } from '@/lib/masks';
+import { formatarMoeda, mascaraCnpj, mascaraCpf } from '@/lib/masks';
 import {
  Settings,
  Save,
@@ -33,6 +34,8 @@ import {
  Sparkles,
  Eye,
  Info,
+ Building2,
+ Search,
 } from 'lucide-react';
 
 type TabConfig = 'geral' | 'tipos-gasto' | 'tipos-doc' | 'modelos-despesa' | 'manutencao';
@@ -47,8 +50,28 @@ export function ConfiguracoesView() {
  StorageService.getTiposDoc()
  );
  const [modelosDespesa, setModelosDespesa] = useState<ModeloDespesa[]>(() =>
- StorageService.getModelosDespesa()
+  StorageService.getModelosDespesa()
  );
+ const [empresas, setEmpresas] = useState<Empresa[]>(() => StorageService.getEmpresas());
+ const [buscaFornecedor, setBuscaFornecedor] = useState('');
+
+ const handleAtualizarNumeroFornecedor = (empresaId: string, novoValor: number) => {
+  const valor = Math.max(1, Math.floor(novoValor) || 1);
+  setConfig((prev) => ({
+   ...prev,
+   numeracao_fornecedores: {
+    ...(prev.numeracao_fornecedores || {}),
+    [empresaId]: valor,
+   },
+  }));
+ };
+
+ const handleSalvarNumeroIndividual = (empresaId: string, nomeEmpresa: string) => {
+  const valor = config.numeracao_fornecedores?.[empresaId] ?? StorageService.getProximoNumeroReciboFornecedor(empresaId);
+  StorageService.setProximoNumeroReciboFornecedor(empresaId, valor);
+  setEmpresas(StorageService.getEmpresas());
+  notificarSucesso(`Sequência do fornecedor "${nomeEmpresa}" atualizada para o próximo Nº ${String(valor).padStart(3, '0')} com sucesso!`);
+ };
 
  const [sucesso, setSucesso] = useState<string | null>(null);
  const [erro, setErro] = useState<string | null>(null);
@@ -149,7 +172,13 @@ export function ConfiguracoesView() {
  }
 
  StorageService.saveConfig(config);
- notificarSucesso('Configurações gerais salvas com sucesso!');
+ if (config.numeracao_fornecedores) {
+ Object.entries(config.numeracao_fornecedores).forEach(([empId, proxNum]) => {
+ StorageService.setProximoNumeroReciboFornecedor(empId, proxNum);
+ });
+ }
+ setEmpresas(StorageService.getEmpresas());
+ notificarSucesso('Configurações gerais e numerações por fornecedor salvas com sucesso!');
  };
 
  // ==========================================
@@ -785,8 +814,116 @@ export function ConfiguracoesView() {
  className="w-full px-3 py-1.5 text-xs bg-white border border-slate-300 rounded-lg text-slate-900 font-mono font-bold"
  />
  <p className="text-[10px] text-slate-600 font-medium">
- Próximo formato: {String(config.proximo_recibo_medico_num || 1).padStart(6, '0')}/{config.ano_corrente}
+ Próximo formato: {String(config.proximo_recibo_medico_num || 1).padStart(3, '0')}/{config.ano_corrente}
  </p>
+ </div>
+ </div>
+
+ {/* Subseção: Numeração Individual e Independente por Fornecedor */}
+ <div className="mt-6 pt-5 border-t border-slate-200 space-y-3">
+ <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+ <div>
+ <h3 className="text-xs font-bold text-slate-900 flex items-center gap-2">
+ <Building2 className="w-4 h-4 text-emerald-600 shrink-0" />
+ <span>Numeração Sequencial de Recibos por Fornecedor</span>
+ </h3>
+ <p className="text-[11px] text-slate-600 mt-0.5">
+ Cada fornecedor possui sequência própria e independente. Um fornecedor novo inicia em 001. A emissão de um recibo para um fornecedor não altera a numeração dos demais.
+ </p>
+ </div>
+ <div className="relative w-full sm:w-64 shrink-0">
+ <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-400 pointer-events-none" />
+ <input
+ type="text"
+ value={buscaFornecedor}
+ onChange={(e) => setBuscaFornecedor(e.target.value)}
+ placeholder="Buscar fornecedor por nome ou CNPJ/CPF..."
+ className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-lg text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-slate-800 outline-none"
+ />
+ </div>
+ </div>
+
+ <div className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-2xs">
+ <div className="overflow-x-auto">
+ <table className="w-full text-left text-xs">
+ <thead className="bg-slate-50 border-b border-slate-200 text-slate-700 font-bold uppercase text-[10px] tracking-wider">
+ <tr>
+ <th className="px-4 py-2.5">Fornecedor / Razão Social</th>
+ <th className="px-3 py-2.5 text-center">Último Número Emitido</th>
+ <th className="px-3 py-2.5 text-center">Próximo Número (Sequencial)</th>
+ <th className="px-3 py-2.5 text-center">Ações</th>
+ </tr>
+ </thead>
+ <tbody className="divide-y divide-slate-100">
+ {empresas
+ .filter((emp) => emp.status !== 'inativa' && !emp.excluida_logica)
+ .filter((emp) => {
+ if (!buscaFornecedor.trim()) return true;
+ const q = buscaFornecedor.toLowerCase();
+ return (
+ (emp.razao_social && emp.razao_social.toLowerCase().includes(q)) ||
+ (emp.nome_fantasia && emp.nome_fantasia.toLowerCase().includes(q)) ||
+ (emp.cnpj && emp.cnpj.includes(q)) ||
+ (emp.cidade && emp.cidade.toLowerCase().includes(q))
+ );
+ })
+ .map((emp) => {
+ const ultimoNum = StorageService.getUltimoNumeroReciboFornecedor(emp.id);
+ const proxNum = config.numeracao_fornecedores?.[emp.id] ?? StorageService.getProximoNumeroReciboFornecedor(emp.id);
+ const isPf = emp.tipo_pessoa === 'PF' || emp.cnpj.replace(/\D/g, '').length === 11;
+ const docFormatado = isPf ? mascaraCpf(emp.cnpj) : mascaraCnpj(emp.cnpj);
+
+ return (
+ <tr key={emp.id} className="hover:bg-slate-50/70 transition-colors">
+ <td className="px-4 py-3">
+ <div className="font-bold text-slate-900">
+ {emp.nome_fantasia || emp.razao_social}
+ </div>
+ <div className="text-[10px] text-slate-600 font-mono mt-0.5">
+ {isPf ? 'CPF' : 'CNPJ'}: {docFormatado} · {emp.cidade}/{emp.uf}
+ </div>
+ </td>
+ <td className="px-3 py-3 text-center font-mono">
+ {ultimoNum > 0 ? (
+ <span className="font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+ {String(ultimoNum).padStart(3, '0')}
+ </span>
+ ) : (
+ <span className="text-slate-600 font-medium italic text-[11px]">
+ Nenhum (000)
+ </span>
+ )}
+ </td>
+ <td className="px-3 py-3 text-center">
+ <div className="inline-flex items-center gap-2">
+ <input
+ type="number"
+ min="1"
+ value={proxNum}
+ onChange={(e) => handleAtualizarNumeroFornecedor(emp.id, parseInt(e.target.value, 10) || 1)}
+ className="w-20 px-2.5 py-1 text-xs bg-slate-50 border border-slate-300 rounded font-mono font-bold text-slate-900 text-center focus:bg-white focus:border-slate-800 outline-none"
+ />
+ <span className="text-[11px] font-mono text-emerald-800 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+ {String(proxNum).padStart(3, '0')}/{config.ano_corrente}
+ </span>
+ </div>
+ </td>
+ <td className="px-3 py-3 text-center">
+ <button
+ type="button"
+ onClick={() => handleSalvarNumeroIndividual(emp.id, emp.nome_fantasia || emp.razao_social)}
+ className="px-3 py-1 text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded transition-colors"
+ title="Salvar sequência deste fornecedor"
+ >
+ Salvar
+ </button>
+ </td>
+ </tr>
+ );
+ })}
+ </tbody>
+ </table>
+ </div>
  </div>
  </div>
  </div>

@@ -44,6 +44,7 @@ export interface Empresa {
   status: StatusEmpresa;
   excluida_logica?: boolean; // Marcação de inativação/exclusão lógica para proteger histórico fiscal
   logo_url?: string; // Logo da empresa (Data URL base64 ou URL de imagem)
+  proximo_recibo_num?: number; // Próximo sequencial individual de recibos para este fornecedor (inicia em 1)
   created_at: string;
 }
 
@@ -211,4 +212,5 @@ export interface SistemaConfig {
   mensagem_rodape: string;
   tipos_gasto?: TipoGastoConfig[]; // Tipos / natureza de gastos configuráveis da RDC
   tipos_doc?: TipoDocConfig[]; // Tipos de documento configuráveis da RDC
+  numeracao_fornecedores?: Record<string, number>; // Controle de numeração sequencial independente por fornecedor (empresa_id -> próximo_número)
 }

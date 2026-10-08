@@ -91,9 +91,9 @@ export function NovoReciboModal({
 
 
  const config = StorageService.getConfig();
- const seqNum = config.proximo_recibo_num || 1;
  const anoAtual = config.ano_corrente || new Date().getFullYear();
- const numeroReciboAuto = `${String(seqNum).padStart(6, '0')}/${anoAtual}`;
+ const seqNumAtual = StorageService.getProximoNumeroReciboFornecedor(empresaEmissoraId);
+ const numeroReciboAuto = StorageService.formatarNumeroRecibo(seqNumAtual, anoAtual);
 
  // Filtrar emissoras elegíveis para este usuário
  const emissorasDisponiveis = empresas.filter((e) => {
@@ -384,8 +384,13 @@ export function NovoReciboModal({
  })}
  </select>
  {empresaEmissoraObj && (
- <div className="mt-1.5 px-2.5 py-1 text-[11px] text-slate-900 bg-slate-100 rounded border border-slate-200 font-semibold truncate">
+ <div className="mt-1.5 flex flex-wrap items-center justify-between gap-1.5 px-2.5 py-1 text-[11px] text-slate-900 bg-slate-100 rounded border border-slate-200 font-semibold">
+ <span className="truncate">
  {empresaEmissoraObj.tipo_pessoa === 'PF' || empresaEmissoraObj.cnpj.replace(/\D/g, '').length === 11 ? 'CPF' : 'CNPJ'}: {empresaEmissoraObj.tipo_pessoa === 'PF' || empresaEmissoraObj.cnpj.replace(/\D/g, '').length === 11 ? mascaraCpf(empresaEmissoraObj.cnpj) : mascaraCnpj(empresaEmissoraObj.cnpj)} · {empresaEmissoraObj.cidade}/{empresaEmissoraObj.uf}
+ </span>
+ <span className="shrink-0 text-emerald-800 font-mono font-bold bg-emerald-100 px-2 py-0.5 rounded border border-emerald-300">
+ Nº deste Recibo: {numeroReciboAuto}
+ </span>
  </div>
  )}
  </div>

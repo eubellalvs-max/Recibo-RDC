@@ -233,7 +233,7 @@ export function Sidebar({
  {isAdmin ? 'Painel do Administrador' : 'Área do Emissor'}
  </div>
  <div className="text-[10px] text-slate-500 ">
- {isAdmin ? 'Login: admin' : `Login: ${user.login}`}
+ {user.login ? `Login: ${user.login}` : user.nome}
  </div>
  </div>
  </div>

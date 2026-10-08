@@ -13,8 +13,8 @@ type TipoAcesso = 'admin' | 'emissor';
 
 export function LoginView({ onLoginSuccess }: LoginViewProps) {
  const [tipoAcesso, setTipoAcesso] = useState<TipoAcesso>('admin');
- const [login, setLogin] = useState('admin');
- const [senha, setSenha] = useState('123');
+ const [login, setLogin] = useState('');
+ const [senha, setSenha] = useState('');
  const [carregando, setCarregando] = useState(false);
  const [erro, setErro] = useState<string | null>(null);
  const [modalEsqueci, setModalEsqueci] = useState(false);
@@ -22,13 +22,8 @@ export function LoginView({ onLoginSuccess }: LoginViewProps) {
  const handleMudarTipoAcesso = (tipo: TipoAcesso) => {
  setTipoAcesso(tipo);
  setErro(null);
- if (tipo === 'admin') {
- setLogin('admin');
- setSenha('123');
- } else {
- setLogin('lucas');
- setSenha('123');
- }
+ setLogin('');
+ setSenha('');
  };
 
  const handleSubmit = (e: React.FormEvent) => {
