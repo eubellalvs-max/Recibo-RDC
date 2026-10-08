@@ -189,12 +189,14 @@ export default function Home() {
  </div>
 
  {/* Modal: Novo Recibo */}
+ {modalReciboAberto && (
  <NovoReciboModal
  isOpen={modalReciboAberto}
  onClose={() => setModalReciboAberto(false)}
  currentUser={currentUser}
  onSuccess={handleEmissaoSucesso}
  />
+ )}
 
  {/* Modal: Novo RDC */}
  <NovoRdcModal

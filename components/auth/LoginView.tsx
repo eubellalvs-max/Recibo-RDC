@@ -164,11 +164,6 @@ export function LoginView({ onLoginSuccess }: LoginViewProps) {
  ? 'Gestão de empresas, usuários, permissões, histórico e numeração.'
  : 'Emissão rápida de Recibos, RDC corporativa e consulta.'}
  </p>
- <div className="text-[11px] font-mono mt-1 font-semibold pt-1 border-t border-black/10 ">
- {tipoAcesso === 'admin'
- ? 'Usuário padrão: admin | Senha: 123'
- : 'Usuário padrão: lucas ou mariana | Senha: 123'}
- </div>
  </div>
  </div>
 
@@ -195,7 +190,7 @@ export function LoginView({ onLoginSuccess }: LoginViewProps) {
  required
  value={login}
  onChange={(e) => setLogin(e.target.value)}
- placeholder={tipoAcesso === 'admin' ? 'admin' : 'Ex: lucas ou mariana'}
+ placeholder="Digite seu usuário"
  className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 focus:ring-1 focus:ring-slate-800 outline-none transition-colors"
  />
  </div>
@@ -217,9 +212,6 @@ export function LoginView({ onLoginSuccess }: LoginViewProps) {
  placeholder="••••••••"
  className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 focus:ring-1 focus:ring-slate-800 outline-none transition-colors"
  />
- </div>
- <div className="flex items-center justify-between mt-1 text-[11px] text-slate-400 ">
- <span>Senha padrão: 123 ou Mestra: 123456</span>
  </div>
  </div>
 
@@ -259,14 +251,8 @@ export function LoginView({ onLoginSuccess }: LoginViewProps) {
  <div className="bg-white border border-slate-200 rounded-2xl p-6 max-w-sm w-full shadow-xl">
  <h3 className="text-sm font-bold text-slate-900 mb-2">Recuperação de Senha</h3>
  <p className="text-xs text-slate-600 mb-4 leading-relaxed">
- Para redefinir sua senha, solicite ao <b>Administrador</b> a atualização no menu
- &quot;Cadastro de Usuários&quot; ou utilize a senha de contingência mestra <b>123456</b>.
+ Para redefinir sua senha, solicite ao <b>Administrador</b> a atualização no menu &quot;Cadastro de Usuários&quot;.
  </p>
- <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-[11px] text-slate-600 mb-4 space-y-1 font-mono">
- <div>Admin: admin | Senha: 123</div>
- <div>Emissor: lucas | Senha: 123</div>
- <div>Mestra: 123456</div>
- </div>
  <div className="flex justify-end">
  <button
  type="button"

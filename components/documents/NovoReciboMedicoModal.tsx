@@ -26,6 +26,7 @@ import {
  Building,
  Printer,
  Sparkles,
+ RotateCcw,
 } from 'lucide-react';
 import { usePrint } from '@/lib/printContext';
 import { UnifiedPrintToolbar } from './unified/UnifiedPrintToolbar';
@@ -48,11 +49,7 @@ export function NovoReciboMedicoModal({
 }: NovoReciboMedicoModalProps) {
  // Dados do Recibo
  const [numeroReciboAuto] = useState(() => StorageService.getProximoNumeroReciboMedico());
- const [valorStr, setValorStr] = useState(() =>
- initialData?.valor !== undefined
- ? initialData.valor.toFixed(2).replace('.', ',')
- : '350,00'
- );
+ const [valorStr, setValorStr] = useState('0,00');
  const [dataEmissao, setDataEmissao] = useState(() => dataHojeIso());
  const [cidade, setCidade] = useState(() => initialData?.cidade || 'Itapuranga');
  const [uf, setUf] = useState(() => initialData?.uf || 'GO');
@@ -90,10 +87,36 @@ export function NovoReciboMedicoModal({
  const [isSubmitting, setIsSubmitting] = useState(false);
 
  // Cálculo do valor numérico
- const valorNumerico = parseFloat(
- valorStr.replace(/\./g, '').replace(',', '.')
- ) || 0;
- const valorExtenso = valorNumerico > 0 ? valorPorExtenso(valorNumerico) : 'zero reais';
+ const valorNumerico = (() => {
+ const clean = valorStr.replace(/[^\d.,]/g, '').trim();
+ if (!clean) return 0;
+ if (clean.includes(',')) {
+ return parseFloat(clean.replace(/\./g, '').replace(',', '.')) || 0;
+ }
+ return parseFloat(clean) || 0;
+ })();
+ const valorExtenso = valorNumerico > 0 ? valorPorExtenso(valorNumerico) : '';
+
+ const resetForm = () => {
+ setValorStr('0,00');
+ setPagadorNome('');
+ setPagadorDocumento('');
+ setPagadorTelefone('');
+ setPagadorEndereco('');
+ setPacienteNome('');
+ setPacienteCpf('');
+ setPacienteTelefone('');
+ setPacienteEndereco('');
+ setServicoPrestado('Consulta médica em ginecologia');
+ setMedicoAssistente('Dr(a). Morena Ciclano de Tal');
+ setCrm('0000/GO');
+ setDataAtendimento(dataHojeIso());
+ setFormaPagamento('Pix');
+ setErro(null);
+ setIsSubmitting(false);
+ setModoPreVisualizar(false);
+ };
+
 
  // Copiar dados do Pagador para o Paciente
  const handleCopiarPagadorParaPaciente = () => {
@@ -207,6 +230,7 @@ export function NovoReciboMedicoModal({
  });
 
  onSuccess(novoDoc);
+ resetForm();
  } catch {
  setErro('Ocorreu um erro ao emitir o Recibo Médico. Tente novamente.');
  setIsSubmitting(false);
@@ -445,7 +469,7 @@ export function NovoReciboMedicoModal({
  {/* Valor Manual */}
  <div>
  <label className="block text-xs font-bold text-slate-900 mb-1">
- Valor: R$ (Manual) *
+ Valor (R$) *
  </label>
  <div className="relative">
  <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-xs font-black text-slate-800 ">
@@ -456,7 +480,12 @@ export function NovoReciboMedicoModal({
  required
  value={valorStr}
  onChange={(e) => setValorStr(e.target.value)}
- placeholder="350,00"
+ onFocus={(e) => {
+ if (e.target.value === '0,00' || e.target.value === '0' || e.target.value === '0.00') {
+ e.target.select();
+ }
+ }}
+ placeholder="0,00"
  className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg font-bold text-slate-950 focus:bg-white focus:border-slate-900 outline-none"
  />
  </div>
@@ -479,7 +508,9 @@ export function NovoReciboMedicoModal({
  {/* Exibição em tempo real do Extenso */}
  <div className="p-3 bg-blue-50/70 border border-blue-200/80 rounded-lg text-xs flex items-start gap-2">
  <span className="font-bold text-blue-900 shrink-0">Valor por extenso:</span>
- <span className="text-blue-950 font-semibold italic">{valorExtenso}</span>
+ <span className="text-blue-950 font-semibold italic">
+ {valorExtenso || <span className="text-slate-400 font-normal not-italic text-[11px]">(informe o valor acima para gerar o extenso)</span>}
+ </span>
  </div>
 
  {/* Localidade padrão */}
@@ -780,6 +811,7 @@ export function NovoReciboMedicoModal({
 
  {/* Barra de Ações Inferior */}
  <div className="no-print flex items-center justify-between px-6 py-4 border-t border-slate-200 bg-slate-50 rounded-b-xl shrink-0">
+ <div className="flex items-center gap-2">
  <button
  type="button"
  onClick={onClose}
@@ -787,6 +819,15 @@ export function NovoReciboMedicoModal({
  >
  Cancelar
  </button>
+ <button
+ type="button"
+ onClick={resetForm}
+ className="px-3 py-2 text-xs font-medium text-slate-600 hover:text-slate-900 border border-slate-200 rounded-lg hover:bg-white transition-colors flex items-center gap-1.5"
+ >
+ <RotateCcw className="w-3.5 h-3.5" />
+ <span>Limpar</span>
+ </button>
+ </div>
 
  <div className="flex items-center gap-3">
  <button

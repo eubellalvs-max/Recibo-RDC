@@ -61,7 +61,7 @@ export function RecibosMedicosView({
  if (!doc.recibo_medico_detalhes) return;
  onNovoReciboMedico({
  ...doc.recibo_medico_detalhes,
- valor: doc.valor,
+ valor: 0,
  });
  };
 

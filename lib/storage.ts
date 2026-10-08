@@ -545,9 +545,36 @@ function setLocalStorageItem<T>(key: string, value: T): void {
   }
 }
 
+// Helper seguro para SessionStorage no Next.js (SSR safe) - expira ao fechar o navegador
+function getSessionStorageItem<T>(key: string, defaultValue: T): T {
+  if (typeof window === 'undefined') return defaultValue;
+  try {
+    const raw = window.sessionStorage.getItem(key);
+    if (!raw) return defaultValue;
+    return JSON.parse(raw);
+  } catch (e) {
+    return defaultValue;
+  }
+}
+
+function setSessionStorageItem<T>(key: string, value: T): void {
+  if (typeof window === 'undefined') return;
+  try {
+    if (value === null || value === undefined) {
+      window.sessionStorage.removeItem(key);
+    } else {
+      window.sessionStorage.setItem(key, JSON.stringify(value));
+    }
+  } catch (e) {
+    console.error(`Erro ao salvar ${key} no sessionStorage:`, e);
+  }
+}
+
 export const StorageService = {
   init() {
     if (typeof window === 'undefined') return;
+    // Limpa chave legada no localStorage para garantir que nova abertura inicie sempre na tela de login
+    window.localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
     if (!window.localStorage.getItem(STORAGE_KEYS.USUARIOS)) {
       setLocalStorageItem(STORAGE_KEYS.USUARIOS, INITIAL_USUARIOS);
     }
@@ -946,12 +973,18 @@ export const StorageService = {
     return INITIAL_MODELOS_DESPESA;
   },
 
-  // --- Sessão Atual ---
+  // --- Sessão Atual (armazenada em sessionStorage para exigir login ao fechar e reabrir o navegador) ---
   getCurrentUser(): Usuario | null {
-    return getLocalStorageItem<Usuario | null>(STORAGE_KEYS.CURRENT_USER, null);
+    if (typeof window !== 'undefined') {
+      window.localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+    }
+    return getSessionStorageItem<Usuario | null>(STORAGE_KEYS.CURRENT_USER, null);
   },
 
   setCurrentUser(user: Usuario | null): void {
-    setLocalStorageItem(STORAGE_KEYS.CURRENT_USER, user);
+    if (typeof window !== 'undefined') {
+      window.localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+    }
+    setSessionStorageItem(STORAGE_KEYS.CURRENT_USER, user);
   },
 };
