@@ -140,6 +140,7 @@ export function NovoRdcModal({
  if (modelo.itens_padrao && modelo.itens_padrao.length > 0) {
  const novosItens: ItemGastoRdc[] = modelo.itens_padrao.map((it, idx) => ({
  id: `item-${Date.now()}-${idx}`,
+ data: it.data || dataEntregaRdc || dataHojeIso(),
  tipo_gasto: it.tipo_gasto,
  tipo_doc: it.tipo_doc,
  descricao: it.descricao,
@@ -166,12 +167,12 @@ export function NovoRdcModal({
  setAgencia('1820-1');
  setConta('45.890-2');
  setItens([
- { id: 'item-ex-1', tipo_gasto: 1, tipo_doc: 'NF', descricao: 'Restaurante Sabor & Arte - Almoço de trabalho equipe - NF 1042', valor: 380.0 },
- { id: 'item-ex-2', tipo_gasto: 2, tipo_doc: 'NF', descricao: 'Posto Petrobras Paulista - Abastecimento de veículo locado - NF 8892', valor: 320.0 },
- { id: 'item-ex-3', tipo_gasto: 3, tipo_doc: 'Rec', descricao: 'Uber do Brasil - Deslocamentos Aeroporto x Hotel x Escritório', valor: 195.0 },
- { id: 'item-ex-4', tipo_gasto: 4, tipo_doc: 'NF', descricao: 'Hotel Ibis Paulista - 2 diárias de hospedagem - NF 4421', valor: 850.0 },
- { id: 'item-ex-5', tipo_gasto: 5, tipo_doc: 'Rec', descricao: 'GOL Linhas Aéreas - Taxa de embarque e despacho bagagem', valor: 210.0 },
- { id: 'item-ex-6', tipo_gasto: 6, tipo_doc: 'Rec', descricao: 'Papelaria Express - Cópias de documentos e encadernações técnicas', valor: 145.0 },
+ { id: 'item-ex-1', data: '2026-09-20', tipo_gasto: 1, tipo_doc: 'NF', descricao: 'Restaurante Sabor & Arte - Almoço de trabalho equipe - NF 1042', valor: 380.0 },
+ { id: 'item-ex-2', data: '2026-09-20', tipo_gasto: 2, tipo_doc: 'NF', descricao: 'Posto Petrobras Paulista - Abastecimento de veículo locado - NF 8892', valor: 320.0 },
+ { id: 'item-ex-3', data: '2026-09-21', tipo_gasto: 3, tipo_doc: 'Rec', descricao: 'Uber do Brasil - Deslocamentos Aeroporto x Hotel x Escritório', valor: 195.0 },
+ { id: 'item-ex-4', data: '2026-09-21', tipo_gasto: 4, tipo_doc: 'NF', descricao: 'Hotel Ibis Paulista - 2 diárias de hospedagem - NF 4421', valor: 850.0 },
+ { id: 'item-ex-5', data: '2026-09-22', tipo_gasto: 5, tipo_doc: 'Rec', descricao: 'GOL Linhas Aéreas - Taxa de embarque e despacho bagagem', valor: 210.0 },
+ { id: 'item-ex-6', data: '2026-09-22', tipo_gasto: 6, tipo_doc: 'Rec', descricao: 'Papelaria Express - Cópias de documentos e encadernações técnicas', valor: 145.0 },
  ]);
  };
 
@@ -200,6 +201,7 @@ export function NovoRdcModal({
  const handleAdicionarItem = () => {
  const novo: ItemGastoRdc = {
  id: `item-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+ data: dataEntregaRdc || dataHojeIso(),
  tipo_gasto: tiposGasto[0]?.codigo || 1,
  tipo_doc: tiposDoc[0]?.codigo || 'Rec',
  descricao: '',
@@ -860,6 +862,7 @@ export function NovoRdcModal({
  <table className="w-full text-left text-xs">
  <thead>
  <tr className="bg-slate-100 text-slate-700 border-b border-slate-200 ">
+ <th className="px-2 py-1.5 w-32">Data</th>
  <th className="px-2 py-1.5 w-36">Tipo de Gasto</th>
  <th className="px-2 py-1.5 w-28">Tipo Doc.</th>
  <th className="px-2 py-1.5">Fornecedor / Observação / Nº Doc.</th>
@@ -870,13 +873,22 @@ export function NovoRdcModal({
  <tbody className="divide-y divide-slate-200 ">
  {itens.length === 0 ? (
  <tr>
- <td colSpan={5} className="py-6 text-center text-xs text-slate-400 ">
+ <td colSpan={6} className="py-6 text-center text-xs text-slate-400 ">
  Nenhum item adicionado. Clique no botão &ldquo;+ Adicionar Item&rdquo; ou carregue um Modelo acima.
  </td>
  </tr>
  ) : (
  itens.map((it) => (
  <tr key={it.id} className="hover:bg-slate-50/50 ">
+ <td className="p-1">
+ <input
+ type="date"
+ value={it.data || ''}
+ onChange={(e) => handleItemChange(it.id, 'data', e.target.value)}
+ className="w-full p-1 text-xs bg-slate-50 border border-slate-200 rounded text-slate-900 outline-none font-mono"
+ title="Data da despesa"
+ />
+ </td>
  <td className="p-1">
  <select
  value={it.tipo_gasto}

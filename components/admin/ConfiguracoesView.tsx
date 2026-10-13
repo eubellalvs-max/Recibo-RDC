@@ -481,6 +481,7 @@ export function ConfiguracoesView() {
  contabil_financeiro_padrao: modeloContabil.trim() || undefined,
  itens_padrao: modeloItens.map((it) => ({
  id: it.id,
+ data: it.data || undefined,
  tipo_gasto: Number(it.tipo_gasto) || 1,
  tipo_doc: String(it.tipo_doc || 'NF'),
  descricao: it.descricao.trim(),
@@ -1809,6 +1810,18 @@ export function ConfiguracoesView() {
  <span className="text-[10px] font-mono font-bold text-slate-500 w-5 text-center">
  {index + 1}
  </span>
+
+ <div className="w-full sm:w-36">
+ <input
+ type="date"
+ value={item.data || ''}
+ onChange={(e) =>
+ handleAtualizarItemModelo(item.id, 'data', e.target.value)
+ }
+ className="w-full px-2 py-1 text-xs bg-white border border-slate-200 rounded text-slate-900 outline-none font-mono"
+ title="Data da despesa"
+ />
+ </div>
 
  <div className="w-full sm:w-44">
  <select

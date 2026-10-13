@@ -95,6 +95,7 @@ export interface DadosReciboMedico {
 
 export interface ItemGastoRdc {
   id: string;
+  data?: string; // Data individual do dia de cada despesa (ex: YYYY-MM-DD)
   tipo_gasto: number; // Código do tipo de gasto (1, 2, 3, etc.)
   tipo_doc: string; // Sigla/código do tipo de documento ('Rec', 'Nf', etc.)
   descricao: string; // Fornecedor - observação das despesas - número documento
@@ -103,6 +104,7 @@ export interface ItemGastoRdc {
 
 export interface ItemModeloDespesa {
   id: string;
+  data?: string; // Data da despesa
   tipo_gasto: number;
   tipo_doc: string;
   descricao: string;

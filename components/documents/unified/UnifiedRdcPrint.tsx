@@ -178,6 +178,7 @@ export const UnifiedRdcPrint: React.FC<UnifiedRdcPrintProps> = ({ dados }) => {
         <table className="w-full text-left text-[9px] sm:text-[10px] border-collapse">
           <thead>
             <tr className="border-b border-slate-900 text-center font-bold bg-slate-50">
+              <th className="border-r border-slate-900 px-1 py-0.5 w-16">Data</th>
               <th className="border-r border-slate-900 px-1.5 py-0.5 w-16">Tipo Gastos</th>
               <th className="border-r border-slate-900 px-1.5 py-0.5 w-20">Tipo Doc. - Rec/NF</th>
               <th className="border-r border-slate-900 px-2 py-0.5 text-left">Fornecedor - observação das despesas - número documento</th>
@@ -187,6 +188,9 @@ export const UnifiedRdcPrint: React.FC<UnifiedRdcPrintProps> = ({ dados }) => {
           <tbody>
             {rdc.itens.map((it) => (
               <tr key={it.id} className="border-b border-slate-300">
+                <td className="border-r border-slate-900 px-1 py-0.5 text-center font-mono whitespace-nowrap">
+                  {it.data ? formatarDataBr(it.data) : (rdc.data_entrega_rdc ? formatarDataBr(rdc.data_entrega_rdc) : '-')}
+                </td>
                 <td className="border-r border-slate-900 px-1.5 py-0.5 text-center font-bold">
                   {it.tipo_gasto}
                 </td>
@@ -205,6 +209,7 @@ export const UnifiedRdcPrint: React.FC<UnifiedRdcPrintProps> = ({ dados }) => {
             {/* Linhas vazias para preservar a estrutura estética padrão da folha */}
             {Array.from({ length: linhasVaziasCount }).map((_, idx) => (
               <tr key={`empty-${idx}`} className="border-b border-slate-200 h-5">
+                <td className="border-r border-slate-900 px-1 py-0.5 text-center text-slate-300">-</td>
                 <td className="border-r border-slate-900 px-1.5 py-0.5 text-center text-slate-300">-</td>
                 <td className="border-r border-slate-900 px-1.5 py-0.5 text-center text-slate-300">-</td>
                 <td className="border-r border-slate-900 px-2 py-0.5">&nbsp;</td>

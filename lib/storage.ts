@@ -358,6 +358,7 @@ export const INITIAL_DOCUMENTOS: Documento[] = [
       itens: [
         {
           id: 'item-1',
+          data: '2026-09-20',
           tipo_gasto: 1,
           tipo_doc: 'NF',
           descricao: 'Restaurante Sabor & Arte - Almoço de trabalho equipe - NF 1042',
@@ -365,6 +366,7 @@ export const INITIAL_DOCUMENTOS: Documento[] = [
         },
         {
           id: 'item-2',
+          data: '2026-09-20',
           tipo_gasto: 2,
           tipo_doc: 'NF',
           descricao: 'Posto Petrobras Paulista - Abastecimento de veículo locado - NF 8892',
@@ -372,6 +374,7 @@ export const INITIAL_DOCUMENTOS: Documento[] = [
         },
         {
           id: 'item-3',
+          data: '2026-09-21',
           tipo_gasto: 3,
           tipo_doc: 'Rec',
           descricao: 'Uber do Brasil - Deslocamentos Aeroporto x Hotel x Escritório',
@@ -379,6 +382,7 @@ export const INITIAL_DOCUMENTOS: Documento[] = [
         },
         {
           id: 'item-4',
+          data: '2026-09-21',
           tipo_gasto: 4,
           tipo_doc: 'NF',
           descricao: 'Hotel Ibis Paulista - 2 diárias de hospedagem - NF 4421',
@@ -386,6 +390,7 @@ export const INITIAL_DOCUMENTOS: Documento[] = [
         },
         {
           id: 'item-5',
+          data: '2026-09-22',
           tipo_gasto: 5,
           tipo_doc: 'Rec',
           descricao: 'GOL Linhas Aéreas - Taxa de embarque e despacho bagagem',
@@ -393,6 +398,7 @@ export const INITIAL_DOCUMENTOS: Documento[] = [
         },
         {
           id: 'item-6',
+          data: '2026-09-22',
           tipo_gasto: 6,
           tipo_doc: 'Rec',
           descricao: 'Papelaria Express - Cópias de documentos e encadernações técnicas',
@@ -769,6 +775,10 @@ export const StorageService = {
         doc.rdc_detalhes.itens.forEach((it) => {
           if (it.tipo_doc === 'Nf') {
             it.tipo_doc = 'NF';
+            mudou = true;
+          }
+          if (!it.data && (doc.rdc_detalhes?.data_entrega_rdc || doc.data_emissao)) {
+            it.data = doc.rdc_detalhes?.data_entrega_rdc || doc.data_emissao;
             mudou = true;
           }
         });
