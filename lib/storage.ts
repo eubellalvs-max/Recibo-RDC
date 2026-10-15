@@ -458,7 +458,7 @@ export const INITIAL_MODELOS_DESPESA: ModeloDespesa[] = [
     nome: 'Viagem Técnica e Auditoria Institucional',
     descricao: 'Modelo padrão para viagens de auditoria in loco, conferência documental e inspeções.',
     linha_gasto: 'viagem',
-    local_partida_padrao: 'Brasília/DF',
+    local_partida_padrao: '',
     destino_padrao: 'São Paulo/SP',
     setor_funcao_padrao: 'Auditor de Sistemas / TI',
     objetivo_padrao: 'Auditoria técnica e vistoria in loco de infraestrutura predial e contábil.',
@@ -468,7 +468,7 @@ export const INITIAL_MODELOS_DESPESA: ModeloDespesa[] = [
     conta_padrao: '45.890-2',
     tipo_conta_padrao: 'Conta Corrente',
     chave_pix_padrao: '',
-    diretoria_direta_padrao: 'Carlos Eduardo Silva',
+    diretoria_direta_padrao: '',
     contabil_financeiro_padrao: 'Setor Contábil / Financeiro ABEAS',
     itens_padrao: [
       { id: 'mod-item-1', tipo_gasto: 1, tipo_doc: 'NF', descricao: 'Restaurante Sabor & Arte - Almoço de trabalho equipe - NF 1042', valor: 380.0 },

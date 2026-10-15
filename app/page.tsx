@@ -199,12 +199,14 @@ export default function Home() {
  )}
 
  {/* Modal: Novo RDC */}
+ {modalRdcAberto && (
  <NovoRdcModal
  isOpen={modalRdcAberto}
  onClose={() => setModalRdcAberto(false)}
  currentUser={currentUser}
  onSuccess={handleEmissaoSucesso}
  />
+ )}
 
  {/* Modal: Novo Recibo de Prestação de Serviços Médicos */}
  {modalReciboMedicoAberto && (

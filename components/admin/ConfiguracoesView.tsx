@@ -108,7 +108,7 @@ export function ConfiguracoesView() {
  const [modeloConta, setModeloConta] = useState('');
  const [modeloTipoConta, setModeloTipoConta] = useState('Conta Corrente');
  const [modeloPix, setModeloPix] = useState('');
- const [modeloDiretoria, setModeloDiretoria] = useState('Carlos Eduardo Silva');
+ const [modeloDiretoria, setModeloDiretoria] = useState('');
  const [modeloContabil, setModeloContabil] = useState('Setor Contábil / Financeiro ABEAS');
  const [modeloItens, setModeloItens] = useState<ItemModeloDespesa[]>([]);
  const [erroModelo, setErroModelo] = useState<string | null>(null);
@@ -372,7 +372,7 @@ export function ConfiguracoesView() {
  setModeloNome('');
  setModeloDescricao('');
  setModeloLinhaGasto('viagem');
- setModeloLocalPartida('Brasília/DF');
+ setModeloLocalPartida('');
  setModeloDestino('');
  setModeloSetorFuncao('');
  setModeloObjetivo('');
@@ -382,7 +382,7 @@ export function ConfiguracoesView() {
  setModeloConta('45.890-2');
  setModeloTipoConta('Conta Corrente');
  setModeloPix('');
- setModeloDiretoria('Carlos Eduardo Silva');
+ setModeloDiretoria('');
  setModeloContabil('Setor Contábil / Financeiro ABEAS');
  setModeloItens([
  {
@@ -402,7 +402,7 @@ export function ConfiguracoesView() {
  setModeloNome(mod.nome);
  setModeloDescricao(mod.descricao || '');
  setModeloLinhaGasto(mod.linha_gasto || 'viagem');
- setModeloLocalPartida(mod.local_partida_padrao || 'Brasília/DF');
+ setModeloLocalPartida(mod.local_partida_padrao || '');
  setModeloDestino(mod.destino_padrao || '');
  setModeloSetorFuncao(mod.setor_funcao_padrao || '');
  setModeloObjetivo(mod.objetivo_padrao || '');
@@ -412,7 +412,7 @@ export function ConfiguracoesView() {
  setModeloConta(mod.conta_padrao || '');
  setModeloTipoConta(mod.tipo_conta_padrao || 'Conta Corrente');
  setModeloPix(mod.chave_pix_padrao || '');
- setModeloDiretoria(mod.diretoria_direta_padrao || 'Carlos Eduardo Silva');
+ setModeloDiretoria(mod.diretoria_direta_padrao || '');
  setModeloContabil(mod.contabil_financeiro_padrao || 'Setor Contábil / Financeiro ABEAS');
  setModeloItens(
  mod.itens_padrao && mod.itens_padrao.length > 0

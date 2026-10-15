@@ -66,7 +66,7 @@ export function NovoRdcModal({
  // 1. Informações do Solicitante da viagem ou despesas corporativas
  const [dataPedido, setDataPedido] = useState<string>(() => dataHojeIso());
  const [numeroPedido, setNumeroPedido] = useState<string>('');
- const [localPartida, setLocalPartida] = useState<string>('Brasília/DF');
+ const [localPartida, setLocalPartida] = useState<string>('');
  const [destino, setDestino] = useState<string>('');
  const [nomeSolicitante, setNomeSolicitante] = useState<string>(currentUser.nome || '');
  const [cpfSolicitante, setCpfSolicitante] = useState<string>('');
@@ -80,7 +80,7 @@ export function NovoRdcModal({
  const [agencia, setAgencia] = useState<string>('');
  const [conta, setConta] = useState<string>('');
  const [tipoConta, setTipoConta] = useState<string>('Conta Corrente');
- const [chavePix, setChavePix] = useState<string>(currentUser.email || '');
+ const [chavePix, setChavePix] = useState<string>('');
 
  // 3. Descrição dos gastos
  const [dataEntregaRdc, setDataEntregaRdc] = useState<string>(() => dataHojeIso());
@@ -92,7 +92,7 @@ export function NovoRdcModal({
 
  // Assinaturas
  const [assinaturaProfissional, setAssinaturaProfissional] = useState(currentUser.nome);
- const [diretoriaDireta, setDiretoriaDireta] = useState('Carlos Eduardo Silva');
+ const [diretoriaDireta, setDiretoriaDireta] = useState('');
  const [contabilFinanceiro, setContabilFinanceiro] = useState('Setor Contábil / Financeiro ABEAS');
 
  const [erro, setErro] = useState<string | null>(null);
@@ -1039,6 +1039,7 @@ export function NovoRdcModal({
  type="text"
  value={diretoriaDireta}
  onChange={(e) => setDiretoriaDireta(e.target.value)}
+ placeholder="Ex: Carlos Eduardo Silva"
  className="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 outline-none"
  />
  </div>
