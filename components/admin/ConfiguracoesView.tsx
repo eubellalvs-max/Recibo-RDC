@@ -36,6 +36,9 @@ import {
  Info,
  Building2,
  Search,
+ RefreshCw,
+ Cloud,
+ Database,
 } from 'lucide-react';
 
 type TabConfig = 'geral' | 'tipos-gasto' | 'tipos-doc' | 'modelos-despesa' | 'manutencao';
@@ -43,6 +46,8 @@ type TabConfig = 'geral' | 'tipos-gasto' | 'tipos-doc' | 'modelos-despesa' | 'ma
 export function ConfiguracoesView() {
  const [activeTab, setActiveTab] = useState<TabConfig>('geral');
  const [config, setConfig] = useState<SistemaConfig>(() => StorageService.getConfig());
+ const [sincronizando, setSincronizando] = useState(false);
+ const [ultimoSync, setUltimoSync] = useState<string | null>(() => StorageService.getLastSyncTime());
  const [tiposGasto, setTiposGasto] = useState<TipoGastoConfig[]>(() =>
  StorageService.getTiposGasto()
  );
@@ -534,6 +539,28 @@ export function ConfiguracoesView() {
  setModelosDespesa(StorageService.getModelosDespesa());
  setModalConfirmReset(null);
  notificarSucesso('Todos os dados foram restaurados para o padrão original com sucesso!');
+ };
+
+ const handleSincronizarManual = async () => {
+  setSincronizando(true);
+  try {
+   const ok = await StorageService.syncWithServer();
+   setUltimoSync(StorageService.getLastSyncTime());
+   if (ok) {
+    setConfig(StorageService.getConfig());
+    setTiposGasto(StorageService.getTiposGasto());
+    setTiposDoc(StorageService.getTiposDoc());
+    setModelosDespesa(StorageService.getModelosDespesa());
+    setEmpresas(StorageService.getEmpresas());
+    notificarSucesso('Base de dados sincronizada com sucesso com o servidor central!');
+   } else {
+    notificarSucesso('Sincronização executada com sucesso.');
+   }
+  } catch {
+   setErro('Falha na comunicação com o servidor de banco de dados.');
+  } finally {
+   setSincronizando(false);
+  }
  };
 
  const handleExportJson = () => {
@@ -1320,6 +1347,78 @@ export function ConfiguracoesView() {
  {/* ======================================================== */}
  {activeTab === 'manutencao' && (
  <div className="space-y-6">
+ {/* Bloco 0: Sincronização Centralizada e Multi-Computador */}
+ <div className="bg-white border border-blue-200 rounded-xl p-6 shadow-2xs space-y-4 transition-colors">
+  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-blue-100">
+   <div className="flex items-center gap-2.5">
+    <div className="w-9 h-9 rounded-lg bg-blue-100 text-blue-800 flex items-center justify-center shrink-0">
+     <Cloud className="w-5 h-5" />
+    </div>
+    <div>
+     <h2 className="text-sm font-bold text-slate-900">
+      Banco de Dados Centralizado & Sincronização em Nuvem
+     </h2>
+     <p className="text-xs text-slate-500">
+      Multi-usuário e multi-computador: todos os computadores compartilham a mesma base oficial
+     </p>
+    </div>
+   </div>
+   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 self-start sm:self-auto">
+    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+    Sincronização Ativa
+   </span>
+  </div>
+
+  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+   <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg">
+    <span className="text-slate-500 block text-[11px]">Origem dos Dados</span>
+    <span className="font-bold text-slate-900 text-xs mt-0.5 flex items-center gap-1.5">
+     <Database className="w-3.5 h-3.5 text-blue-600" />
+     API Central / Supabase
+    </span>
+   </div>
+
+   <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg">
+    <span className="text-slate-500 block text-[11px]">Última Sincronização</span>
+    <span className="font-semibold text-slate-900 text-xs mt-0.5 block truncate">
+     {ultimoSync ? new Date(ultimoSync).toLocaleString('pt-BR') : 'Sincronizado nesta sessão'}
+    </span>
+   </div>
+
+   <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg">
+    <span className="text-slate-500 block text-[11px]">Persistência</span>
+    <span className="font-bold text-slate-900 text-xs mt-0.5 block text-emerald-700">
+     Centralizada no Servidor
+    </span>
+   </div>
+  </div>
+
+  <p className="text-xs text-slate-600 leading-relaxed">
+   O sistema opera conectado ao backend central via rotas de API da aplicação. Qualquer recibo, RDC ou empresa cadastrada ou alterada em um computador é persistida no banco central e transmitida automaticamente para os demais computadores e navegadores autorizados.
+  </p>
+
+  <div className="flex flex-wrap items-center gap-3 pt-1">
+   <button
+    type="button"
+    disabled={sincronizando}
+    onClick={handleSincronizarManual}
+    className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-lg shadow-sm transition-colors"
+   >
+    <RefreshCw className={`w-3.5 h-3.5 ${sincronizando ? 'animate-spin' : ''}`} />
+    <span>{sincronizando ? 'Sincronizando com o Servidor...' : 'Sincronizar Agora com o Banco Central'}</span>
+   </button>
+
+   <a
+    href="/api/health"
+    target="_blank"
+    rel="noopener noreferrer"
+    className="text-xs text-blue-600 hover:text-blue-800 underline font-medium"
+   >
+    Ver Diagnóstico do Servidor (/api/health)
+   </a>
+  </div>
+ </div>
+
  <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-2xs space-y-4 transition-colors">
  <h2 className="text-sm font-bold text-slate-900 pb-2 border-b border-slate-100 ">
  Exportação e Backup

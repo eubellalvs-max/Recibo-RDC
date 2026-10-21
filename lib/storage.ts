@@ -30,6 +30,7 @@ const STORAGE_KEYS = {
   CONFIG: 'recibos_rdc_config_v1',
   CURRENT_USER: 'recibos_rdc_current_user_v1',
   MODELOS_DESPESA: 'recibos_rdc_modelos_despesa_v1',
+  LAST_SYNC: 'recibos_rdc_last_sync_v1',
 };
 
 export const DEFAULT_TIPOS_GASTO: TipoGastoConfig[] = [
@@ -579,7 +580,91 @@ function setSessionStorageItem<T>(key: string, value: T): void {
   }
 }
 
+let isSyncing = false;
+let syncListenerSetup = false;
+
+function apiSyncPost(endpoint: string, payload: unknown) {
+  if (typeof window === 'undefined') return;
+  fetch(endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  }).catch((err) => console.warn(`Falha async POST ${endpoint}:`, err));
+}
+
+function apiSyncPut(endpoint: string, payload: unknown) {
+  if (typeof window === 'undefined') return;
+  fetch(endpoint, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  }).catch((err) => console.warn(`Falha async PUT ${endpoint}:`, err));
+}
+
+function apiSyncDelete(endpoint: string) {
+  if (typeof window === 'undefined') return;
+  fetch(endpoint, { method: 'DELETE' }).catch((err) =>
+    console.warn(`Falha async DELETE ${endpoint}:`, err)
+  );
+}
+
 export const StorageService = {
+  async syncWithServer(): Promise<boolean> {
+    if (typeof window === 'undefined' || isSyncing) return false;
+    isSyncing = true;
+    try {
+      const localDocs = this.getDocumentos();
+      const localEmpresas = this.getEmpresas();
+      const localModelos = this.getModelosDespesa();
+
+      const response = await fetch('/api/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          documentos: localDocs,
+          empresas: localEmpresas,
+          modelos_despesa: localModelos,
+        }),
+      });
+
+      if (!response.ok) return false;
+
+      const resJson = await response.json();
+      const data = resJson.data || resJson;
+
+      if (data && data.documentos && data.empresas) {
+        setLocalStorageItem(STORAGE_KEYS.DOCUMENTOS, data.documentos);
+        setLocalStorageItem(STORAGE_KEYS.EMPRESAS, data.empresas);
+        if (data.usuarios && data.usuarios.length > 0) {
+          setLocalStorageItem(STORAGE_KEYS.USUARIOS, data.usuarios);
+        }
+        if (data.config) {
+          setLocalStorageItem(STORAGE_KEYS.CONFIG, data.config);
+        }
+        if (data.modelos_despesa) {
+          setLocalStorageItem(STORAGE_KEYS.MODELOS_DESPESA, data.modelos_despesa);
+        }
+        setLocalStorageItem(STORAGE_KEYS.LAST_SYNC, new Date().toISOString());
+
+        window.dispatchEvent(new CustomEvent('storage_sync_updated', { detail: data }));
+        return true;
+      }
+    } catch (err) {
+      console.warn('Erro na sincronização em nuvem:', err);
+    } finally {
+      isSyncing = false;
+    }
+    return false;
+  },
+
+  getLastSyncTime(): string | null {
+    return getLocalStorageItem<string | null>(STORAGE_KEYS.LAST_SYNC, null);
+  },
+
+  isSyncing(): boolean {
+    return isSyncing;
+  },
+
   init() {
     if (typeof window === 'undefined') return;
     // Limpa chave legada no localStorage para garantir que nova abertura inicie sempre na tela de login
@@ -598,6 +683,19 @@ export const StorageService = {
     }
     if (!window.localStorage.getItem(STORAGE_KEYS.MODELOS_DESPESA)) {
       setLocalStorageItem(STORAGE_KEYS.MODELOS_DESPESA, INITIAL_MODELOS_DESPESA);
+    }
+
+    // Dispara sincronização em nuvem e registra listeners periódicos e de foco
+    this.syncWithServer();
+
+    if (!syncListenerSetup) {
+      syncListenerSetup = true;
+      window.addEventListener('focus', () => {
+        this.syncWithServer();
+      });
+      setInterval(() => {
+        this.syncWithServer();
+      }, 20000);
     }
   },
 
@@ -628,12 +726,14 @@ export const StorageService = {
       list.unshift(usuario);
     }
     setLocalStorageItem(STORAGE_KEYS.USUARIOS, list);
+    apiSyncPost('/api/usuarios', usuario);
     return usuario;
   },
 
   deleteUsuario(id: string): void {
     const list = this.getUsuarios().filter((u) => u.id !== id);
     setLocalStorageItem(STORAGE_KEYS.USUARIOS, list);
+    apiSyncDelete(`/api/usuarios/${id}`);
   },
 
   // --- Empresas ---
@@ -671,6 +771,7 @@ export const StorageService = {
     config.numeracao_fornecedores[empresa.id] = empresa.proximo_recibo_num;
     this.saveConfig(config);
 
+    apiSyncPost('/api/empresas', empresa);
     return empresa;
   },
 
@@ -719,6 +820,7 @@ export const StorageService = {
       if (index >= 0) {
         empresas[index] = { ...emp, status: 'inativa', excluida_logica: true };
         setLocalStorageItem(STORAGE_KEYS.EMPRESAS, empresas);
+        apiSyncPut(`/api/empresas/${id}`, empresas[index]);
       }
       return {
         sucesso: true,
@@ -729,6 +831,7 @@ export const StorageService = {
       // Exclusão física permitida
       const novaLista = empresas.filter((e) => e.id !== id);
       setLocalStorageItem(STORAGE_KEYS.EMPRESAS, novaLista);
+      apiSyncDelete(`/api/empresas/${id}`);
       return {
         sucesso: true,
         tipo: 'fisica',
@@ -758,12 +861,14 @@ export const StorageService = {
       list.push(modelo);
     }
     setLocalStorageItem(STORAGE_KEYS.MODELOS_DESPESA, list);
+    apiSyncPost('/api/modelos-despesa', modelo);
     return modelo;
   },
 
   deleteModeloDespesa(id: string): void {
     const list = this.getModelosDespesa().filter((m) => m.id !== id);
     setLocalStorageItem(STORAGE_KEYS.MODELOS_DESPESA, list);
+    apiSyncDelete(`/api/modelos-despesa/${id}`);
   },
 
   // --- Documentos ---
@@ -948,6 +1053,7 @@ export const StorageService = {
     const docs = this.getDocumentos();
     docs.unshift(novoDoc);
     setLocalStorageItem(STORAGE_KEYS.DOCUMENTOS, docs);
+    apiSyncPost('/api/documentos', novoDoc);
 
     return novoDoc;
   },
@@ -962,6 +1068,7 @@ export const StorageService = {
       item.usuario_cancelamento_nome = usuario?.nome || 'Operador do Sistema';
       item.motivo_cancelamento = motivo?.trim() || 'Cancelamento solicitado e confirmado no sistema.';
       setLocalStorageItem(STORAGE_KEYS.DOCUMENTOS, docs);
+      apiSyncPut(`/api/documentos/${id}`, item);
       return item;
     }
     return undefined;
@@ -995,6 +1102,7 @@ export const StorageService = {
 
       docs[index] = docAtualizado;
       setLocalStorageItem(STORAGE_KEYS.DOCUMENTOS, docs);
+      apiSyncPut(`/api/documentos/${docAtualizado.id}`, docAtualizado);
       return docAtualizado;
     }
     throw new Error('Documento não encontrado para atualização.');
@@ -1040,6 +1148,7 @@ export const StorageService = {
       config.tipos_doc = [...DEFAULT_TIPOS_DOC];
     }
     setLocalStorageItem(STORAGE_KEYS.CONFIG, config);
+    apiSyncPut('/api/config', config);
     return config;
   },
 

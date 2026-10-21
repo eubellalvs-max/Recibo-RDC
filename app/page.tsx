@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Usuario, Documento } from '@/lib/types';
 import { StorageService } from '@/lib/storage';
 import { LoginView } from '@/components/auth/LoginView';
@@ -29,6 +29,18 @@ export default function Home() {
  return StorageService.getCurrentUser();
  });
  const [currentTab, setCurrentTab] = useState<string>('dashboard');
+ const [syncTick, setSyncTick] = useState(0);
+
+ useEffect(() => {
+  StorageService.init();
+  const onSync = () => {
+    setSyncTick((t) => t + 1);
+  };
+  window.addEventListener('storage_sync_updated', onSync);
+  return () => {
+    window.removeEventListener('storage_sync_updated', onSync);
+  };
+ }, []);
 
  const isMounted = React.useSyncExternalStore(
  () => () => {},
@@ -152,7 +164,7 @@ export default function Home() {
  />
 
  {/* Área de Conteúdo Principal */}
- <main className="dashboard flex-1 overflow-y-auto bg-slate-50 transition-colors no-print">
+ <main key={syncTick} className="dashboard flex-1 overflow-y-auto bg-slate-50 transition-colors no-print">
  {/* Roteamento de Abas */}
  {currentTab === 'dashboard' && (
  isAdmin ? (
