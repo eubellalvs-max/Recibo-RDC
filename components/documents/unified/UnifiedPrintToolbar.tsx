@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { ArrowLeft, Printer, FileDown, Check, X } from 'lucide-react';
+import { ArrowLeft, Printer, FileDown, Check, X, Edit3 } from 'lucide-react';
 
 interface UnifiedPrintToolbarProps {
  titulo: string;
@@ -9,6 +9,8 @@ interface UnifiedPrintToolbarProps {
  isPreVisualizacao?: boolean;
  onVoltarEdicao?: () => void;
  onConfirmarEmissao?: () => void;
+ textoConfirmar?: string;
+ onEditar?: () => void;
  onFechar?: () => void;
  isSubmitting?: boolean;
  documentoNumero?: string;
@@ -23,6 +25,8 @@ export const UnifiedPrintToolbar: React.FC<UnifiedPrintToolbarProps> = ({
  isPreVisualizacao = false,
  onVoltarEdicao,
  onConfirmarEmissao,
+ textoConfirmar,
+ onEditar,
  onFechar,
  isSubmitting = false,
  documentoNumero = '',
@@ -109,6 +113,19 @@ export const UnifiedPrintToolbar: React.FC<UnifiedPrintToolbarProps> = ({
  </div>
 
  <div className="flex items-center gap-2 self-end sm:self-auto">
+ {/* Botão Editar Documento (quando disponível fora do preview) */}
+ {!isPreVisualizacao && onEditar && (
+ <button
+ type="button"
+ onClick={onEditar}
+ className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-colors shadow-2xs"
+ title="Editar este documento (mantendo o mesmo número)"
+ >
+ <Edit3 className="w-3.5 h-3.5 text-blue-600 " />
+ <span>Editar</span>
+ </button>
+ )}
+
  {/* Botão Imprimir */}
  <button
  type="button"
@@ -140,7 +157,7 @@ export const UnifiedPrintToolbar: React.FC<UnifiedPrintToolbarProps> = ({
  className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 rounded-lg shadow-sm transition-colors disabled:opacity-50"
  >
  <Check className="w-3.5 h-3.5" />
- <span>{isSubmitting ? 'Emitindo...' : 'Confirmar e Emitir'}</span>
+ <span>{isSubmitting ? (textoConfirmar ? 'Salvando...' : 'Emitindo...') : (textoConfirmar || 'Confirmar e Emitir')}</span>
  </button>
  )}
 

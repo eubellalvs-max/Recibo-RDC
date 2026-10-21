@@ -15,12 +15,14 @@ interface DocumentViewerModalProps {
  documento: Documento | null;
  isOpen: boolean;
  onClose: () => void;
+ onEditar?: (doc: Documento) => void;
 }
 
 export function DocumentViewerModal({
  documento,
  isOpen,
  onClose,
+ onEditar,
 }: DocumentViewerModalProps) {
  const [via, setVia] = useState<'1' | '2'>('1');
  const { setActivePrintItem } = usePrint();
@@ -130,12 +132,32 @@ export function DocumentViewerModal({
  subtitulo={`Nº ${documento.numero} • Emitido em ${formatarDataBr(documento.data_emissao)}`}
  isPreVisualizacao={false}
  onFechar={onClose}
+ onEditar={documento.status !== 'cancelado' && onEditar ? () => onEditar(documento) : undefined}
  documentoNumero={documento.numero}
  tipoDocumento={tituloDocumento}
  viaAtual={!isRdc && !isReciboMedico ? via : undefined}
  onChangeVia={!isRdc && !isReciboMedico ? setVia : undefined}
  />
  </div>
+
+ {/* Banner de Auditoria de Edição / Correção */}
+ {documento.updated_at && documento.status !== 'cancelado' && (
+ <div className="no-print bg-blue-50 border-b border-blue-200 px-6 py-2 text-xs text-blue-900 flex items-center justify-between shrink-0">
+ <div className="flex items-center gap-2">
+ <span className="font-bold uppercase tracking-wider text-[10px] bg-blue-200 text-blue-900 px-2 py-0.5 rounded">
+ DOCUMENTO CORRIGIDO / EDITADO
+ </span>
+ <span className="text-[11px] text-blue-800">
+ Última alteração em <b>{new Date(documento.updated_at).toLocaleString('pt-BR')}</b> por <b>{documento.usuario_edicao_nome || 'Operador'}</b>
+ </span>
+ </div>
+ {documento.historico_edicoes && documento.historico_edicoes[0]?.detalhes && (
+ <span className="text-[10px] text-blue-700 italic truncate max-w-sm" title={documento.historico_edicoes[0].detalhes}>
+ &ldquo;{documento.historico_edicoes[0].detalhes}&rdquo;
+ </span>
+ )}
+ </div>
+ )}
 
  {/* Banner de Auditoria de Cancelamento */}
  {documento.status === 'cancelado' && (

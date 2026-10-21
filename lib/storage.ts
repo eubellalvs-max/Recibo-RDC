@@ -967,6 +967,39 @@ export const StorageService = {
     return undefined;
   },
 
+  updateDocumento(docAtualizado: Documento, usuario?: Usuario, detalhesAlteracao?: string): Documento {
+    const docs = this.getDocumentos();
+    const index = docs.findIndex((d) => d.id === docAtualizado.id);
+    if (index >= 0) {
+      const docOriginal = docs[index];
+
+      // REGRA CRÍTICA: Manter o mesmo número do documento original, sem alterar sequencial nem contadores
+      docAtualizado.numero = docOriginal.numero;
+      docAtualizado.numero_sequencial = docOriginal.numero_sequencial;
+      docAtualizado.tipo = docOriginal.tipo;
+      docAtualizado.created_at = docOriginal.created_at;
+
+      // Metadados de Auditoria da Edição
+      docAtualizado.updated_at = new Date().toISOString();
+      if (usuario) {
+        docAtualizado.usuario_edicao_id = usuario.id;
+        docAtualizado.usuario_edicao_nome = usuario.nome;
+      }
+      const historico = docOriginal.historico_edicoes ? [...docOriginal.historico_edicoes] : [];
+      historico.unshift({
+        data: new Date().toISOString(),
+        usuario_nome: usuario?.nome || 'Operador do Sistema',
+        detalhes: detalhesAlteracao || 'Dados do documento corrigidos/atualizados com sucesso.',
+      });
+      docAtualizado.historico_edicoes = historico;
+
+      docs[index] = docAtualizado;
+      setLocalStorageItem(STORAGE_KEYS.DOCUMENTOS, docs);
+      return docAtualizado;
+    }
+    throw new Error('Documento não encontrado para atualização.');
+  },
+
   // --- Configurações ---
   getConfig(): SistemaConfig {
     const cfg = getLocalStorageItem<SistemaConfig>(STORAGE_KEYS.CONFIG, INITIAL_CONFIG);

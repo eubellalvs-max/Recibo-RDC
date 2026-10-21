@@ -200,6 +200,14 @@ export interface Documento {
   usuario_cancelamento_id?: string; // ID do usuário que efetuou o cancelamento
   usuario_cancelamento_nome?: string; // Nome do usuário que cancelou
   motivo_cancelamento?: string; // Justificativa obrigatória do cancelamento
+  updated_at?: string; // Data ISO da última alteração/edição
+  usuario_edicao_id?: string; // ID do usuário que realizou a última edição
+  usuario_edicao_nome?: string; // Nome do usuário que realizou a última edição
+  historico_edicoes?: {
+    data: string;
+    usuario_nome: string;
+    detalhes?: string;
+  }[];
 }
 
 export interface SistemaConfig {

@@ -38,6 +38,7 @@ interface NovoReciboMedicoModalProps {
  currentUser: Usuario;
  onSuccess: (doc: Documento) => void;
  initialData?: Partial<DadosReciboMedico> & { valor?: number };
+ documentoEmEdicao?: Documento | null;
 }
 
 export function NovoReciboMedicoModal({
@@ -46,39 +47,54 @@ export function NovoReciboMedicoModal({
  currentUser,
  onSuccess,
  initialData,
+ documentoEmEdicao,
 }: NovoReciboMedicoModalProps) {
+ const isEdicao = !!documentoEmEdicao;
+ const med = documentoEmEdicao?.recibo_medico_detalhes;
+
  // Dados do Recibo
- const [numeroReciboAuto] = useState(() => StorageService.getProximoNumeroReciboMedico());
- const [valorStr, setValorStr] = useState('0,00');
- const [dataEmissao, setDataEmissao] = useState(() => dataHojeIso());
- const [cidade, setCidade] = useState(() => initialData?.cidade || 'Itapuranga');
- const [uf, setUf] = useState(() => initialData?.uf || 'GO');
+ const [numeroReciboAuto] = useState(() => {
+ if (documentoEmEdicao?.numero) return documentoEmEdicao.numero;
+ return StorageService.getProximoNumeroReciboMedico();
+ });
+ const [valorStr, setValorStr] = useState(() => {
+ if (documentoEmEdicao?.valor !== undefined) {
+ return documentoEmEdicao.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+ }
+ if (initialData?.valor !== undefined) {
+ return initialData.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+ }
+ return '0,00';
+ });
+ const [dataEmissao, setDataEmissao] = useState(() => documentoEmEdicao?.data_emissao || dataHojeIso());
+ const [cidade, setCidade] = useState(() => med?.cidade || initialData?.cidade || 'Itapuranga');
+ const [uf, setUf] = useState(() => med?.uf || initialData?.uf || 'GO');
 
  // Dados do Pagador
- const [pagadorNome, setPagadorNome] = useState(() => initialData?.pagador_nome || '');
- const [pagadorDocumento, setPagadorDocumento] = useState(() => initialData?.pagador_documento || '');
- const [pagadorTelefone, setPagadorTelefone] = useState(() => initialData?.pagador_telefone || '');
- const [pagadorEndereco, setPagadorEndereco] = useState(() => initialData?.pagador_endereco || '');
+ const [pagadorNome, setPagadorNome] = useState(() => med?.pagador_nome || initialData?.pagador_nome || '');
+ const [pagadorDocumento, setPagadorDocumento] = useState(() => med?.pagador_documento || initialData?.pagador_documento || '');
+ const [pagadorTelefone, setPagadorTelefone] = useState(() => med?.pagador_telefone || initialData?.pagador_telefone || '');
+ const [pagadorEndereco, setPagadorEndereco] = useState(() => med?.pagador_endereco || initialData?.pagador_endereco || '');
 
  // Dados do Paciente
- const [pacienteNome, setPacienteNome] = useState(() => initialData?.paciente_nome || '');
- const [pacienteCpf, setPacienteCpf] = useState(() => initialData?.paciente_cpf || '');
- const [pacienteTelefone, setPacienteTelefone] = useState(() => initialData?.paciente_telefone || '');
- const [pacienteEndereco, setPacienteEndereco] = useState(() => initialData?.paciente_endereco || '');
+ const [pacienteNome, setPacienteNome] = useState(() => med?.paciente_nome || initialData?.paciente_nome || '');
+ const [pacienteCpf, setPacienteCpf] = useState(() => med?.paciente_cpf || initialData?.paciente_cpf || '');
+ const [pacienteTelefone, setPacienteTelefone] = useState(() => med?.paciente_telefone || initialData?.paciente_telefone || '');
+ const [pacienteEndereco, setPacienteEndereco] = useState(() => med?.paciente_endereco || initialData?.paciente_endereco || '');
 
  // Detalhes do Atendimento
  const [servicoPrestado, setServicoPrestado] = useState(
- () => initialData?.servico_prestado || 'Consulta médica em ginecologia'
+ () => med?.servico_prestado || initialData?.servico_prestado || 'Consulta médica em ginecologia'
  );
  const [medicoAssistente, setMedicoAssistente] = useState(
- () => initialData?.medico_assistente || 'Dr(a). Morena Ciclano de Tal'
+ () => med?.medico_assistente || initialData?.medico_assistente || 'Dr(a). Morena Ciclano de Tal'
  );
- const [crm, setCrm] = useState(() => initialData?.crm || '0000/GO');
+ const [crm, setCrm] = useState(() => med?.crm || initialData?.crm || '0000/GO');
  const [dataAtendimento, setDataAtendimento] = useState(
- () => initialData?.data_atendimento || dataHojeIso()
+ () => med?.data_atendimento || initialData?.data_atendimento || dataHojeIso()
  );
  const [formaPagamento, setFormaPagamento] = useState(
- () => initialData?.forma_pagamento || 'Pix'
+ () => med?.forma_pagamento || initialData?.forma_pagamento || 'Pix'
  );
 
  // Estado da interface
@@ -216,6 +232,37 @@ export function NovoReciboMedicoModal({
 
  const corpoReferente = `A quantia supra de ${formatarMoeda(valorNumerico)} (${valorExtenso}), referente à prestação de serviços médicos particulares realizados no(a) paciente abaixo qualificado(a):`;
 
+ if (isEdicao && documentoEmEdicao) {
+ const alteracoes: string[] = [];
+ const medAntigo = documentoEmEdicao.recibo_medico_detalhes;
+ if (documentoEmEdicao.valor !== valorNumerico) alteracoes.push(`Valor alterado para ${formatarMoeda(valorNumerico)}`);
+ if (medAntigo?.pagador_nome !== detalhes.pagador_nome) alteracoes.push('Pagador alterado');
+ if (medAntigo?.paciente_nome !== detalhes.paciente_nome) alteracoes.push('Paciente alterado');
+ if (medAntigo?.servico_prestado !== detalhes.servico_prestado) alteracoes.push('Serviço prestado alterado');
+ if (medAntigo?.medico_assistente !== detalhes.medico_assistente) alteracoes.push('Médico assistente alterado');
+ if (medAntigo?.crm !== detalhes.crm) alteracoes.push('CRM alterado');
+ if (medAntigo?.data_atendimento !== detalhes.data_atendimento) alteracoes.push('Data de atendimento alterada');
+ if (medAntigo?.forma_pagamento !== detalhes.forma_pagamento) alteracoes.push('Forma de pagamento alterada');
+ if (documentoEmEdicao.data_emissao !== dataEmissao) alteracoes.push('Data de emissão alterada');
+
+ const detalhesLog = alteracoes.length > 0
+ ? `Campos corrigidos: ${alteracoes.join('; ')}`
+ : 'Dados do recibo médico conferidos e salvos mantendo o número original.';
+
+ const docAtualizado: Documento = {
+ ...documentoEmEdicao,
+ valor: valorNumerico,
+ valor_extenso: valorExtenso || valorPorExtenso(valorNumerico),
+ referente: corpoReferente,
+ data_emissao: dataEmissao,
+ cidade_emissao: `${detalhes.cidade} - ${detalhes.uf}`,
+ observacoes: `Atendimento: ${detalhes.servico_prestado} | Médico(a): ${detalhes.medico_assistente} (${detalhes.crm}) | Pagamento: ${detalhes.forma_pagamento}`,
+ recibo_medico_detalhes: detalhes,
+ };
+
+ const docSalvo = StorageService.updateDocumento(docAtualizado, currentUser, detalhesLog);
+ onSuccess(docSalvo);
+ } else {
  const novoDoc = StorageService.emitirDocumento({
  tipo: 'recibo_medico',
  empresa_emissora_id: 'emp-abeas-medico',
@@ -230,9 +277,10 @@ export function NovoReciboMedicoModal({
  });
 
  onSuccess(novoDoc);
+ }
  resetForm();
  } catch {
- setErro('Ocorreu um erro ao emitir o Recibo Médico. Tente novamente.');
+ setErro('Ocorreu um erro ao processar o Recibo Médico. Tente novamente.');
  setIsSubmitting(false);
  }
  };
@@ -324,11 +372,12 @@ export function NovoReciboMedicoModal({
  {/* Top Header / Toolbar de Pré-Visualização */}
  {modoPreVisualizar ? (
  <UnifiedPrintToolbar
- titulo="PRÉ-VISUALIZAÇÃO - RECIBO MÉDICO"
+ titulo={isEdicao ? 'PRÉ-VISUALIZAÇÃO - RECIBO MÉDICO EM EDIÇÃO' : 'PRÉ-VISUALIZAÇÃO - RECIBO MÉDICO'}
  subtitulo={`Nº ${numeroReciboAuto} • Modelo Oficial Institucional ABEAS`}
  isPreVisualizacao={true}
  onVoltarEdicao={() => setModoPreVisualizar(false)}
  onConfirmarEmissao={handleEmitir}
+ textoConfirmar={isEdicao ? 'Salvar alterações' : 'Confirmar e Emitir'}
  onFechar={onClose}
  isSubmitting={isSubmitting}
  documentoNumero={numeroReciboAuto}
@@ -337,15 +386,17 @@ export function NovoReciboMedicoModal({
  ) : (
  <div className="no-print flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-slate-50 rounded-t-xl shrink-0">
  <div className="flex items-center gap-2.5">
- <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center">
+ <div className={`w-8 h-8 rounded-lg text-white flex items-center justify-center ${
+ isEdicao ? 'bg-blue-600' : 'bg-emerald-600'
+ }`}>
  <HeartPulse className="w-4 h-4" />
  </div>
  <div>
  <h2 className="text-sm font-bold text-slate-900 tracking-tight">
- EMISSÃO DE RECIBO DE PRESTAÇÃO DE SERVIÇOS MÉDICOS
+ {isEdicao && documentoEmEdicao ? `EDITAR RECIBO MÉDICO Nº ${documentoEmEdicao.numero}` : 'EMISSÃO DE RECIBO DE PRESTAÇÃO DE SERVIÇOS MÉDICOS'}
  </h2>
  <p className="text-[11px] text-slate-500 ">
- Modelo Oficial Institucional da ABEAS • Numeração e Extenso Automáticos
+ {isEdicao ? 'Correção de dados do documento com manutenção estrita do número original' : 'Modelo Oficial Institucional da ABEAS • Numeração e Extenso Automáticos'}
  </p>
  </div>
  </div>
@@ -366,6 +417,18 @@ export function NovoReciboMedicoModal({
  >
  <X className="w-5 h-5" />
  </button>
+ </div>
+ </div>
+ )}
+
+ {isEdicao && documentoEmEdicao && !modoPreVisualizar && (
+ <div className="mx-6 mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-blue-900 text-xs flex items-start gap-2.5">
+ <AlertCircle className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+ <div>
+ <div className="font-bold">MODO DE EDIÇÃO ATIVO • RECIBO MÉDICO Nº {documentoEmEdicao.numero}</div>
+ <div className="text-[11px] text-blue-700 mt-0.5">
+ Você pode corrigir quaisquer informações do paciente, atendimento ou valores. O número original <b>{documentoEmEdicao.numero}</b> será mantido inalterado e não avançará a numeração sequencial.
+ </div>
  </div>
  </div>
  )}
@@ -846,7 +909,7 @@ export function NovoReciboMedicoModal({
  className="px-5 py-2 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 disabled:opacity-50 rounded-lg shadow-sm transition-colors flex items-center gap-2"
  >
  <Check className="w-4 h-4" />
- <span>{isSubmitting ? 'EMITINDO...' : 'EMITIR RECIBO'}</span>
+ <span>{isSubmitting ? (isEdicao ? 'SALVANDO...' : 'EMITINDO...') : (isEdicao ? 'SALVAR ALTERAÇÕES' : 'EMITIR RECIBO')}</span>
  </button>
  </div>
  </div>

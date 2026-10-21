@@ -1,15 +1,16 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Usuario, Documento, Empresa } from '@/lib/types';
 import { StorageService } from '@/lib/storage';
 import { formatarMoeda, formatarDataBr } from '@/lib/masks';
-import { Search, Eye, Printer, XCircle, Filter, Calendar, Info } from 'lucide-react';
+import { Search, Eye, Printer, XCircle, Filter, Calendar, Info, Edit3 } from 'lucide-react';
 import { CancelarDocumentoModal } from './CancelarDocumentoModal';
 
 interface MeusDocumentosViewProps {
  currentUser: Usuario;
  onVisualizarDocumento: (doc: Documento) => void;
+ onEditarDocumento?: (doc: Documento) => void;
  onNovoRecibo: () => void;
  onNovoRdc: () => void;
  onNovoReciboMedico?: () => void;
@@ -18,6 +19,7 @@ interface MeusDocumentosViewProps {
 export function MeusDocumentosView({
  currentUser,
  onVisualizarDocumento,
+ onEditarDocumento,
  onNovoRecibo,
  onNovoRdc,
  onNovoReciboMedico,
@@ -322,6 +324,15 @@ export function MeusDocumentosView({
  >
  <Printer className="w-4 h-4" />
  </button>
+ {!isCancelado && onEditarDocumento && (
+ <button
+ onClick={() => onEditarDocumento(doc)}
+ className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors"
+ title="Editar documento (Manter mesmo número)"
+ >
+ <Edit3 className="w-4 h-4" />
+ </button>
+ )}
  {currentUser.perfil === 'admin' && !isCancelado && (
  <button
  onClick={() => handleAbrirCancelamento(doc)}

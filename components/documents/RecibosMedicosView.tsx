@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Usuario, Documento } from '@/lib/types';
 import { StorageService } from '@/lib/storage';
 import { formatarMoeda, formatarDataBr } from '@/lib/masks';
@@ -19,17 +19,20 @@ import {
  Download,
  User,
  Stethoscope,
+ Edit3,
 } from 'lucide-react';
 
 interface RecibosMedicosViewProps {
  currentUser: Usuario;
  onVisualizar: (doc: Documento) => void;
+ onEditar?: (doc: Documento) => void;
  onNovoReciboMedico: (initialData?: any) => void;
 }
 
 export function RecibosMedicosView({
  currentUser,
  onVisualizar,
+ onEditar,
  onNovoReciboMedico,
 }: RecibosMedicosViewProps) {
  const [documentos, setDocumentos] = useState<Documento[]>(() =>
@@ -373,9 +376,19 @@ export function RecibosMedicosView({
  <Printer className="w-3.5 h-3.5" />
  </button>
 
+ {!isCancelado && onEditar && (
+ <button
+ onClick={() => onEditar(doc)}
+ className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors"
+ title="Editar Recibo (Manter nº original)"
+ >
+ <Edit3 className="w-3.5 h-3.5" />
+ </button>
+ )}
+
  <button
  onClick={() => handleReemitir(doc)}
- className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors"
+ className="p-1.5 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 rounded-lg transition-colors"
  title="Reemitir (Novo com mesmos dados)"
  >
  <RotateCcw className="w-3.5 h-3.5" />

@@ -41,15 +41,20 @@ export function DocumentSuccessModal({
  </div>
 
  <h3 className="text-base font-bold text-slate-900 tracking-tight">
- {tituloTipo} EMITIDO COM SUCESSO!
+ {documento.updated_at ? `${tituloTipo} ATUALIZADO COM SUCESSO!` : `${tituloTipo} EMITIDO COM SUCESSO!`}
  </h3>
 
  <div className="my-3 inline-block px-4 py-1.5 bg-slate-100 border border-slate-200 rounded-lg text-sm font-bold text-slate-800 font-mono">
- Nº {documento.numero}
+ Nº {documento.numero} {documento.updated_at ? '(Número Original Mantido)' : ''}
  </div>
 
  <div className="text-xs text-slate-500 mb-6">
- Valor emitido: <b className="text-slate-800 tabular-nums">{formatarMoeda(documento.valor)}</b>
+ {documento.updated_at ? 'Valor corrigido:' : 'Valor emitido:'} <b className="text-slate-800 tabular-nums">{formatarMoeda(documento.valor)}</b>
+ {documento.updated_at && (
+ <p className="text-[11px] text-emerald-700 mt-1 font-medium">
+ Alterações salvas no banco de dados. Layout, sequência e histórico preservados.
+ </p>
+ )}
  </div>
 
  {/* Grade de Ações */}
@@ -59,7 +64,7 @@ export function DocumentSuccessModal({
  className="w-full py-2.5 px-4 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2"
  >
  <Eye className="w-4 h-4" />
- <span>VISUALIZAR DOCUMENTO</span>
+ <span>{documento.updated_at ? 'CONFERIR DOCUMENTO ATUALIZADO' : 'VISUALIZAR DOCUMENTO'}</span>
  </button>
 
  <div className="grid grid-cols-2 gap-2">

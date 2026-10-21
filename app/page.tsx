@@ -36,11 +36,12 @@ export default function Home() {
  () => false
  );
 
- // Modais de Criação
+ // Modais de Criação e Edição
  const [modalReciboAberto, setModalReciboAberto] = useState(false);
  const [modalRdcAberto, setModalRdcAberto] = useState(false);
  const [modalReciboMedicoAberto, setModalReciboMedicoAberto] = useState(false);
  const [reciboMedicoInitialData, setReciboMedicoInitialData] = useState<any>(undefined);
+ const [documentoEmEdicao, setDocumentoEmEdicao] = useState<Documento | null>(null);
 
  // Modais de Visualização e Sucesso
  const [docSucesso, setDocSucesso] = useState<Documento | null>(null);
@@ -57,15 +58,41 @@ export default function Home() {
  setCurrentTab('dashboard');
  };
 
+ const handleAbrirNovoRecibo = () => {
+ setDocumentoEmEdicao(null);
+ setModalReciboAberto(true);
+ };
+
+ const handleAbrirNovoRdc = () => {
+ setDocumentoEmEdicao(null);
+ setModalRdcAberto(true);
+ };
+
  const handleAbrirNovoReciboMedico = (initialData?: any) => {
+ setDocumentoEmEdicao(null);
  setReciboMedicoInitialData(initialData);
  setModalReciboMedicoAberto(true);
+ };
+
+ const handleEditarDocumento = (doc: Documento) => {
+ setDocVisualizando(null);
+ setDocSucesso(null);
+ setDocumentoEmEdicao(doc);
+
+ if (doc.tipo === 'recibo') {
+ setModalReciboAberto(true);
+ } else if (doc.tipo === 'recibo_medico') {
+ setModalReciboMedicoAberto(true);
+ } else if (doc.tipo === 'rdc') {
+ setModalRdcAberto(true);
+ }
  };
 
  const handleEmissaoSucesso = (doc: Documento) => {
  setModalReciboAberto(false);
  setModalRdcAberto(false);
  setModalReciboMedicoAberto(false);
+ setDocumentoEmEdicao(null);
  setDocSucesso(doc);
  };
 
@@ -107,9 +134,9 @@ export default function Home() {
  user={currentUser}
  currentTab={currentTab}
  onSelectTab={handleSelectTab}
- onOpenNovoRecibo={() => setModalReciboAberto(true)}
- onOpenNovoRdc={() => setModalRdcAberto(true)}
- onOpenNovoReciboMedico={() => handleAbrirNovoReciboMedico()}
+ onOpenNovoRecibo={handleAbrirNovoRecibo}
+ onOpenNovoRdc={handleAbrirNovoRdc}
+ onOpenNovoReciboMedico={handleAbrirNovoReciboMedico}
  onLogout={handleLogout}
  />
 
@@ -119,9 +146,9 @@ export default function Home() {
  user={currentUser}
  currentTab={currentTab}
  onSelectTab={handleSelectTab}
- onOpenNovoRecibo={() => setModalReciboAberto(true)}
- onOpenNovoRdc={() => setModalRdcAberto(true)}
- onOpenNovoReciboMedico={() => handleAbrirNovoReciboMedico()}
+ onOpenNovoRecibo={handleAbrirNovoRecibo}
+ onOpenNovoRdc={handleAbrirNovoRdc}
+ onOpenNovoReciboMedico={handleAbrirNovoReciboMedico}
  />
 
  {/* Área de Conteúdo Principal */}
@@ -131,18 +158,20 @@ export default function Home() {
  isAdmin ? (
  <AdminDashboard
  onSelectTab={setCurrentTab}
- onOpenNovoRecibo={() => setModalReciboAberto(true)}
- onOpenNovoRdc={() => setModalRdcAberto(true)}
- onOpenNovoReciboMedico={() => handleAbrirNovoReciboMedico()}
+ onOpenNovoRecibo={handleAbrirNovoRecibo}
+ onOpenNovoRdc={handleAbrirNovoRdc}
+ onOpenNovoReciboMedico={handleAbrirNovoReciboMedico}
  onVisualizarDocumento={(doc) => setDocVisualizando(doc)}
+ onEditarDocumento={handleEditarDocumento}
  />
  ) : (
  <EmissorDashboard
  currentUser={currentUser}
- onOpenNovoRecibo={() => setModalReciboAberto(true)}
- onOpenNovoRdc={() => setModalRdcAberto(true)}
- onOpenNovoReciboMedico={() => handleAbrirNovoReciboMedico()}
+ onOpenNovoRecibo={handleAbrirNovoRecibo}
+ onOpenNovoRdc={handleAbrirNovoRdc}
+ onOpenNovoReciboMedico={handleAbrirNovoReciboMedico}
  onVisualizarDocumento={(doc) => setDocVisualizando(doc)}
+ onEditarDocumento={handleEditarDocumento}
  onVerTodosDocumentos={() => setCurrentTab('meus-documentos')}
  onIrParaEmpresas={() => setCurrentTab('empresas')}
  />
@@ -153,6 +182,7 @@ export default function Home() {
  <RecibosMedicosView
  currentUser={currentUser}
  onVisualizar={(doc) => setDocVisualizando(doc)}
+ onEditar={handleEditarDocumento}
  onNovoReciboMedico={handleAbrirNovoReciboMedico}
  />
  )}
@@ -177,8 +207,10 @@ export default function Home() {
  <MeusDocumentosView
  currentUser={currentUser}
  onVisualizarDocumento={(doc) => setDocVisualizando(doc)}
- onNovoRecibo={() => setModalReciboAberto(true)}
- onNovoRdc={() => setModalRdcAberto(true)}
+ onEditarDocumento={handleEditarDocumento}
+ onNovoRecibo={handleAbrirNovoRecibo}
+ onNovoRdc={handleAbrirNovoRdc}
+ onNovoReciboMedico={handleAbrirNovoReciboMedico}
  />
  )}
 
@@ -188,41 +220,51 @@ export default function Home() {
  </main>
  </div>
 
- {/* Modal: Novo Recibo */}
+ {/* Modal: Novo Recibo ou Edição */}
  {modalReciboAberto && (
  <NovoReciboModal
  isOpen={modalReciboAberto}
- onClose={() => setModalReciboAberto(false)}
+ onClose={() => {
+ setModalReciboAberto(false);
+ setDocumentoEmEdicao(null);
+ }}
  currentUser={currentUser}
  onSuccess={handleEmissaoSucesso}
+ documentoEmEdicao={documentoEmEdicao}
  />
  )}
 
- {/* Modal: Novo RDC */}
+ {/* Modal: Novo RDC ou Edição */}
  {modalRdcAberto && (
  <NovoRdcModal
  isOpen={modalRdcAberto}
- onClose={() => setModalRdcAberto(false)}
+ onClose={() => {
+ setModalRdcAberto(false);
+ setDocumentoEmEdicao(null);
+ }}
  currentUser={currentUser}
  onSuccess={handleEmissaoSucesso}
+ documentoEmEdicao={documentoEmEdicao}
  />
  )}
 
- {/* Modal: Novo Recibo de Prestação de Serviços Médicos */}
+ {/* Modal: Novo Recibo de Prestação de Serviços Médicos ou Edição */}
  {modalReciboMedicoAberto && (
  <NovoReciboMedicoModal
  isOpen={modalReciboMedicoAberto}
  onClose={() => {
  setModalReciboMedicoAberto(false);
  setReciboMedicoInitialData(undefined);
+ setDocumentoEmEdicao(null);
  }}
  currentUser={currentUser}
  onSuccess={handleEmissaoSucesso}
  initialData={reciboMedicoInitialData}
+ documentoEmEdicao={documentoEmEdicao}
  />
  )}
 
- {/* Modal: Confirmação de Sucesso Pós-Emissão */}
+ {/* Modal: Confirmação de Sucesso Pós-Emissão ou Edição */}
  <DocumentSuccessModal
  isOpen={!!docSucesso}
  documento={docSucesso}
@@ -237,11 +279,11 @@ export default function Home() {
  }}
  onNovoRecibo={() => {
  setDocSucesso(null);
- setModalReciboAberto(true);
+ handleAbrirNovoRecibo();
  }}
  onNovoRdc={() => {
  setDocSucesso(null);
- setModalRdcAberto(true);
+ handleAbrirNovoRdc();
  }}
  onNovoReciboMedico={() => {
  setDocSucesso(null);
@@ -249,11 +291,12 @@ export default function Home() {
  }}
  />
 
- {/* Modal: Visualizador e Impressor de Documento */}
+ {/* Modal: Visualizador e Impressor de Documento com Ação de Edição */}
  <DocumentViewerModal
  isOpen={!!docVisualizando}
  documento={docVisualizando}
  onClose={() => setDocVisualizando(null)}
+ onEditar={handleEditarDocumento}
  />
  </div>
 

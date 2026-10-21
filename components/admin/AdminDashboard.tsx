@@ -15,6 +15,7 @@ import {
  TrendingUp,
  FileCheck2,
  HeartPulse,
+ Edit3,
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -23,6 +24,7 @@ interface AdminDashboardProps {
  onOpenNovoRdc: () => void;
  onOpenNovoReciboMedico?: () => void;
  onVisualizarDocumento: (doc: Documento) => void;
+ onEditarDocumento?: (doc: Documento) => void;
 }
 
 export function AdminDashboard({
@@ -31,6 +33,7 @@ export function AdminDashboard({
  onOpenNovoRdc,
  onOpenNovoReciboMedico,
  onVisualizarDocumento,
+ onEditarDocumento,
 }: AdminDashboardProps) {
  const empresas = StorageService.getEmpresas();
  const usuarios = StorageService.getUsuarios();
@@ -257,6 +260,7 @@ export function AdminDashboard({
  {formatarMoeda(doc.valor)}
  </td>
  <td className="px-4 py-3 text-center whitespace-nowrap">
+ <div className="flex items-center justify-center gap-1.5">
  <button
  onClick={() => onVisualizarDocumento(doc)}
  className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 rounded-md transition-colors"
@@ -264,6 +268,17 @@ export function AdminDashboard({
  <Eye className="w-3 h-3 text-slate-500 " />
  <span>Visualizar</span>
  </button>
+ {onEditarDocumento && doc.status !== 'cancelado' && (
+ <button
+ onClick={() => onEditarDocumento(doc)}
+ className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-md transition-colors"
+ title="Editar documento (Manter mesmo número)"
+ >
+ <Edit3 className="w-3 h-3 text-blue-600 " />
+ <span>Editar</span>
+ </button>
+ )}
+ </div>
  </td>
  </tr>
  );

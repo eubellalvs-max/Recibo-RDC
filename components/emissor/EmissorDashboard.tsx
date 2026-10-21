@@ -4,7 +4,7 @@ import React from 'react';
 import { Usuario, Documento, Empresa } from '@/lib/types';
 import { StorageService } from '@/lib/storage';
 import { formatarMoeda, formatarDataBr, mascaraCnpj } from '@/lib/masks';
-import { FileText, PlusCircle, ArrowUpRight, Eye, Printer, FolderOpen, Building2, HeartPulse } from 'lucide-react';
+import { FileText, PlusCircle, ArrowUpRight, Eye, Printer, FolderOpen, Building2, HeartPulse, Edit3 } from 'lucide-react';
 
 interface EmissorDashboardProps {
  currentUser: Usuario;
@@ -12,6 +12,7 @@ interface EmissorDashboardProps {
  onOpenNovoRdc: () => void;
  onOpenNovoReciboMedico?: () => void;
  onVisualizarDocumento: (doc: Documento) => void;
+ onEditarDocumento?: (doc: Documento) => void;
  onVerTodosDocumentos: () => void;
  onIrParaEmpresas?: () => void;
 }
@@ -22,6 +23,7 @@ export function EmissorDashboard({
  onOpenNovoRdc,
  onOpenNovoReciboMedico,
  onVisualizarDocumento,
+ onEditarDocumento,
  onVerTodosDocumentos,
  onIrParaEmpresas,
 }: EmissorDashboardProps) {
@@ -294,6 +296,7 @@ export function EmissorDashboard({
  {formatarMoeda(doc.valor)}
  </td>
  <td className="px-4 py-3 text-center">
+ <div className="flex items-center justify-center gap-1.5">
  <button
  onClick={() => onVisualizarDocumento(doc)}
  className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 rounded-md transition-colors"
@@ -301,6 +304,17 @@ export function EmissorDashboard({
  <Eye className="w-3 h-3 text-slate-500 " />
  <span>Visualizar</span>
  </button>
+ {onEditarDocumento && doc.status !== 'cancelado' && (
+ <button
+ onClick={() => onEditarDocumento(doc)}
+ className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-md transition-colors"
+ title="Editar documento (Manter mesmo número)"
+ >
+ <Edit3 className="w-3 h-3 text-blue-600 " />
+ <span>Editar</span>
+ </button>
+ )}
+ </div>
  </td>
  </tr>
  );

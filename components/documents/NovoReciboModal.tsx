@@ -16,6 +16,7 @@ interface NovoReciboModalProps {
  onClose: () => void;
  onDocumentCreated?: (doc: Documento) => void;
  onSuccess?: (doc: Documento) => void;
+ documentoEmEdicao?: Documento | null;
 }
 
 export function NovoReciboModal({
@@ -24,12 +25,18 @@ export function NovoReciboModal({
  onClose,
  onDocumentCreated,
  onSuccess,
+ documentoEmEdicao,
 }: NovoReciboModalProps) {
+ const isEdicao = !!documentoEmEdicao;
+
  const [empresas] = useState<Empresa[]>(() => {
  return StorageService.getEmpresas().filter((e) => e.status === 'ativa');
  });
 
  const [empresaEmissoraId, setEmpresaEmissoraId] = useState<string>(() => {
+ if (documentoEmEdicao?.empresa_emissora_id) {
+ return documentoEmEdicao.empresa_emissora_id;
+ }
  const all = StorageService.getEmpresas().filter((e) => e.status === 'ativa');
  const permitidas = all.filter((e) => {
  if (e.tipo !== 'emissora' && e.tipo !== 'ambas') return false;
@@ -43,6 +50,9 @@ export function NovoReciboModal({
  });
 
  const [logoUrl, setLogoUrl] = useState<string>(() => {
+ if (documentoEmEdicao && documentoEmEdicao.logo_url !== undefined) {
+ return documentoEmEdicao.logo_url || '';
+ }
  const all = StorageService.getEmpresas().filter((e) => e.status === 'ativa');
  const permitidas = all.filter((e) => {
  if (e.tipo !== 'emissora' && e.tipo !== 'ambas') return false;
@@ -56,6 +66,9 @@ export function NovoReciboModal({
  });
 
  const [empresaDestinatariaId, setEmpresaDestinatariaId] = useState<string>(() => {
+ if (documentoEmEdicao?.empresa_destinataria_id) {
+ return documentoEmEdicao.empresa_destinataria_id;
+ }
  const all = StorageService.getEmpresas().filter((e) => e.status === 'ativa');
  const destinatarias = all.filter(
  (e) => e.tipo === 'destinataria' || e.tipo === 'ambas'
@@ -63,16 +76,28 @@ export function NovoReciboModal({
  return destinatarias[0]?.id || '';
  });
 
- const [valorRaw, setValorRaw] = useState('0,00');
- const [valorNumerico, setValorNumerico] = useState(0);
- const [valorExtenso, setValorExtenso] = useState('');
- const [referente, setReferente] = useState('Prestação de serviços especializados em assessoria técnica e consultoria.');
- const [dataEmissao, setDataEmissao] = useState(() => dataHojeIso());
+ const [valorRaw, setValorRaw] = useState(() => {
+ if (documentoEmEdicao?.valor !== undefined) {
+ return documentoEmEdicao.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+ }
+ return '0,00';
+ });
+ const [valorNumerico, setValorNumerico] = useState(() => documentoEmEdicao?.valor ?? 0);
+ const [valorExtenso, setValorExtenso] = useState(() => {
+ if (documentoEmEdicao?.valor_extenso) return documentoEmEdicao.valor_extenso;
+ if (documentoEmEdicao?.valor && documentoEmEdicao.valor > 0) return valorPorExtenso(documentoEmEdicao.valor);
+ return '';
+ });
+ const [referente, setReferente] = useState(() => {
+ return documentoEmEdicao?.referente || 'Prestação de serviços especializados em assessoria técnica e consultoria.';
+ });
+ const [dataEmissao, setDataEmissao] = useState(() => documentoEmEdicao?.data_emissao || dataHojeIso());
  const [cidadeEmissao, setCidadeEmissao] = useState(() => {
+ if (documentoEmEdicao?.cidade_emissao) return documentoEmEdicao.cidade_emissao;
  const config = StorageService.getConfig();
  return config.cidade_padrao || 'Brasília/DF';
  });
- const [observacoes, setObservacoes] = useState('');
+ const [observacoes, setObservacoes] = useState(() => documentoEmEdicao?.observacoes || '');
  const [erro, setErro] = useState<string | null>(null);
  const [salvando, setSalvando] = useState(false);
  const [modoPreVisualizar, setModoPreVisualizar] = useState(false);
@@ -89,11 +114,12 @@ export function NovoReciboModal({
   setModoPreVisualizar(false);
  };
 
-
  const config = StorageService.getConfig();
  const anoAtual = config.ano_corrente || new Date().getFullYear();
  const seqNumAtual = StorageService.getProximoNumeroReciboFornecedor(empresaEmissoraId);
- const numeroReciboAuto = StorageService.formatarNumeroRecibo(seqNumAtual, anoAtual);
+ const numeroReciboAuto = isEdicao && documentoEmEdicao
+   ? documentoEmEdicao.numero
+   : StorageService.formatarNumeroRecibo(seqNumAtual, anoAtual);
 
  // Filtrar emissoras elegíveis para este usuário
  const emissorasDisponiveis = empresas.filter((e) => {
@@ -251,6 +277,40 @@ export function NovoReciboModal({
 
  setSalvando(true);
  try {
+ if (isEdicao && documentoEmEdicao) {
+ const alteracoes: string[] = [];
+ if (documentoEmEdicao.empresa_emissora_id !== empresaEmissoraId) alteracoes.push('Fornecedor/Emissor alterado');
+ if (documentoEmEdicao.empresa_destinataria_id !== empresaDestinatariaId) alteracoes.push('Destinatário alterado');
+ if (documentoEmEdicao.valor !== valorNumerico) alteracoes.push(`Valor alterado de ${formatarMoeda(documentoEmEdicao.valor)} para ${formatarMoeda(valorNumerico)}`);
+ if (documentoEmEdicao.referente !== referente.trim()) alteracoes.push('Referente alterado');
+ if (documentoEmEdicao.data_emissao !== dataEmissao) alteracoes.push(`Data de emissão alterada de ${documentoEmEdicao.data_emissao} para ${dataEmissao}`);
+ if (documentoEmEdicao.cidade_emissao !== cidadeEmissao.trim()) alteracoes.push('Cidade alterada');
+ if ((documentoEmEdicao.observacoes || '') !== observacoes.trim()) alteracoes.push('Observações alteradas');
+
+ const detalhes = alteracoes.length > 0
+ ? `Campos corrigidos: ${alteracoes.join('; ')}`
+ : 'Edição de conferência realizada mantendo número original.';
+
+ const docAtualizado: Documento = {
+ ...documentoEmEdicao,
+ empresa_emissora_id: empresaEmissoraId,
+ empresa_destinataria_id: empresaDestinatariaId,
+ valor: valorNumerico,
+ valor_extenso: valorExtenso || valorPorExtenso(valorNumerico),
+ referente: referente.trim(),
+ data_emissao: dataEmissao,
+ cidade_emissao: cidadeEmissao.trim() || 'Brasília/DF',
+ observacoes: observacoes.trim() || undefined,
+ logo_url: logoUrl.trim() || undefined,
+ };
+
+ const docSalvo = StorageService.updateDocumento(docAtualizado, currentUser, detalhes);
+ if (onDocumentCreated) {
+ onDocumentCreated(docSalvo);
+ } else if (onSuccess) {
+ onSuccess(docSalvo);
+ }
+ } else {
  const novoDoc = StorageService.emitirDocumento({
  tipo: 'recibo',
  empresa_emissora_id: empresaEmissoraId,
@@ -269,9 +329,10 @@ export function NovoReciboModal({
  } else if (onSuccess) {
  onSuccess(novoDoc);
  }
+ }
  resetForm();
  } catch (err: unknown) {
- const msg = err instanceof Error ? err.message : 'Erro ao emitir o recibo.';
+ const msg = err instanceof Error ? err.message : 'Erro ao processar o recibo.';
  setErro(msg);
  setSalvando(false);
  }
@@ -292,11 +353,12 @@ export function NovoReciboModal({
  {/* Header do Modal / Toolbar de Pré-Visualização */}
  {modoPreVisualizar ? (
  <UnifiedPrintToolbar
- titulo="PRÉ-VISUALIZAÇÃO DO RECIBO"
+ titulo={isEdicao ? 'PRÉ-VISUALIZAÇÃO - RECIBO EM EDIÇÃO' : 'PRÉ-VISUALIZAÇÃO DO RECIBO'}
  subtitulo={`Nº ${numeroReciboAuto} • Prévia fiel à impressão e PDF`}
  isPreVisualizacao={true}
  onVoltarEdicao={() => setModoPreVisualizar(false)}
  onConfirmarEmissao={executarEmissao}
+ textoConfirmar={isEdicao ? 'Salvar alterações' : 'Confirmar e Emitir'}
  onFechar={onClose}
  isSubmitting={salvando}
  documentoNumero={numeroReciboAuto}
@@ -307,12 +369,18 @@ export function NovoReciboModal({
  ) : (
  <div className="no-print flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-slate-50 shrink-0">
  <div className="flex items-center gap-2.5">
- <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold">
+ <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold ${
+ isEdicao ? 'bg-blue-100 text-blue-800' : 'bg-emerald-100 text-emerald-800'
+ }`}>
  🧾
  </div>
  <div>
- <h2 className="text-sm font-bold text-slate-900 ">NOVO RECIBO COMUM</h2>
- <p className="text-xs text-slate-700 font-medium">Emissão com numeração sequencial e extenso automático</p>
+ <h2 className="text-sm font-bold text-slate-900 ">
+ {isEdicao && documentoEmEdicao ? `EDITAR RECIBO Nº ${documentoEmEdicao.numero}` : 'NOVO RECIBO COMUM'}
+ </h2>
+ <p className="text-xs text-slate-700 font-medium">
+ {isEdicao ? 'Correção de dados do documento com manutenção estrita do número original' : 'Emissão com numeração sequencial e extenso automático'}
+ </p>
  </div>
  </div>
  <button
@@ -326,6 +394,18 @@ export function NovoReciboModal({
 
  {/* Conteúdo: Pré-Visualização ou Formulário */}
  <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+ {isEdicao && documentoEmEdicao && !modoPreVisualizar && (
+ <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-blue-900 text-xs flex items-start gap-2.5">
+ <AlertCircle className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+ <div>
+ <div className="font-bold">MODO DE EDIÇÃO ATIVO • RECIBO Nº {documentoEmEdicao.numero}</div>
+ <div className="text-[11px] text-blue-700 mt-0.5">
+ Você pode corrigir quaisquer informações abaixo. O número <b>{documentoEmEdicao.numero}</b> será mantido inalterado e não avançará a sequência de numeração do fornecedor.
+ </div>
+ </div>
+ </div>
+ )}
+
  {erro && (
  <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-xs flex items-center gap-2">
  <AlertCircle className="w-4 h-4 shrink-0" />
@@ -616,7 +696,7 @@ export function NovoReciboModal({
  className="px-5 py-2 text-xs font-bold text-white bg-slate-900 hover:bg-black disabled:opacity-50 rounded-lg shadow-sm transition-colors flex items-center gap-1.5"
  >
  <Check className="w-3.5 h-3.5 text-emerald-400 " />
- <span>{salvando ? 'EMITINDO...' : 'EMITIR RECIBO'}</span>
+ <span>{salvando ? (isEdicao ? 'SALVANDO...' : 'EMITINDO...') : (isEdicao ? 'SALVAR ALTERAÇÕES' : 'EMITIR RECIBO')}</span>
  </button>
  </div>
  </div>

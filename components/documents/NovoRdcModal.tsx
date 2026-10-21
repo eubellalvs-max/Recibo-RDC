@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Usuario, Empresa, Documento, ItemGastoRdc, ModeloDespesa } from '@/lib/types';
 import { StorageService } from '@/lib/storage';
 import { formatarMoeda, mascaraCpf, formatarDataBr, dataHojeIso } from '@/lib/masks';
+import { valorPorExtenso } from '@/lib/extenso';
 import {
  X,
  Check,
@@ -25,6 +26,7 @@ interface NovoRdcModalProps {
  onClose: () => void;
  onDocumentCreated?: (doc: Documento) => void;
  onSuccess?: (doc: Documento) => void;
+ documentoEmEdicao?: Documento | null;
 }
 
 export function NovoRdcModal({
@@ -33,13 +35,18 @@ export function NovoRdcModal({
  onClose,
  onDocumentCreated,
  onSuccess,
+ documentoEmEdicao,
 }: NovoRdcModalProps) {
+ const isEdicao = !!documentoEmEdicao;
+ const rdc = documentoEmEdicao?.rdc_detalhes;
+
  const empresas = StorageService.getEmpresas().filter((e) => e.status === 'ativa');
  const modelosDespesa = StorageService.getModelosDespesa();
- const [modeloSelecionadoId, setModeloSelecionadoId] = useState<string>('');
+ const [modeloSelecionadoId, setModeloSelecionadoId] = useState<string>(() => rdc?.modelo_despesa_id || '');
  const [notificacaoModelo, setNotificacaoModelo] = useState<string | null>(null);
 
  const [empresaEmissoraId, setEmpresaEmissoraId] = useState<string>(() => {
+ if (documentoEmEdicao?.empresa_emissora_id) return documentoEmEdicao.empresa_emissora_id;
  const all = StorageService.getEmpresas().filter((e) => e.status === 'ativa');
  const permitidas = all.filter((e) => {
  if (e.tipo !== 'emissora' && e.tipo !== 'ambas') return false;
@@ -53,6 +60,7 @@ export function NovoRdcModal({
  });
 
  const [empresaDestinatariaId, setEmpresaDestinatariaId] = useState<string>(() => {
+ if (documentoEmEdicao?.empresa_destinataria_id) return documentoEmEdicao.empresa_destinataria_id;
  const all = StorageService.getEmpresas().filter((e) => e.status === 'ativa');
  const destinatarias = all.filter(
  (e) => e.tipo === 'destinataria' || e.tipo === 'ambas'
@@ -61,39 +69,44 @@ export function NovoRdcModal({
  });
 
  // Linha de Gastos da RDC (Viagem, Despesas Corporativas ou Ambas)
- const [linhaGasto, setLinhaGasto] = useState<'viagem' | 'corporativa' | 'ambas'>('viagem');
+ const [linhaGasto, setLinhaGasto] = useState<'viagem' | 'corporativa' | 'ambas'>(() => rdc?.linha_gasto || 'viagem');
 
  // 1. Informações do Solicitante da viagem ou despesas corporativas
- const [dataPedido, setDataPedido] = useState<string>(() => dataHojeIso());
- const [numeroPedido, setNumeroPedido] = useState<string>('');
- const [localPartida, setLocalPartida] = useState<string>('');
- const [destino, setDestino] = useState<string>('');
- const [nomeSolicitante, setNomeSolicitante] = useState<string>(currentUser.nome || '');
- const [cpfSolicitante, setCpfSolicitante] = useState<string>('');
- const [setorFuncao, setSetorFuncao] = useState<string>('');
- const [objetivoViagem, setObjetivoViagem] = useState<string>('');
+ const [dataPedido, setDataPedido] = useState<string>(() => rdc?.data_pedido || dataHojeIso());
+ const [numeroPedido, setNumeroPedido] = useState<string>(() => rdc?.numero_pedido || '');
+ const [localPartida, setLocalPartida] = useState<string>(() => rdc?.local_partida || '');
+ const [destino, setDestino] = useState<string>(() => rdc?.destino || '');
+ const [nomeSolicitante, setNomeSolicitante] = useState<string>(() => rdc?.nome_solicitante || currentUser.nome || '');
+ const [cpfSolicitante, setCpfSolicitante] = useState<string>(() => rdc?.cpf_solicitante || '');
+ const [setorFuncao, setSetorFuncao] = useState<string>(() => rdc?.setor_funcao || '');
+ const [objetivoViagem, setObjetivoViagem] = useState<string>(() => rdc?.objetivo_viagem || '');
 
  // 2. Informações bancária e financeira
- const [valorSolicitadoRaw, setValorSolicitadoRaw] = useState<string>('0,00');
- const [valorSolicitado, setValorSolicitado] = useState<number>(0.0);
- const [nomeBanco, setNomeBanco] = useState<string>('');
- const [agencia, setAgencia] = useState<string>('');
- const [conta, setConta] = useState<string>('');
- const [tipoConta, setTipoConta] = useState<string>('Conta Corrente');
- const [chavePix, setChavePix] = useState<string>('');
+ const [valorSolicitadoRaw, setValorSolicitadoRaw] = useState<string>(() => {
+ if (rdc?.valor_solicitado !== undefined) {
+ return rdc.valor_solicitado.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+ }
+ return '0,00';
+ });
+ const [valorSolicitado, setValorSolicitado] = useState<number>(() => rdc?.valor_solicitado || 0.0);
+ const [nomeBanco, setNomeBanco] = useState<string>(() => rdc?.nome_banco || '');
+ const [agencia, setAgencia] = useState<string>(() => rdc?.agencia || '');
+ const [conta, setConta] = useState<string>(() => rdc?.conta || '');
+ const [tipoConta, setTipoConta] = useState<string>(() => rdc?.tipo_conta || 'Conta Corrente');
+ const [chavePix, setChavePix] = useState<string>(() => rdc?.chave_pix || '');
 
  // 3. Descrição dos gastos
- const [dataEntregaRdc, setDataEntregaRdc] = useState<string>(() => dataHojeIso());
- const [itens, setItens] = useState<ItemGastoRdc[]>([]);
+ const [dataEntregaRdc, setDataEntregaRdc] = useState<string>(() => rdc?.data_entrega_rdc || documentoEmEdicao?.data_emissao || dataHojeIso());
+ const [itens, setItens] = useState<ItemGastoRdc[]>(() => rdc?.itens ? [...rdc.itens] : []);
 
  // Tipos de Gasto e Tipos de Documento lidos em tempo real das Configurações
  const tiposGasto = useMemo(() => StorageService.getTiposGasto(), []);
  const tiposDoc = useMemo(() => StorageService.getTiposDoc(), []);
 
  // Assinaturas
- const [assinaturaProfissional, setAssinaturaProfissional] = useState(currentUser.nome);
- const [diretoriaDireta, setDiretoriaDireta] = useState('');
- const [contabilFinanceiro, setContabilFinanceiro] = useState('Setor Contábil / Financeiro ABEAS');
+ const [assinaturaProfissional, setAssinaturaProfissional] = useState(() => rdc?.assinatura_profissional || currentUser.nome);
+ const [diretoriaDireta, setDiretoriaDireta] = useState(() => rdc?.diretoria_direta || '');
+ const [contabilFinanceiro, setContabilFinanceiro] = useState(() => rdc?.contabil_financeiro || 'Setor Contábil / Financeiro ABEAS');
 
  const [erro, setErro] = useState<string | null>(null);
  const [isSubmitting, setIsSubmitting] = useState(false);
@@ -102,7 +115,9 @@ export function NovoRdcModal({
  const config = StorageService.getConfig();
  const seqNum = config.proximo_rdc_num || 1;
  const anoAtual = config.ano_corrente || new Date().getFullYear();
- const numeroRdcAuto = `${String(seqNum).padStart(6, '0')}/${anoAtual}`;
+ const numeroRdcAuto = isEdicao && documentoEmEdicao
+ ? documentoEmEdicao.numero
+ : `${String(seqNum).padStart(6, '0')}/${anoAtual}`;
 
  // Aplicar modelo de despesa selecionado
  const handleSelecionarModelo = (modeloId: string) => {
@@ -281,18 +296,7 @@ export function NovoRdcModal({
  const modeloObj = modelosDespesa.find((m) => m.id === modeloSelecionadoId);
 
  try {
- const doc = StorageService.emitirDocumento({
- tipo: 'rdc',
- empresa_emissora_id: empresaEmissoraId,
- empresa_destinataria_id: empresaDestinatariaId,
- valor: totalDespesas,
- referente: `Prestação de Contas e Reembolso de Despesas Corporativa - ${objetivoViagem}`,
- competencia: competenciaStr,
- data_emissao: dataEntregaRdc,
- cidade_emissao: localPartida || 'Brasília/DF',
- observacoes: `Solicitante: ${nomeSolicitante} | N.º Pedido: ${numeroPedido} | Saldo: ${saldoDevolucao < 0 ? `A ressarcir ${formatarMoeda(valorARessarcir)}` : `A devolver ${formatarMoeda(saldoDevolucao)}`}`,
- usuario: currentUser,
- rdc_detalhes: {
+ const detalhesRdc = {
  modelo_despesa_id: modeloSelecionadoId || undefined,
  modelo_despesa_nome: modeloObj?.nome || undefined,
  linha_gasto: linhaGasto,
@@ -319,7 +323,57 @@ export function NovoRdcModal({
  assinatura_profissional: assinaturaProfissional,
  diretoria_direta: diretoriaDireta,
  contabil_financeiro: contabilFinanceiro,
- },
+ };
+
+ if (isEdicao && documentoEmEdicao) {
+ const rdcAntigo = documentoEmEdicao.rdc_detalhes;
+ const alteracoes: string[] = [];
+ if (documentoEmEdicao.valor !== totalDespesas) alteracoes.push(`Total de despesas alterado para ${formatarMoeda(totalDespesas)}`);
+ if (rdcAntigo?.nome_solicitante !== nomeSolicitante) alteracoes.push('Solicitante alterado');
+ if (rdcAntigo?.destino !== destino) alteracoes.push('Destino alterado');
+ if (rdcAntigo?.local_partida !== localPartida) alteracoes.push('Local de partida alterado');
+ if (rdcAntigo?.objetivo_viagem !== objetivoViagem) alteracoes.push('Objetivo alterado');
+ if (rdcAntigo?.valor_solicitado !== valorSolicitado) alteracoes.push(`Adiantamento alterado para ${formatarMoeda(valorSolicitado)}`);
+ if (rdcAntigo?.itens?.length !== itens.length) alteracoes.push(`Itens de despesa alterados (${itens.length} itens)`);
+ if (documentoEmEdicao.empresa_emissora_id !== empresaEmissoraId) alteracoes.push('Fornecedor alterado');
+
+ const detalhesLog = alteracoes.length > 0
+ ? `Campos corrigidos: ${alteracoes.join('; ')}`
+ : 'Dados da RDC conferidos e salvos mantendo o número original.';
+
+ const docAtualizado: Documento = {
+ ...documentoEmEdicao,
+ empresa_emissora_id: empresaEmissoraId,
+ empresa_destinataria_id: empresaDestinatariaId,
+ valor: totalDespesas,
+ valor_extenso: valorPorExtenso(totalDespesas),
+ referente: `Prestação de Contas e Reembolso de Despesas Corporativa - ${objetivoViagem}`,
+ competencia: competenciaStr,
+ data_emissao: dataEntregaRdc,
+ cidade_emissao: localPartida || 'Brasília/DF',
+ observacoes: `Solicitante: ${nomeSolicitante} | N.º Pedido: ${numeroPedido} | Saldo: ${saldoDevolucao < 0 ? `A ressarcir ${formatarMoeda(valorARessarcir)}` : `A devolver ${formatarMoeda(saldoDevolucao)}`}`,
+ rdc_detalhes: detalhesRdc,
+ };
+
+ const docSalvo = StorageService.updateDocumento(docAtualizado, currentUser, detalhesLog);
+ if (onDocumentCreated) {
+ onDocumentCreated(docSalvo);
+ } else if (onSuccess) {
+ onSuccess(docSalvo);
+ }
+ } else {
+ const doc = StorageService.emitirDocumento({
+ tipo: 'rdc',
+ empresa_emissora_id: empresaEmissoraId,
+ empresa_destinataria_id: empresaDestinatariaId,
+ valor: totalDespesas,
+ referente: `Prestação de Contas e Reembolso de Despesas Corporativa - ${objetivoViagem}`,
+ competencia: competenciaStr,
+ data_emissao: dataEntregaRdc,
+ cidade_emissao: localPartida || 'Brasília/DF',
+ observacoes: `Solicitante: ${nomeSolicitante} | N.º Pedido: ${numeroPedido} | Saldo: ${saldoDevolucao < 0 ? `A ressarcir ${formatarMoeda(valorARessarcir)}` : `A devolver ${formatarMoeda(saldoDevolucao)}`}`,
+ usuario: currentUser,
+ rdc_detalhes: detalhesRdc,
  });
 
  if (onDocumentCreated) {
@@ -327,8 +381,9 @@ export function NovoRdcModal({
  } else if (onSuccess) {
  onSuccess(doc);
  }
+ }
  } catch (err: unknown) {
- const msg = err instanceof Error ? err.message : 'Erro ao emitir a RDC.';
+ const msg = err instanceof Error ? err.message : 'Erro ao processar a RDC.';
  setErro(msg);
  setIsSubmitting(false);
  }
@@ -424,11 +479,12 @@ export function NovoRdcModal({
  {/* Header do Modal / Toolbar de Pré-Visualização */}
  {modoPreVisualizar ? (
  <UnifiedPrintToolbar
- titulo="PRÉ-VISUALIZAÇÃO DA RDC"
+ titulo={isEdicao ? 'PRÉ-VISUALIZAÇÃO - RDC EM EDIÇÃO' : 'PRÉ-VISUALIZAÇÃO DA RDC'}
  subtitulo={`Nº ${numeroRdcAuto} • Relatório de Despesas com Comprovantes`}
  isPreVisualizacao={true}
  onVoltarEdicao={() => setModoPreVisualizar(false)}
  onConfirmarEmissao={executarEmissao}
+ textoConfirmar={isEdicao ? 'Salvar alterações' : 'Confirmar e Emitir'}
  onFechar={onClose}
  isSubmitting={isSubmitting}
  documentoNumero={numeroRdcAuto}
@@ -442,10 +498,10 @@ export function NovoRdcModal({
  </div>
  <div>
  <h2 className="text-sm font-bold text-slate-900 tracking-tight">
- PRESTAÇÃO DE CONTAS E REEMBOLSO DE DESPESAS CORPORATIVA - RDC
+ {isEdicao && documentoEmEdicao ? `EDITAR RDC Nº ${documentoEmEdicao.numero}` : 'PRESTAÇÃO DE CONTAS E REEMBOLSO DE DESPESAS CORPORATIVA - RDC'}
  </h2>
  <p className="text-xs text-slate-500 ">
- Modelo Oficial Institucional ABEAS - Formulário completo com controle de gastos e rateio
+ {isEdicao ? 'Correção de dados do documento com manutenção estrita do número original' : 'Modelo Oficial Institucional ABEAS - Formulário completo com controle de gastos e rateio'}
  </p>
  </div>
  </div>
@@ -460,6 +516,18 @@ export function NovoRdcModal({
 
  {/* Conteúdo Principal */}
  <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+ {isEdicao && documentoEmEdicao && !modoPreVisualizar && (
+ <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-blue-900 text-xs flex items-start gap-2.5">
+ <AlertCircle className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+ <div>
+ <div className="font-bold">MODO DE EDIÇÃO ATIVO • RDC Nº {documentoEmEdicao.numero}</div>
+ <div className="text-[11px] text-blue-700 mt-0.5">
+ Você pode corrigir quaisquer informações do solicitante, despesas, itens ou dados bancários. O número original <b>{documentoEmEdicao.numero}</b> será mantido inalterado e não avançará a numeração sequencial.
+ </div>
+ </div>
+ </div>
+ )}
+
  {erro && (
  <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-xs flex items-center gap-2">
  <AlertCircle className="w-4 h-4 shrink-0" />
@@ -1088,7 +1156,7 @@ export function NovoRdcModal({
  className="px-5 py-2 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 disabled:opacity-50 rounded-lg shadow-sm transition-colors flex items-center gap-1.5"
  >
  <Check className="w-3.5 h-3.5 text-blue-400 " />
- <span>{isSubmitting ? 'EMITINDO...' : 'EMITIR RDC COM PRESTAÇÃO DE CONTAS'}</span>
+ <span>{isSubmitting ? (isEdicao ? 'SALVANDO...' : 'EMITINDO...') : (isEdicao ? 'SALVAR ALTERAÇÕES' : 'EMITIR RDC COM PRESTAÇÃO DE CONTAS')}</span>
  </button>
  </div>
  </div>
