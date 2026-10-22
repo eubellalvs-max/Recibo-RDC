@@ -37,6 +37,12 @@ function loadStoreFromFile(): ServerDataStore {
       const raw = fs.readFileSync(PERSISTENCE_FILE, 'utf-8');
       const parsed = JSON.parse(raw);
       if (parsed.documentos && parsed.empresas && parsed.usuarios && parsed.config) {
+        // Expurgar documentos legados de teste/desenvolvimento anteriores a 22/10/2026
+        parsed.documentos = (parsed.documentos as Documento[]).filter(
+          (d) =>
+            (d.data_emissao && d.data_emissao >= '2026-10-22') ||
+            (d.created_at && d.created_at >= '2026-10-22')
+        );
         return parsed;
       }
     }
@@ -47,7 +53,7 @@ function loadStoreFromFile(): ServerDataStore {
   return {
     usuarios: [...INITIAL_USUARIOS],
     empresas: [...INITIAL_EMPRESAS],
-    documentos: [...INITIAL_DOCUMENTOS],
+    documentos: [],
     config: { ...INITIAL_CONFIG },
     modelos_despesa: [...INITIAL_MODELOS_DESPESA],
     last_updated: new Date().toISOString(),
@@ -205,6 +211,22 @@ export const ServerDb = {
     }
     saveStoreToFile(store);
     return doc;
+  },
+
+  async deleteDocumento(id: string): Promise<boolean> {
+    const supabase = getSupabase();
+    if (supabase) {
+      try {
+        await supabase.from('documentos').delete().eq('id', id);
+      } catch (err) {
+        console.error('Erro ao deletar documento no Supabase:', err);
+      }
+    }
+
+    const store = getStore();
+    store.documentos = store.documentos.filter((d) => d.id !== id);
+    saveStoreToFile(store);
+    return true;
   },
 
   // --- Empresas ---
@@ -386,9 +408,14 @@ export const ServerDb = {
       }
     }
 
-    // 2. Reconciliação de Documentos (preserva originais sem alterar número nem duplicar)
+    // 2. Reconciliação de Documentos (preserva originais sem alterar número nem duplicar; descarta legados < 2026-10-22)
     if (clientData.documentos && clientData.documentos.length > 0) {
       for (const doc of clientData.documentos) {
+        const isLegado =
+          (!doc.data_emissao || doc.data_emissao < '2026-10-22') &&
+          (!doc.created_at || doc.created_at < '2026-10-22');
+        if (isLegado) continue;
+
         const existe = current.documentos.find((d) => d.id === doc.id);
         if (!existe) {
           await this.saveDocumento(doc);

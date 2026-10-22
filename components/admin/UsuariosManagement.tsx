@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Usuario, Empresa, UserRole, UserStatus } from '@/lib/types';
 import { StorageService } from '@/lib/storage';
 import {
@@ -48,6 +48,18 @@ export function UsuariosManagement({ currentUser }: UsuariosManagementProps) {
  const [empresaId, setEmpresaId] = useState('');
  const [status, setStatus] = useState<UserStatus>('ativo');
  const [erroForm, setErroForm] = useState<string | null>(null);
+
+ useEffect(() => {
+  const onSync = () => {
+   if (!modalAberto && !modalSenhaAberto) {
+    setUsuarios(StorageService.getUsuarios());
+   }
+  };
+  window.addEventListener('storage_sync_updated', onSync);
+  return () => {
+   window.removeEventListener('storage_sync_updated', onSync);
+  };
+ }, [modalAberto, modalSenhaAberto]);
 
  const recarregarUsuarios = () => {
  setUsuarios(StorageService.getUsuarios());
@@ -132,9 +144,14 @@ export function UsuariosManagement({ currentUser }: UsuariosManagementProps) {
  created_at: usuarioEditando ? usuarioEditando.created_at : new Date().toISOString(),
  };
 
- StorageService.saveUsuario(novoUsuario);
- recarregarUsuarios();
- setModalAberto(false);
+  try {
+   StorageService.saveUsuario(novoUsuario);
+   recarregarUsuarios();
+   setModalAberto(false);
+  } catch (err: unknown) {
+   const msg = err instanceof Error ? err.message : 'Erro ao salvar o usuário no banco de dados.';
+   setErroForm(msg);
+  }
  };
 
  const abrirRedefinirSenha = (usr: Usuario) => {

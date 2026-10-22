@@ -164,7 +164,7 @@ export default function Home() {
  />
 
  {/* Área de Conteúdo Principal */}
- <main key={syncTick} className="dashboard flex-1 overflow-y-auto bg-slate-50 transition-colors no-print">
+ <main className="dashboard flex-1 overflow-y-auto bg-slate-50 transition-colors no-print">
  {/* Roteamento de Abas */}
  {currentTab === 'dashboard' && (
  isAdmin ? (

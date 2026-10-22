@@ -20,3 +20,17 @@ export async function PUT(
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
+
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    await ServerDb.deleteDocumento(id);
+    return NextResponse.json({ success: true, id });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Erro ao deletar documento';
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
+}

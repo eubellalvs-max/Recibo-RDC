@@ -265,193 +265,8 @@ export const INITIAL_USUARIOS: Usuario[] = [
     created_at: '2026-02-01T00:00:00.000Z',
   },
 ];
-
-export const INITIAL_DOCUMENTOS: Documento[] = [
-  {
-    id: 'doc-med-001',
-    numero: '001/2026',
-    numero_sequencial: 1,
-    tipo: 'recibo_medico',
-    empresa_emissora_id: 'emp-abeas-medico',
-    empresa_destinataria_id: 'emp-1',
-    valor: 350.0,
-    valor_extenso: valorPorExtenso(350.0),
-    referente:
-      'A quantia supra de R$ 350,00 (trezentos e cinquenta reais), referente à prestação de serviços médicos particulares realizados no(a) paciente abaixo qualificado(a):',
-    data_emissao: '2026-09-02',
-    cidade_emissao: 'Itapuranga - GO',
-    observacoes: 'Consulta médica em ginecologia realizada na Unidade de Atendimento.',
-    usuario_id: 'usr-lucas',
-    usuario_nome: 'Lucas Oliveira',
-    status: 'emitido',
-    created_at: '2026-09-02T14:30:00.000Z',
-    recibo_medico_detalhes: {
-      pagador_nome: 'Mariana de Souza Silva',
-      pagador_documento: '584.920.183-49',
-      pagador_telefone: '(62) 99874-2211',
-      pagador_endereco: 'Av. Bernardo Sayão, 450 - Centro, Itapuranga/GO',
-      paciente_nome: 'Mariana de Souza Silva',
-      paciente_cpf: '584.920.183-49',
-      paciente_telefone: '(62) 99874-2211',
-      paciente_endereco: 'Av. Bernardo Sayão, 450 - Centro, Itapuranga/GO',
-      servico_prestado: 'Consulta médica em ginecologia',
-      medico_assistente: 'Dr(a). Morena Ciclano de Tal',
-      crm: '0000/GO',
-      data_atendimento: '2026-09-02',
-      forma_pagamento: 'Pix',
-      cidade: 'Itapuranga',
-      uf: 'GO',
-    },
-  },
-  {
-    id: 'doc-125',
-    numero: '000125/2026',
-    numero_sequencial: 125,
-    tipo: 'recibo',
-    empresa_emissora_id: 'emp-2',
-    empresa_destinataria_id: 'emp-4',
-    valor: 8500.00,
-    valor_extenso: valorPorExtenso(8500.00),
-    referente: 'Prestação de serviços especializados em auditoria de segurança da informação, migração de banco de dados e suporte técnico continuado.',
-    data_emissao: '2026-09-25',
-    cidade_emissao: 'Brasília/DF',
-    observacoes: 'Pagamento efetuado via transferência bancária PIX conforme contrato nº 042/2026.',
-    usuario_id: 'usr-lucas',
-    usuario_nome: 'Lucas Oliveira',
-    status: 'emitido',
-    created_at: '2026-09-25T09:15:00.000Z',
-  },
-  {
-    id: 'doc-124',
-    numero: '000124/2026',
-    numero_sequencial: 124,
-    tipo: 'rdc',
-    empresa_emissora_id: 'emp-1',
-    empresa_destinataria_id: 'emp-2',
-    valor: 2100.00,
-    valor_extenso: valorPorExtenso(2100.00),
-    referente: 'Prestação de Contas e Reembolso de Despesas Corporativa - Viagem técnica a São Paulo/SP para auditoria e vistoria in loco.',
-    competencia: 'Setembro / 2026',
-    data_emissao: '2026-09-25',
-    cidade_emissao: 'Brasília/DF',
-    observacoes: 'Prestação de contas aprovada. Saldo positivo de ressarcimento a favor do solicitante.',
-    usuario_id: 'usr-lucas',
-    usuario_nome: 'Lucas Oliveira',
-    status: 'emitido',
-    created_at: '2026-09-25T08:45:00.000Z',
-    rdc_detalhes: {
-      linha_gasto: 'viagem',
-      data_pedido: '2026-09-20',
-      numero_pedido: '2026/089',
-      local_partida: 'Brasília/DF',
-      destino: 'São Paulo/SP',
-      nome_solicitante: 'Lucas Oliveira',
-      cpf_solicitante: '021.488.921-34',
-      setor_funcao: 'Auditor de Sistemas / TI',
-      objetivo_viagem: 'Auditoria técnica e vistoria in loco de infraestrutura predial e contábil.',
-      valor_solicitado: 2000.00,
-      nome_banco: 'Banco do Brasil',
-      agencia: '1820-1',
-      conta: '45.890-2',
-      tipo_conta: 'Conta Corrente',
-      chave_pix: 'lucas.oliveira@abeas.org.br',
-      data_entrega_rdc: '2026-09-25',
-      itens: [
-        {
-          id: 'item-1',
-          data: '2026-09-20',
-          tipo_gasto: 1,
-          tipo_doc: 'NF',
-          descricao: 'Restaurante Sabor & Arte - Almoço de trabalho equipe - NF 1042',
-          valor: 380.00,
-        },
-        {
-          id: 'item-2',
-          data: '2026-09-20',
-          tipo_gasto: 2,
-          tipo_doc: 'NF',
-          descricao: 'Posto Petrobras Paulista - Abastecimento de veículo locado - NF 8892',
-          valor: 320.00,
-        },
-        {
-          id: 'item-3',
-          data: '2026-09-21',
-          tipo_gasto: 3,
-          tipo_doc: 'Rec',
-          descricao: 'Uber do Brasil - Deslocamentos Aeroporto x Hotel x Escritório',
-          valor: 195.00,
-        },
-        {
-          id: 'item-4',
-          data: '2026-09-21',
-          tipo_gasto: 4,
-          tipo_doc: 'NF',
-          descricao: 'Hotel Ibis Paulista - 2 diárias de hospedagem - NF 4421',
-          valor: 850.00,
-        },
-        {
-          id: 'item-5',
-          data: '2026-09-22',
-          tipo_gasto: 5,
-          tipo_doc: 'Rec',
-          descricao: 'GOL Linhas Aéreas - Taxa de embarque e despacho bagagem',
-          valor: 210.00,
-        },
-        {
-          id: 'item-6',
-          data: '2026-09-22',
-          tipo_gasto: 6,
-          tipo_doc: 'Rec',
-          descricao: 'Papelaria Express - Cópias de documentos e encadernações técnicas',
-          valor: 145.00,
-        },
-      ],
-      total_despesas: 2100.00,
-      valor_adiantamento: 2000.00,
-      saldo_devolucao_ressarcimento: -100.00,
-      valor_ressarcir_solicitante: 100.00,
-      assinatura_profissional: 'Lucas Oliveira',
-      diretoria_direta: 'Carlos Eduardo Silva',
-      contabil_financeiro: 'Setor Contábil / Financeiro ABEAS',
-    },
-  },
-  {
-    id: 'doc-123',
-    numero: '000123/2026',
-    numero_sequencial: 123,
-    tipo: 'recibo',
-    empresa_emissora_id: 'emp-1',
-    empresa_destinataria_id: 'emp-6',
-    valor: 1200.00,
-    valor_extenso: valorPorExtenso(1200.00),
-    referente: 'Taxa de inscrição institucional e fornecimento de material didático do Programa Nacional de Formação Continuada.',
-    data_emissao: '2026-09-24',
-    cidade_emissao: 'Brasília/DF',
-    observacoes: 'Participação de 02 colaboradores da equipe de gestão.',
-    usuario_id: 'usr-mariana',
-    usuario_nome: 'Mariana Santos',
-    status: 'emitido',
-    created_at: '2026-09-24T14:20:00.000Z',
-  },
-  {
-    id: 'doc-122',
-    numero: '000122/2026',
-    numero_sequencial: 122,
-    tipo: 'recibo',
-    empresa_emissora_id: 'emp-2',
-    empresa_destinataria_id: 'emp-1',
-    valor: 800.00,
-    valor_extenso: valorPorExtenso(800.00),
-    referente: 'Renovação anual de licenças de software e certificado digital SSL corporativo.',
-    data_emissao: '2026-09-24',
-    cidade_emissao: 'Brasília/DF',
-    observacoes: 'Garantia e suporte inclusos pelo período de 12 meses.',
-    usuario_id: 'usr-lucas',
-    usuario_nome: 'Lucas Oliveira',
-    status: 'emitido',
-    created_at: '2026-09-24T10:10:00.000Z',
-  },
-];
+// Documentos válidos a partir de 22/10/2026. Lista inicial vazia para ambiente limpo de produção.
+export const INITIAL_DOCUMENTOS: Documento[] = [];
 
 export const INITIAL_MODELOS_DESPESA: ModeloDespesa[] = [
   {
@@ -675,9 +490,15 @@ export const StorageService = {
     if (!window.localStorage.getItem(STORAGE_KEYS.EMPRESAS)) {
       setLocalStorageItem(STORAGE_KEYS.EMPRESAS, INITIAL_EMPRESAS);
     }
-    if (!window.localStorage.getItem(STORAGE_KEYS.DOCUMENTOS)) {
-      setLocalStorageItem(STORAGE_KEYS.DOCUMENTOS, INITIAL_DOCUMENTOS);
-    }
+    // Expurgar documentos legados de teste/desenvolvimento anteriores a 22/10/2026
+    const existingDocs = getLocalStorageItem<Documento[]>(STORAGE_KEYS.DOCUMENTOS, []);
+    const validDocs = existingDocs.filter(
+      (d) =>
+        (d.data_emissao && d.data_emissao >= '2026-10-22') ||
+        (d.created_at && d.created_at >= '2026-10-22')
+    );
+    setLocalStorageItem(STORAGE_KEYS.DOCUMENTOS, validDocs);
+
     if (!window.localStorage.getItem(STORAGE_KEYS.CONFIG)) {
       setLocalStorageItem(STORAGE_KEYS.CONFIG, INITIAL_CONFIG);
     }
@@ -873,8 +694,14 @@ export const StorageService = {
 
   // --- Documentos ---
   getDocumentos(): Documento[] {
-    const docs = getLocalStorageItem<Documento[]>(STORAGE_KEYS.DOCUMENTOS, INITIAL_DOCUMENTOS);
-    let mudou = false;
+    const rawDocs = getLocalStorageItem<Documento[]>(STORAGE_KEYS.DOCUMENTOS, []);
+    // Filtrar apenas documentos válidos a partir de 22/10/2026
+    const docs = rawDocs.filter(
+      (d) =>
+        (d.data_emissao && d.data_emissao >= '2026-10-22') ||
+        (d.created_at && d.created_at >= '2026-10-22')
+    );
+    let mudou = docs.length !== rawDocs.length;
     docs.forEach((doc) => {
       if (doc.rdc_detalhes?.itens) {
         doc.rdc_detalhes.itens.forEach((it) => {

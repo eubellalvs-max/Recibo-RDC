@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Empresa, TipoEmpresa, StatusEmpresa, Usuario, TipoPessoa } from '@/lib/types';
 import { StorageService } from '@/lib/storage';
 import { mascaraCnpj, mascaraCpf, mascaraCep, mascaraTelefone, validarCnpj, validarCpf } from '@/lib/masks';
@@ -54,6 +54,18 @@ export function EmpresasManagement({ currentUser, readOnly = false }: EmpresasMa
  tipo: 'sucesso' | 'info' | 'erro';
  mensagem: string;
  } | null>(null);
+
+ useEffect(() => {
+  const onSync = () => {
+   if (!modalAberto && !modalExcluirAberto) {
+    setEmpresas(StorageService.getEmpresas());
+   }
+  };
+  window.addEventListener('storage_sync_updated', onSync);
+  return () => {
+   window.removeEventListener('storage_sync_updated', onSync);
+  };
+ }, [modalAberto, modalExcluirAberto]);
 
  // Campos do formulário
  const [tipoPessoa, setTipoPessoa] = useState<TipoPessoa>('PJ');
@@ -222,14 +234,19 @@ export function EmpresasManagement({ currentUser, readOnly = false }: EmpresasMa
  created_at: empresaEditando ? empresaEditando.created_at : new Date().toISOString(),
  };
 
- StorageService.saveEmpresa(novaEmpresa);
- recarregarEmpresas();
- setModalAberto(false);
- setFeedback({
- tipo: 'sucesso',
- mensagem: `${tipoPessoa === 'PF' ? 'Pessoa Física' : 'Empresa'} "${novaEmpresa.razao_social}" salva com sucesso!`,
- });
- setTimeout(() => setFeedback(null), 5000);
+  try {
+   StorageService.saveEmpresa(novaEmpresa);
+   recarregarEmpresas();
+   setModalAberto(false);
+   setFeedback({
+    tipo: 'sucesso',
+    mensagem: `${tipoPessoa === 'PF' ? 'Pessoa Física' : 'Empresa'} "${novaEmpresa.razao_social}" salva com sucesso!`,
+   });
+   setTimeout(() => setFeedback(null), 5000);
+  } catch (err: unknown) {
+   const msg = err instanceof Error ? err.message : 'Erro ao salvar a empresa no banco de dados.';
+   setErroForm(msg);
+  }
  };
 
  const handleAlternarStatus = (emp: Empresa) => {
