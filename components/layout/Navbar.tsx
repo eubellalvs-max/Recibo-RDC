@@ -31,8 +31,14 @@ export function Navbar({
  <div className="flex items-center gap-3">
  <button
  onClick={() => onSelectTab('dashboard')}
- className="text-left group flex items-center gap-2"
+ className="text-left group flex items-center gap-2.5"
  >
+ <img
+ src="/abeas_logo.png"
+ alt="ABEAS"
+ className="h-8 w-auto object-contain shrink-0"
+ />
+ <div className="flex items-center gap-2">
  <span className="text-base font-bold tracking-tight text-slate-900 group-hover:text-slate-700 transition-colors">
  Recibo & RDC
  </span>
@@ -40,6 +46,7 @@ export function Navbar({
  <span className="text-xs font-medium text-slate-500 ">
  {isAdmin ? 'Painel Administrativo' : 'Área do Emissor'}
  </span>
+ </div>
  </button>
  </div>
 

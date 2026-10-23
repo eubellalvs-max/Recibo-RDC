@@ -78,11 +78,12 @@
       "telefone": "(62) 3312-1000",
       "tipo": "ambas",
       "status": "ativa",
-      "created_at": "2026-01-01T08:00:00.000Z"
+      "created_at": "2026-01-01T08:00:00.000Z",
+      "logo_url": "/abeas_logo.png"
     },
     {
       "id": "emp-1",
-      "razao_social": "ABEAS - Associação Brasileira de Educação Agrícola Superior",
+      "razao_social": "ABEAS - Associação Brasileira de Entidades de Assistência Social",
       "nome_fantasia": "ABEAS",
       "cnpj": "00.334.821/0001-44",
       "inscricao_estadual": "ISENTO",
@@ -98,7 +99,8 @@
       "telefone": "(61) 3321-4500",
       "tipo": "ambas",
       "status": "ativa",
-      "created_at": "2026-01-10T08:00:00.000Z"
+      "created_at": "2026-01-10T08:00:00.000Z",
+      "logo_url": "/abeas_logo.png"
     },
     {
       "id": "emp-2",
@@ -223,7 +225,7 @@
   ],
   "documentos": [],
   "config": {
-    "nome_organizacao": "ABEAS - Associação Brasileira de Educação Agrícola Superior",
+    "nome_organizacao": "ABEAS - Associação Brasileira de Entidades de Assistência Social",
     "sigla_organizacao": "ABEAS",
     "cidade_padrao": "Brasília/DF",
     "ano_corrente": 2026,

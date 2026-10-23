@@ -49,7 +49,7 @@ export const DEFAULT_TIPOS_DOC: TipoDocConfig[] = [
 ];
 
 export const INITIAL_CONFIG: SistemaConfig = {
-  nome_organizacao: 'ABEAS - Associação Brasileira de Educação Agrícola Superior',
+  nome_organizacao: 'ABEAS - Associação Brasileira de Entidades de Assistência Social',
   sigla_organizacao: 'ABEAS',
   cidade_padrao: 'Brasília/DF',
   ano_corrente: 2026,
@@ -84,11 +84,12 @@ export const INITIAL_EMPRESAS: Empresa[] = [
     telefone: '(62) 3312-1000',
     tipo: 'ambas',
     status: 'ativa',
+    logo_url: '/abeas_logo.png',
     created_at: '2026-01-01T08:00:00.000Z',
   },
   {
     id: 'emp-1',
-    razao_social: 'ABEAS - Associação Brasileira de Educação Agrícola Superior',
+    razao_social: 'ABEAS - Associação Brasileira de Entidades de Assistência Social',
     nome_fantasia: 'ABEAS',
     cnpj: '00.334.821/0001-44',
     inscricao_estadual: 'ISENTO',
@@ -104,6 +105,7 @@ export const INITIAL_EMPRESAS: Empresa[] = [
     telefone: '(61) 3321-4500',
     tipo: 'ambas',
     status: 'ativa',
+    logo_url: '/abeas_logo.png',
     created_at: '2026-01-10T08:00:00.000Z',
   },
   {

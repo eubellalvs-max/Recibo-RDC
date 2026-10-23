@@ -91,8 +91,12 @@ export function LoginView({ onLoginSuccess }: LoginViewProps) {
  <div className="bg-white border border-slate-200 rounded-2xl p-7 shadow-sm transition-colors">
  {/* Logo e Cabeçalho */}
  <div className="text-center mb-6">
- <div className="w-14 h-14 bg-slate-900 text-white rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-xs border ">
- <FileText className="w-7 h-7 text-emerald-400" />
+ <div className="flex justify-center mb-3">
+ <img
+ src="/abeas_logo.png"
+ alt="ABEAS"
+ className="h-16 w-auto object-contain mx-auto"
+ />
  </div>
  <h1 className="text-lg font-bold text-slate-900 tracking-tight">
  SISTEMA DE RECIBOS & RDC
