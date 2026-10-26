@@ -42,6 +42,7 @@ export function AdminDashboard({
  const empresasAtivas = empresas.filter((e) => e.status === 'ativa').length;
  const usuariosAtivos = usuarios.filter((u) => u.status === 'ativo').length;
  const docsValidos = documentos.filter((d) => d.status === 'emitido');
+ const docsCancelados = documentos.filter((d) => d.status === 'cancelado');
  const valorTotalGeral = docsValidos.reduce((acc, curr) => acc + curr.valor, 0);
 
  const recibosCount = docsValidos.filter((d) => d.tipo === 'recibo').length;
@@ -160,10 +161,10 @@ export function AdminDashboard({
  </div>
  <div className="mt-2 flex items-baseline gap-2">
  <span className="text-2xl font-bold text-slate-900 tabular-nums">
- {documentos.length}
+ {docsValidos.length}
  </span>
  <span className="text-xs text-slate-500 ">
- ({recibosMedicosCount} Méd / {recibosCount} Rec / {rdcCount} RDC)
+ ({recibosMedicosCount} Méd / {recibosCount} Rec / {rdcCount} RDC{docsCancelados.length > 0 ? ` · ${docsCancelados.length} canc.` : ''})
  </span>
  </div>
  <div className="mt-2 text-[11px] text-slate-400 flex items-center justify-between">

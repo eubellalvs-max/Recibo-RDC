@@ -430,18 +430,9 @@ export const StorageService = {
     if (typeof window === 'undefined' || isSyncing) return false;
     isSyncing = true;
     try {
-      const localDocs = this.getDocumentos();
-      const localEmpresas = this.getEmpresas();
-      const localModelos = this.getModelosDespesa();
-
       const response = await fetch('/api/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          documentos: localDocs,
-          empresas: localEmpresas,
-          modelos_despesa: localModelos,
-        }),
+        method: 'GET',
+        headers: { 'Cache-Control': 'no-cache' },
       });
 
       if (!response.ok) return false;
@@ -806,6 +797,7 @@ export const StorageService = {
     if (empIndex >= 0) {
       empresas[empIndex].proximo_recibo_num = novoValor;
       setLocalStorageItem(STORAGE_KEYS.EMPRESAS, empresas);
+      apiSyncPut(`/api/empresas/${fornecedorId}`, empresas[empIndex]);
     }
   },
 

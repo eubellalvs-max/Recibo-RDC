@@ -26,6 +26,7 @@ export function MeusDocumentosView({
 }: MeusDocumentosViewProps) {
  const [busca, setBusca] = useState('');
  const [tipoFiltro, setTipoFiltro] = useState<'todos' | 'recibo' | 'rdc' | 'recibo_medico'>('todos');
+ const [statusFiltro, setStatusFiltro] = useState<'todos' | 'emitido' | 'cancelado'>('todos');
  const [dataInicio, setDataInicio] = useState('');
  const [dataFim, setDataFim] = useState('');
  const [documentos, setDocumentos] = useState<Documento[]>(() =>
@@ -39,6 +40,11 @@ export function MeusDocumentosView({
  const docsFiltrados = documentos.filter((doc) => {
  // Se for emissor comum, só vê os seus próprios (se for admin, vê todos)
  if (currentUser.perfil !== 'admin' && doc.usuario_id !== currentUser.id) {
+ return false;
+ }
+
+ // Status
+ if (statusFiltro !== 'todos' && doc.status !== statusFiltro) {
  return false;
  }
 
@@ -140,7 +146,7 @@ export function MeusDocumentosView({
 
  {/* Painel de Filtros e Busca */}
  <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-2xs space-y-3 transition-colors">
- <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+ <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
  {/* Busca por texto */}
  <div className="md:col-span-2">
  <label className="block text-[11px] font-semibold text-slate-600 mb-1">
@@ -175,6 +181,22 @@ export function MeusDocumentosView({
  </select>
  </div>
 
+ {/* Filtro por Status */}
+ <div>
+ <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+ Status do Documento
+ </label>
+ <select
+ value={statusFiltro}
+ onChange={(e) => setStatusFiltro(e.target.value as any)}
+ className="w-full px-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-slate-800 outline-none"
+ >
+ <option value="todos">Todos os status</option>
+ <option value="emitido">Somente Ativos (Emitidos)</option>
+ <option value="cancelado">Somente Cancelados</option>
+ </select>
+ </div>
+
  {/* Período */}
  <div>
  <label className="block text-[11px] font-semibold text-slate-600 mb-1">
@@ -203,12 +225,17 @@ export function MeusDocumentosView({
  {/* Resumo do filtro */}
  <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs text-slate-500 ">
  <div>
- <span>Exibindo <b>{docsFiltrados.length}</b> documento(s)</span>
- {(busca || tipoFiltro !== 'todos' || dataInicio || dataFim) && (
+ <span>
+ Exibindo <b>{docsFiltrados.length}</b> documento(s) (
+ <b className="text-emerald-700">{docsFiltrados.filter((d) => d.status === 'emitido').length}</b> ativos,{' '}
+ <b className="text-red-700">{docsFiltrados.filter((d) => d.status === 'cancelado').length}</b> cancelados)
+ </span>
+ {(busca || tipoFiltro !== 'todos' || statusFiltro !== 'todos' || dataInicio || dataFim) && (
  <button
  onClick={() => {
  setBusca('');
  setTipoFiltro('todos');
+ setStatusFiltro('todos');
  setDataInicio('');
  setDataFim('');
  }}
@@ -219,7 +246,7 @@ export function MeusDocumentosView({
  )}
  </div>
  <div className="text-right">
- <span>Volume total filtrado: <b className="text-slate-900 tabular-nums">{formatarMoeda(totalValor)}</b></span>
+ <span>Volume total ativo filtrado: <b className="text-slate-900 tabular-nums">{formatarMoeda(totalValor)}</b></span>
  </div>
  </div>
  </div>

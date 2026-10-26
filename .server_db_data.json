@@ -46,21 +46,6 @@
   ],
   "empresas": [
     {
-      "id": "emp-test-sync-1",
-      "razao_social": "Empresa Teste Multi Computador Ltda",
-      "nome_fantasia": "Teste Multi",
-      "cnpj": "12.345.678/0001-90",
-      "endereco": "Rua Central",
-      "numero": "10",
-      "bairro": "Centro",
-      "cidade": "Brasília",
-      "uf": "DF",
-      "cep": "70000-000",
-      "tipo": "emissora",
-      "status": "ativa",
-      "created_at": "2026-10-21T12:00:00.000Z"
-    },
-    {
       "id": "emp-abeas-medico",
       "razao_social": "ABEAS - Associação Brasileira de Entidades de Assistência Social",
       "nome_fantasia": "ABEAS - Assistência Social",
@@ -459,5 +444,5 @@
       "created_at": "2026-01-10T08:00:00.000Z"
     }
   ],
-  "last_updated": "2026-10-22T19:45:04.649Z"
+  "last_updated": "2026-10-26T12:36:02.069Z"
 }

@@ -184,14 +184,49 @@ export const ServerDb = {
   },
 
   async saveDocumento(doc: Documento): Promise<Documento> {
+    const store = getStore();
+    const idx = store.documentos.findIndex((d) => d.id === doc.id);
+
+    // Proteção de concorrência para emissão de novos documentos:
+    // Se for um novo documento (não edição de existente), garante que não haja
+    // duplicidade de número para o mesmo fornecedor e tipo de documento.
+    if (idx < 0) {
+      const fornecedorId = doc.empresa_emissora_id;
+      const tipo = doc.tipo;
+      const duplicado = store.documentos.find(
+        (d) =>
+          d.id !== doc.id &&
+          d.empresa_emissora_id === fornecedorId &&
+          d.tipo === tipo &&
+          (d.numero_sequencial === doc.numero_sequencial || d.numero === doc.numero)
+      );
+
+      if (duplicado) {
+        const maxSeq = store.documentos
+          .filter(
+            (d) =>
+              d.empresa_emissora_id === fornecedorId &&
+              d.tipo === tipo
+          )
+          .reduce((max, d) => Math.max(max, d.numero_sequencial || 0), 0);
+        const novoSeq = Math.max(maxSeq + 1, (doc.numero_sequencial || 0) + 1);
+        doc.numero_sequencial = novoSeq;
+        const anoRef = new Date().getFullYear();
+        if (tipo === 'recibo') {
+          doc.numero = `${String(novoSeq).padStart(3, '0')}/${anoRef}`;
+        } else if (tipo === 'rdc') {
+          doc.numero = `${String(novoSeq).padStart(6, '0')}/${anoRef}`;
+        } else if (tipo === 'recibo_medico') {
+          doc.numero = `${String(novoSeq).padStart(3, '0')}/${anoRef}`;
+        }
+      }
+    }
+
     const supabase = getSupabase();
     if (supabase) {
       try {
         const { error } = await supabase.from('documentos').upsert(doc);
         if (!error) {
-          // Sincroniza também no cache em memória
-          const store = getStore();
-          const idx = store.documentos.findIndex((d) => d.id === doc.id);
           if (idx >= 0) store.documentos[idx] = doc;
           else store.documentos.unshift(doc);
           saveStoreToFile(store);
@@ -202,8 +237,6 @@ export const ServerDb = {
       }
     }
 
-    const store = getStore();
-    const idx = store.documentos.findIndex((d) => d.id === doc.id);
     if (idx >= 0) {
       store.documentos[idx] = doc;
     } else {
@@ -268,21 +301,16 @@ export const ServerDb = {
     const supabase = getSupabase();
     if (supabase) {
       try {
-        await supabase.from('empresas').update({ status: 'inativa', excluida_logica: true }).eq('id', id);
+        await supabase.from('empresas').delete().eq('id', id);
       } catch (err) {
-        console.error('Erro ao inativar empresa no Supabase:', err);
+        console.error('Erro ao deletar empresa no Supabase:', err);
       }
     }
 
     const store = getStore();
-    const emp = store.empresas.find((e) => e.id === id);
-    if (emp) {
-      emp.status = 'inativa';
-      emp.excluida_logica = true;
-      saveStoreToFile(store);
-      return true;
-    }
-    return false;
+    store.empresas = store.empresas.filter((e) => e.id !== id);
+    saveStoreToFile(store);
+    return true;
   },
 
   // --- Usuários ---
@@ -318,6 +346,22 @@ export const ServerDb = {
     }
     saveStoreToFile(store);
     return usuario;
+  },
+
+  async deleteUsuario(id: string): Promise<boolean> {
+    const supabase = getSupabase();
+    if (supabase) {
+      try {
+        await supabase.from('usuarios').delete().eq('id', id);
+      } catch (err) {
+        console.error('Erro ao deletar usuário no Supabase:', err);
+      }
+    }
+
+    const store = getStore();
+    store.usuarios = store.usuarios.filter((u) => u.id !== id);
+    saveStoreToFile(store);
+    return true;
   },
 
   // --- Configurações & Sequenciais ---
