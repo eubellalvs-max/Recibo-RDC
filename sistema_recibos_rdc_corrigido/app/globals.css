@@ -1,0 +1,187 @@
+@import "tailwindcss";
+
+/* Desativa completamente o Dark Mode para que o Tailwind v4 não use @media (prefers-color-scheme: dark) */
+@custom-variant dark (&:where(.theme-dark-disabled-never-match));
+
+:root {
+  color-scheme: light !important;
+}
+
+html, body {
+  background-color: #f8fafc;
+  color: #0f172a;
+}
+
+/* =========================================================================
+   ESTRUTURA ESPECÍFICA DE IMPRESSÃO (PRINT LAYOUT INDEPENDENTE)
+   TELA DO SISTEMA ≠ DOCUMENTO DE IMPRESSÃO
+   ========================================================================= */
+
+@media screen {
+  /* Em tela normal, a área física de impressão fica 100% oculta */
+  #print-area,
+  .print-area {
+    display: none !important;
+  }
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 8mm 10mm 8mm 10mm;
+  }
+
+  html, body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* 1. OCULTAÇÃO TOTAL DA INTERFACE DO SISTEMA
+     Remove menu, sidebar, cabeçalho, botões, abas, campos e toda a casca */
+  #system-app-root,
+  #system-app-root *,
+  header,
+  nav,
+  aside,
+  main,
+  footer,
+  .sidebar,
+  .header,
+  .navigation,
+  .dashboard,
+  .buttons,
+  .actions,
+  .no-print,
+  button,
+  [role="dialog"] {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    overflow: hidden !important;
+  }
+
+  /* 2. ÁREA DE IMPRESSÃO EXCLUSIVA DO DOCUMENTO */
+  #print-area,
+  .print-area {
+    display: block !important;
+    visibility: visible !important;
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    border: none !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+  }
+
+  #print-receipt,
+  .receipt {
+    display: block !important;
+    visibility: visible !important;
+    position: relative !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    max-width: 185mm !important; /* Segurança absoluta dentro da largura A4 (190mm) */
+    margin: 0 auto !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    border: none !important;
+    box-shadow: none !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* 3. FOLHA DO RECIBO COM BORDAS PRESERVADAS E SEM CORTE */
+  .receipt-sheet,
+  .print-sheet {
+    display: block !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    max-width: 185mm !important;
+    margin: 0 auto !important;
+    padding: 6mm 8mm !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+    border: 1.5px solid #000000 !important;
+    border-radius: 4px !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    box-shadow: none !important;
+    transform: none !important;
+    overflow: visible !important;
+  }
+
+  /* 4. FOLHA ESPECÍFICA DA RDC */
+  .receipt-sheet-rdc,
+  .print-sheet-rdc {
+    display: block !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    max-width: 188mm !important;
+    margin: 0 auto !important;
+    padding: 4mm 5mm !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    border: 1.5px solid #000000 !important;
+    border-radius: 0 !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    box-shadow: none !important;
+    transform: none !important;
+    font-size: 8pt !important;
+    line-height: 1.15 !important;
+    overflow: visible !important;
+  }
+
+  .print-sheet-rdc * {
+    box-shadow: none !important;
+  }
+
+  /* 5. FOLHA ESPECÍFICA DO RECIBO MÉDICO (REC.M) - TAMANHO REAL 1 PÁGINA A4 COM MARGEM INFERIOR SEGURA */
+  .receipt-sheet-medico,
+  .print-sheet-medico {
+    display: block !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    max-width: 182mm !important;
+    margin: 0 auto !important;
+    padding: 5mm 7mm !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    border: 1.5px solid #000000 !important;
+    border-radius: 4px !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+    page-break-before: avoid !important;
+    break-before: avoid !important;
+    box-shadow: none !important;
+    transform: none !important;
+    overflow: visible !important;
+  }
+
+  .print-sheet-medico * {
+    box-shadow: none !important;
+  }
+
+  .avoid-page-break {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+}

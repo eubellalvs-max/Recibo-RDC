@@ -1,0 +1,6 @@
+{
+  "name": "Sistema de Emissão de Recibos e RDC",
+  "description": "Sistema completo para emissão e gestão de Recibos e RDC com preenchimento automático por extenso, controle de empresas, numeração sequencial e perfis de Administrador e Emissor.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
