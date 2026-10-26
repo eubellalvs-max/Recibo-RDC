@@ -400,50 +400,59 @@ function setSessionStorageItem<T>(key: string, value: T): void {
 let isSyncing = false;
 let syncListenerSetup = false;
 
-function apiSyncPost(endpoint: string, payload: unknown) {
+// Serializa gravações para que a sincronização não substitua alterações pendentes.
+let writeQueue: Promise<void> = Promise.resolve();
+let writeFailed = false;
+let writeRevision = 0;
+function enqueueWrite(endpoint: string, method: 'POST' | 'PUT' | 'DELETE', payload?: unknown) {
   if (typeof window === 'undefined') return;
-  fetch(endpoint, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  }).catch((err) => console.warn(`Falha async POST ${endpoint}:`, err));
+  writeRevision++;
+  const write = async () => {
+    const response = await fetch(endpoint, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      ...(payload === undefined ? {} : { body: JSON.stringify(payload) }),
+    });
+    if (!response.ok) {
+      const details = await response.text();
+      throw new Error(`${method} ${endpoint}: HTTP ${response.status} ${details.slice(0, 300)}`);
+    }
+  };
+  writeQueue = writeQueue.then(write).catch((error) => {
+    writeFailed = true;
+    console.error('Alteração NÃO persistida no banco:', error);
+    window.dispatchEvent(new CustomEvent('storage_save_error', { detail: String(error) }));
+    window.alert('Não foi possível salvar no banco de dados. As alterações estão apenas neste navegador. Verifique a conexão com o Supabase antes de atualizar a página.');
+  });
 }
-
-function apiSyncPut(endpoint: string, payload: unknown) {
-  if (typeof window === 'undefined') return;
-  fetch(endpoint, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  }).catch((err) => console.warn(`Falha async PUT ${endpoint}:`, err));
-}
-
-function apiSyncDelete(endpoint: string) {
-  if (typeof window === 'undefined') return;
-  fetch(endpoint, { method: 'DELETE' }).catch((err) =>
-    console.warn(`Falha async DELETE ${endpoint}:`, err)
-  );
-}
+function apiSyncPost(endpoint: string, payload: unknown) { enqueueWrite(endpoint, 'POST', payload); }
+function apiSyncPut(endpoint: string, payload: unknown) { enqueueWrite(endpoint, 'PUT', payload); }
+function apiSyncDelete(endpoint: string) { enqueueWrite(endpoint, 'DELETE'); }
 
 export const StorageService = {
   async syncWithServer(): Promise<boolean> {
     if (typeof window === 'undefined' || isSyncing) return false;
     isSyncing = true;
     try {
-      const response = await fetch('/api/sync', {
-        method: 'GET',
-        headers: { 'Cache-Control': 'no-cache' },
-      });
+      // Aguardar gravações antes de buscar dados remotos; não sobrescrever dados locais se houve falha.
+      await writeQueue;
+      if (writeFailed) return false;
+      const revisionAtFetch = writeRevision;
+      // GET é somente leitura; não reimportar cadastros locais antigos automaticamente.
+      const response = await fetch('/api/sync', { method: 'GET', cache: 'no-store' });
 
       if (!response.ok) return false;
 
+      await writeQueue;
+      if (writeFailed || revisionAtFetch !== writeRevision) return false;
       const resJson = await response.json();
       const data = resJson.data || resJson;
+      if (writeFailed || revisionAtFetch !== writeRevision) return false;
 
       if (data && data.documentos && data.empresas) {
         setLocalStorageItem(STORAGE_KEYS.DOCUMENTOS, data.documentos);
         setLocalStorageItem(STORAGE_KEYS.EMPRESAS, data.empresas);
-        if (data.usuarios && data.usuarios.length > 0) {
+        if (Array.isArray(data.usuarios)) {
           setLocalStorageItem(STORAGE_KEYS.USUARIOS, data.usuarios);
         }
         if (data.config) {
@@ -483,15 +492,6 @@ export const StorageService = {
     if (!window.localStorage.getItem(STORAGE_KEYS.EMPRESAS)) {
       setLocalStorageItem(STORAGE_KEYS.EMPRESAS, INITIAL_EMPRESAS);
     }
-    // Expurgar documentos legados de teste/desenvolvimento anteriores a 22/10/2026
-    const existingDocs = getLocalStorageItem<Documento[]>(STORAGE_KEYS.DOCUMENTOS, []);
-    const validDocs = existingDocs.filter(
-      (d) =>
-        (d.data_emissao && d.data_emissao >= '2026-10-22') ||
-        (d.created_at && d.created_at >= '2026-10-22')
-    );
-    setLocalStorageItem(STORAGE_KEYS.DOCUMENTOS, validDocs);
-
     if (!window.localStorage.getItem(STORAGE_KEYS.CONFIG)) {
       setLocalStorageItem(STORAGE_KEYS.CONFIG, INITIAL_CONFIG);
     }
@@ -797,7 +797,6 @@ export const StorageService = {
     if (empIndex >= 0) {
       empresas[empIndex].proximo_recibo_num = novoValor;
       setLocalStorageItem(STORAGE_KEYS.EMPRESAS, empresas);
-      apiSyncPut(`/api/empresas/${fornecedorId}`, empresas[empIndex]);
     }
   },
 
