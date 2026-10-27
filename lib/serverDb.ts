@@ -135,6 +135,14 @@ export const ServerDb = {
     return usuario;
   },
 
+  // Exclui o usuário no banco, atendendo à rota DELETE /api/usuarios/[id].
+  async deleteUsuario(id: string): Promise<boolean> {
+    const supabase = requireDatabase();
+    const { error } = await supabase.from('usuarios').delete().eq('id', id);
+    if (error) throw new Error(`Erro ao excluir usuario no Supabase: ${error.message}`);
+    return true;
+  },
+
   // --- Configurações & Sequenciais ---
   async getConfig(): Promise<SistemaConfig> {
     const data = await this.getAllData();
