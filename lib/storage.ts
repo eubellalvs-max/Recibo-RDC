@@ -9,6 +9,7 @@ import {
   TipoGastoConfig,
   TipoDocConfig,
   ModeloDespesa,
+  RetencaoImpostosRecibo,
 } from './types';
 import { valorPorExtenso } from './extenso';
 
@@ -820,6 +821,8 @@ export const StorageService = {
     logo_url?: string;
     rdc_detalhes?: DadosRdc;
     recibo_medico_detalhes?: DadosReciboMedico;
+    retencao_impostos?: RetencaoImpostosRecibo;
+    valor_extenso?: string;
   }): Documento {
     const config = this.getConfig();
     const ano = config.ano_corrente || new Date().getFullYear();
@@ -845,7 +848,7 @@ export const StorageService = {
       numeroFormatado = `${String(seqNum).padStart(6, '0')}/${ano}`;
     }
 
-    const extenso = valorPorExtenso(params.valor);
+    const extenso = params.valor_extenso || valorPorExtenso(params.valor);
 
     const novoDoc: Documento = {
       id: `doc-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
@@ -868,6 +871,7 @@ export const StorageService = {
       logo_url: params.logo_url,
       rdc_detalhes: params.rdc_detalhes,
       recibo_medico_detalhes: params.recibo_medico_detalhes,
+      retencao_impostos: params.retencao_impostos,
     };
 
     const docs = this.getDocumentos();

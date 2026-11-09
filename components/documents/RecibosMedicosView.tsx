@@ -20,6 +20,7 @@ import {
  User,
  Stethoscope,
  Edit3,
+ FileSpreadsheet,
 } from 'lucide-react';
 
 interface RecibosMedicosViewProps {
@@ -27,6 +28,7 @@ interface RecibosMedicosViewProps {
  onVisualizar: (doc: Documento) => void;
  onEditar?: (doc: Documento) => void;
  onNovoReciboMedico: (initialData?: any) => void;
+ onIrParaRelatorioFinanceiro?: () => void;
 }
 
 export function RecibosMedicosView({
@@ -34,6 +36,7 @@ export function RecibosMedicosView({
  onVisualizar,
  onEditar,
  onNovoReciboMedico,
+ onIrParaRelatorioFinanceiro,
 }: RecibosMedicosViewProps) {
  const [documentos, setDocumentos] = useState<Documento[]>(() =>
  StorageService.getDocumentos().filter((d) => d.tipo === 'recibo_medico')
@@ -137,6 +140,19 @@ export function RecibosMedicosView({
  </div>
  </div>
 
+ <div className="flex flex-wrap items-center gap-2">
+ {onIrParaRelatorioFinanceiro && (
+ <button
+ type="button"
+ onClick={onIrParaRelatorioFinanceiro}
+ className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg shadow-2xs transition-colors"
+ title="Acessar Relatório Financeiro e Planilha Analítica de Recibos Médicos"
+ >
+ <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+ <span>RELATÓRIO FINANCEIRO</span>
+ </button>
+ )}
+
  <button
  onClick={() => onNovoReciboMedico()}
  className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-lg shadow-sm transition-colors"
@@ -144,6 +160,7 @@ export function RecibosMedicosView({
  <Plus className="w-4 h-4" />
  <span>EMITIR RECIBO MÉDICO</span>
  </button>
+ </div>
  </div>
 
  {/* Cards de Métricas */}

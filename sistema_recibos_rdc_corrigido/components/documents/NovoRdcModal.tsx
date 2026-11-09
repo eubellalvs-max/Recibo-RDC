@@ -111,6 +111,7 @@ export function NovoRdcModal({
  const [erro, setErro] = useState<string | null>(null);
  const [isSubmitting, setIsSubmitting] = useState(false);
  const [modoPreVisualizar, setModoPreVisualizar] = useState(false);
+ const [viaPrevia, setViaPrevia] = useState<'1' | '2'>('1');
 
  const config = StorageService.getConfig();
  const seqNum = config.proximo_rdc_num || 1;
@@ -399,6 +400,7 @@ export function NovoRdcModal({
  setActivePrintItem({
  tipo: 'rdc',
  numero: numeroRdcAuto,
+ via: viaPrevia,
  dadosRdc: {
  numero: numeroRdcAuto,
  detalhes: {
@@ -439,6 +441,7 @@ export function NovoRdcModal({
  isOpen,
  modoPreVisualizar,
  numeroRdcAuto,
+ viaPrevia,
  linhaGasto,
  dataPedido,
  numeroPedido,
@@ -480,7 +483,7 @@ export function NovoRdcModal({
  {modoPreVisualizar ? (
  <UnifiedPrintToolbar
  titulo={isEdicao ? 'PRÉ-VISUALIZAÇÃO - RDC EM EDIÇÃO' : 'PRÉ-VISUALIZAÇÃO DA RDC'}
- subtitulo={`Nº ${numeroRdcAuto} • Relatório de Despesas com Comprovantes`}
+ subtitulo={`Nº ${numeroRdcAuto} • Emissor (Recebedor): ${nomeSolicitante || 'Solicitante'}`}
  isPreVisualizacao={true}
  onVoltarEdicao={() => setModoPreVisualizar(false)}
  onConfirmarEmissao={executarEmissao}
@@ -489,6 +492,8 @@ export function NovoRdcModal({
  isSubmitting={isSubmitting}
  documentoNumero={numeroRdcAuto}
  tipoDocumento="RDC"
+ viaAtual={viaPrevia}
+ onChangeVia={setViaPrevia}
  />
  ) : (
  <div className="no-print flex items-center justify-between px-6 py-3.5 border-b border-slate-200 bg-slate-50 shrink-0">
@@ -576,6 +581,7 @@ export function NovoRdcModal({
  tiposGasto,
  tiposDoc,
  }}
+ via={viaPrevia}
  />
  </div>
  ) : (
@@ -734,7 +740,7 @@ export function NovoRdcModal({
  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
  <div>
  <label className="block text-[11px] font-semibold text-slate-700 mb-1">
- Nome - Solicitante *
+ Nome - Solicitante (Emissor / Recebedor) *
  </label>
  <input
  type="text"

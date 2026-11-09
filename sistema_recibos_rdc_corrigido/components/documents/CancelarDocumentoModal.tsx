@@ -84,11 +84,23 @@ export function CancelarDocumentoModal({
  <span className="font-bold text-slate-900 ">{formatarMoeda(documento.valor)}</span>
  </div>
  <div className="flex justify-between">
- <span className="text-slate-500 ">Destinatário / Pagador:</span>
+ <span className="text-slate-500 ">Emissor (Recebedor):</span>
+ <span className="font-medium text-slate-900 truncate max-w-[200px]">
+ {documento.tipo === 'rdc' ? (documento.rdc_detalhes?.nome_solicitante || documento.usuario_nome || 'Solicitante') : (documento.usuario_nome || 'Emissor')}
+ </span>
+ </div>
+ <div className="flex justify-between">
+ <span className="text-slate-500 ">Destinatário (Pagador):</span>
  <span className="font-medium text-slate-900 truncate max-w-[200px]">
  {documento.recibo_medico_detalhes?.pagador_nome || 'Empresa Destinatária'}
  </span>
  </div>
+ {documento.retencao_impostos?.possui_retencao && (
+ <div className="flex justify-between text-blue-700 pt-1 border-t border-slate-200">
+ <span>Retenção IRRF:</span>
+ <span className="font-semibold tabular-nums">Bruto {formatarMoeda(documento.retencao_impostos.valor_bruto)} | IRRF -{formatarMoeda(documento.retencao_impostos.valor_irrf)}</span>
+ </div>
+ )}
  </div>
 
  {/* Formulário de Motivo */}

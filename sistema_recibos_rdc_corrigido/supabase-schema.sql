@@ -66,6 +66,7 @@ CREATE TABLE IF NOT EXISTS public.documentos (
     logo_url TEXT,
     rdc_detalhes JSONB,
     recibo_medico_detalhes JSONB,
+    retencao_impostos JSONB,
     data_cancelamento TIMESTAMPTZ,
     usuario_cancelamento_id TEXT,
     usuario_cancelamento_nome TEXT,
@@ -125,14 +126,26 @@ ALTER TABLE public.modelos_despesa ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.configuracoes ENABLE ROW LEVEL SECURITY;
 
 -- Políticas públicas ou autenticadas via API do sistema
+DROP POLICY IF EXISTS "Permitir leitura total para usuários autorizados" ON public.empresas;
 CREATE POLICY "Permitir leitura total para usuários autorizados" ON public.empresas FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Permitir escrita total para API" ON public.empresas;
 CREATE POLICY "Permitir escrita total para API" ON public.empresas FOR ALL USING (true);
 
+DROP POLICY IF EXISTS "Permitir leitura de usuarios para API" ON public.usuarios;
 CREATE POLICY "Permitir leitura de usuarios para API" ON public.usuarios FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Permitir escrita de usuarios para API" ON public.usuarios;
 CREATE POLICY "Permitir escrita de usuarios para API" ON public.usuarios FOR ALL USING (true);
 
+DROP POLICY IF EXISTS "Permitir leitura de documentos" ON public.documentos;
 CREATE POLICY "Permitir leitura de documentos" ON public.documentos FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Permitir emissao e edicao de documentos" ON public.documentos;
 CREATE POLICY "Permitir emissao e edicao de documentos" ON public.documentos FOR ALL USING (true);
 
+DROP POLICY IF EXISTS "Permitir modelos de despesa" ON public.modelos_despesa;
 CREATE POLICY "Permitir modelos de despesa" ON public.modelos_despesa FOR ALL USING (true);
+
+DROP POLICY IF EXISTS "Permitir configuracoes" ON public.configuracoes;
 CREATE POLICY "Permitir configuracoes" ON public.configuracoes FOR ALL USING (true);

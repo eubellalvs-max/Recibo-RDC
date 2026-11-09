@@ -70,6 +70,15 @@ export function Navbar({
  Recibos Médicos
  </button>
 
+ <button
+ onClick={() => onSelectTab('relatorio-financeiro')}
+ className={`transition-colors hover:text-slate-900 ${
+ currentTab === 'relatorio-financeiro' ? 'text-slate-900 font-semibold' : ''
+ }`}
+ >
+ Relatório Financeiro
+ </button>
+
  {isAdmin ? (
  <>
  <button

@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Empresa, SistemaConfig } from '@/lib/types';
+import { Empresa, SistemaConfig, RetencaoImpostosRecibo } from '@/lib/types';
 import { formatarMoeda, mascaraCnpj, mascaraCpf, dataPorExtenso } from '@/lib/masks';
 
 export interface UnifiedReciboData {
@@ -16,6 +16,7 @@ export interface UnifiedReciboData {
   usuario_nome?: string;
   emissora?: Empresa;
   destinataria?: Empresa;
+  retencao_impostos?: RetencaoImpostosRecibo;
 }
 
 interface UnifiedReciboPrintProps {
@@ -41,6 +42,7 @@ export const UnifiedReciboPrint: React.FC<UnifiedReciboPrintProps> = ({
     usuario_nome,
     emissora,
     destinataria,
+    retencao_impostos,
   } = dados;
 
   const logoExibicao = logo_url || emissora?.logo_url;
@@ -97,14 +99,31 @@ export const UnifiedReciboPrint: React.FC<UnifiedReciboPrintProps> = ({
       </div>
 
       {/* Destaque do Valor */}
-      <div className="my-5 p-3.5 bg-slate-100 border-2 border-slate-900 rounded-lg flex items-center justify-between font-sans">
-        <span className="text-xs font-black text-slate-950 uppercase tracking-wider">
-          VALOR TOTAL:
-        </span>
-        <span className="text-xl md:text-2xl font-black text-black tabular-nums">
-          {formatarMoeda(valor)}
-        </span>
-      </div>
+      {retencao_impostos?.possui_retencao ? (
+        <div className="my-5 p-3.5 bg-slate-100 border-2 border-slate-900 rounded-lg font-sans">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-black text-slate-950 uppercase tracking-wider">
+              VALOR LÍQUIDO A RECEBER:
+            </span>
+            <span className="text-xl md:text-2xl font-black text-black tabular-nums">
+              {formatarMoeda(retencao_impostos.valor_liquido)}
+            </span>
+          </div>
+          <div className="mt-2 pt-2 border-t border-slate-300 flex items-center justify-between text-[11px] text-slate-800 font-semibold">
+            <span>Valor Bruto: <b className="text-slate-950 font-bold">{formatarMoeda(retencao_impostos.valor_bruto)}</b></span>
+            <span>Total Deduções / Retenções: <b className="text-red-700 font-bold">-{formatarMoeda(retencao_impostos.total_deducoes)}</b></span>
+          </div>
+        </div>
+      ) : (
+        <div className="my-5 p-3.5 bg-slate-100 border-2 border-slate-900 rounded-lg flex items-center justify-between font-sans">
+          <span className="text-xs font-black text-slate-950 uppercase tracking-wider">
+            VALOR TOTAL:
+          </span>
+          <span className="text-xl md:text-2xl font-black text-black tabular-nums">
+            {formatarMoeda(valor)}
+          </span>
+        </div>
+      )}
 
       {/* Corpo do Recibo */}
       <div className="space-y-5 text-xs sm:text-sm text-slate-950">
@@ -130,11 +149,18 @@ export const UnifiedReciboPrint: React.FC<UnifiedReciboPrintProps> = ({
             O VALOR DE:
           </span>
           <div className="font-black text-black text-sm sm:text-base">
-            {formatarMoeda(valor)}
+            {retencao_impostos?.possui_retencao
+              ? formatarMoeda(retencao_impostos.valor_liquido)
+              : formatarMoeda(valor)}
           </div>
           <div className="text-xs text-slate-950 italic mt-0.5 font-sans font-bold">
             ({valor_extenso})
           </div>
+          {retencao_impostos?.possui_retencao && (
+            <div className="text-[11px] text-slate-700 font-medium mt-1 leading-snug">
+              Valor líquido a receber resultante da dedução de {formatarMoeda(retencao_impostos.total_deducoes)} (IRRF: {formatarMoeda(retencao_impostos.valor_irrf)}{retencao_impostos.outras_deducoes > 0 ? ` · Outras deduções: ${formatarMoeda(retencao_impostos.outras_deducoes)}` : ''}) incidente sobre o valor bruto de {formatarMoeda(retencao_impostos.valor_bruto)}.
+            </div>
+          )}
         </div>
 
         <div>
@@ -145,6 +171,57 @@ export const UnifiedReciboPrint: React.FC<UnifiedReciboPrintProps> = ({
             {referente}
           </p>
         </div>
+
+        {/* DEMONSTRATIVO DE IMPOSTOS E DEDUÇÕES (SE SELECIONADO SIM) */}
+        {retencao_impostos?.possui_retencao && (
+          <div className="border-2 border-slate-900 rounded-lg p-3.5 bg-slate-50 font-sans text-xs avoid-page-break my-3">
+            <div className="font-black text-[11px] sm:text-xs uppercase tracking-wider text-black border-b-2 border-slate-900 pb-1.5 mb-2.5 text-center">
+              DEMONSTRATIVO DE IMPOSTOS E DEDUÇÕES
+            </div>
+            <table className="w-full text-xs">
+              <tbody className="divide-y divide-slate-200">
+                <tr>
+                  <td className="py-1 text-slate-800 font-semibold">Valor Bruto</td>
+                  <td className="py-1 text-right font-bold text-slate-950 tabular-nums">{formatarMoeda(retencao_impostos.valor_bruto)}</td>
+                </tr>
+                <tr>
+                  <td className="py-1 text-slate-800 font-semibold">Base de Cálculo do IRRF</td>
+                  <td className="py-1 text-right font-medium text-slate-950 tabular-nums">{formatarMoeda(retencao_impostos.base_calculo_irrf)}</td>
+                </tr>
+                <tr>
+                  <td className="py-1 text-slate-800 font-semibold">Alíquota do IR</td>
+                  <td className="py-1 text-right font-medium text-slate-950 tabular-nums">{retencao_impostos.aliquota_ir.toFixed(1).replace('.', ',')}%</td>
+                </tr>
+                {retencao_impostos.parcela_deduzir_ir > 0 && (
+                  <tr>
+                    <td className="py-1 text-slate-800 font-semibold">Parcela a Deduzir (Tabela Progressiva)</td>
+                    <td className="py-1 text-right font-medium text-slate-950 tabular-nums">{formatarMoeda(retencao_impostos.parcela_deduzir_ir)}</td>
+                  </tr>
+                )}
+                <tr>
+                  <td className="py-1 text-slate-900 font-bold">Valor do IRRF Retido na Fonte</td>
+                  <td className="py-1 text-right font-bold text-red-700 tabular-nums">-{formatarMoeda(retencao_impostos.valor_irrf)}</td>
+                </tr>
+                {retencao_impostos.outras_deducoes > 0 && (
+                  <tr>
+                    <td className="py-1 text-slate-800 font-semibold">
+                      Outras Deduções Permitidas {retencao_impostos.descricao_outras_deducoes ? `(${retencao_impostos.descricao_outras_deducoes})` : ''}
+                    </td>
+                    <td className="py-1 text-right font-bold text-red-700 tabular-nums">-{formatarMoeda(retencao_impostos.outras_deducoes)}</td>
+                  </tr>
+                )}
+                <tr className="border-t border-slate-900 font-bold">
+                  <td className="py-1 text-slate-900 font-bold">Total de Deduções</td>
+                  <td className="py-1 text-right font-bold text-red-800 tabular-nums">-{formatarMoeda(retencao_impostos.total_deducoes)}</td>
+                </tr>
+                <tr className="border-t-2 border-slate-900 bg-slate-100 font-black">
+                  <td className="py-1.5 px-1 text-slate-950 uppercase tracking-wide">Valor Líquido a Receber</td>
+                  <td className="py-1.5 px-1 text-right text-sm font-black text-black tabular-nums">{formatarMoeda(retencao_impostos.valor_liquido)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        )}
 
         {observacoes && (
           <div className="p-3 bg-slate-100 border border-slate-900 rounded text-xs text-slate-950 font-sans">

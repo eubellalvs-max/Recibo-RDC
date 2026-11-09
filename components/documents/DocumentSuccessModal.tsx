@@ -50,6 +50,16 @@ export function DocumentSuccessModal({
 
  <div className="text-xs text-slate-500 mb-6">
  {documento.updated_at ? 'Valor corrigido:' : 'Valor emitido:'} <b className="text-slate-800 tabular-nums">{formatarMoeda(documento.valor)}</b>
+ {documento.tipo === 'rdc' && documento.rdc_detalhes?.nome_solicitante && (
+ <div className="text-[11px] text-slate-600 mt-1 font-medium">
+ Emissor (Recebedor): <b className="text-slate-900">{documento.rdc_detalhes.nome_solicitante}</b>
+ </div>
+ )}
+ {documento.retencao_impostos?.possui_retencao && (
+ <div className="text-[11px] text-blue-800 mt-1 font-medium bg-blue-50 py-1 px-2 rounded border border-blue-200 text-left">
+ <b>Demonstrativo de IRRF incluído:</b> Bruto {formatarMoeda(documento.retencao_impostos.valor_bruto)} · IRRF -{formatarMoeda(documento.retencao_impostos.valor_irrf)} · Líquido {formatarMoeda(documento.retencao_impostos.valor_liquido)}
+ </div>
+ )}
  {documento.updated_at && (
  <p className="text-[11px] text-emerald-700 mt-1 font-medium">
  Alterações salvas no banco de dados. Layout, sequência e histórico preservados.

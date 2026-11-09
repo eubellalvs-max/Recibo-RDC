@@ -16,6 +16,7 @@ import {
  FileCheck2,
  HeartPulse,
  Edit3,
+ FileSpreadsheet,
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -42,6 +43,7 @@ export function AdminDashboard({
  const empresasAtivas = empresas.filter((e) => e.status === 'ativa').length;
  const usuariosAtivos = usuarios.filter((u) => u.status === 'ativo').length;
  const docsValidos = documentos.filter((d) => d.status === 'emitido');
+ const docsCancelados = documentos.filter((d) => d.status === 'cancelado');
  const valorTotalGeral = docsValidos.reduce((acc, curr) => acc + curr.valor, 0);
 
  const recibosCount = docsValidos.filter((d) => d.tipo === 'recibo').length;
@@ -69,6 +71,14 @@ export function AdminDashboard({
  </div>
 
  <div className="flex items-center gap-2">
+ <button
+ onClick={() => onSelectTab('relatorio-financeiro')}
+ className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg shadow-2xs transition-colors"
+ title="Acessar Relatório Financeiro e Planilha Analítica de Recibos Médicos"
+ >
+ <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+ <span>Relatório Financeiro</span>
+ </button>
  {onOpenNovoReciboMedico && (
  <button
  onClick={onOpenNovoReciboMedico}
@@ -160,10 +170,10 @@ export function AdminDashboard({
  </div>
  <div className="mt-2 flex items-baseline gap-2">
  <span className="text-2xl font-bold text-slate-900 tabular-nums">
- {documentos.length}
+ {docsValidos.length}
  </span>
  <span className="text-xs text-slate-500 ">
- ({recibosMedicosCount} Méd / {recibosCount} Rec / {rdcCount} RDC)
+ ({recibosMedicosCount} Méd / {recibosCount} Rec / {rdcCount} RDC{docsCancelados.length > 0 ? ` · ${docsCancelados.length} canc.` : ''})
  </span>
  </div>
  <div className="mt-2 text-[11px] text-slate-400 flex items-center justify-between">
@@ -218,8 +228,8 @@ export function AdminDashboard({
  <tr>
  <th className="px-4 py-3">Nº</th>
  <th className="px-4 py-3">Tipo</th>
- <th className="px-4 py-3">Empresa Emissora</th>
- <th className="px-4 py-3">Empresa Destinatária</th>
+ <th className="px-4 py-3">Destinatário (Pagador)</th>
+ <th className="px-4 py-3">Emissor (Recebedor)</th>
  <th className="px-4 py-3">Data</th>
  <th className="px-4 py-3 text-right">Valor</th>
  <th className="px-4 py-3 text-center">Ações</th>
@@ -247,11 +257,21 @@ export function AdminDashboard({
  {isReciboMedico ? 'REC.M' : isRecibo ? 'REC.' : 'RDC'}
  </span>
  </td>
- <td className="px-4 py-3 text-slate-700 max-w-[170px] truncate">
- {getNomeEmpresa(doc.empresa_emissora_id)}
- </td>
  <td className="px-4 py-3 text-slate-900 font-medium max-w-[170px] truncate">
- {getNomeEmpresa(doc.empresa_destinataria_id)}
+ {doc.tipo === 'recibo_medico' && doc.recibo_medico_detalhes?.pagador_nome
+ ? doc.recibo_medico_detalhes.pagador_nome
+ : getNomeEmpresa(doc.empresa_destinataria_id)}
+ </td>
+ <td className="px-4 py-3 text-slate-700 max-w-[180px]">
+ {doc.tipo === 'rdc' ? (
+ <div className="font-semibold text-slate-900 truncate" title={`Solicitante: ${doc.rdc_detalhes?.nome_solicitante || doc.usuario_nome || 'Solicitante'}`}>
+ {doc.rdc_detalhes?.nome_solicitante || doc.usuario_nome || 'Solicitante'}
+ </div>
+ ) : isReciboMedico ? (
+ <span className="truncate block">ABEAS - Assistência Social</span>
+ ) : (
+ <span className="truncate block">{getNomeEmpresa(doc.empresa_emissora_id)}</span>
+ )}
  </td>
  <td className="px-4 py-3 text-slate-500 whitespace-nowrap">
  {formatarDataBr(doc.data_emissao)}

@@ -1,10 +1,10 @@
 'use client';
 
 import React, { createContext, useContext, useState, useCallback, useMemo, ReactNode } from 'react';
-import { Empresa, SistemaConfig, TipoGastoConfig, TipoDocConfig, DadosRdc, DadosReciboMedico } from './types';
+import { Empresa, SistemaConfig, TipoGastoConfig, TipoDocConfig, DadosRdc, DadosReciboMedico, RetencaoImpostosRecibo } from './types';
 
 export interface PrintItem {
-  tipo: 'recibo' | 'rdc' | 'recibo_medico';
+  tipo: 'recibo' | 'rdc' | 'recibo_medico' | 'relatorio_financeiro';
   numero: string;
   via?: '1' | '2';
   dadosRecibo?: {
@@ -20,6 +20,7 @@ export interface PrintItem {
     emissora?: Empresa;
     destinataria?: Empresa;
     config?: Partial<SistemaConfig>;
+    retencao_impostos?: RetencaoImpostosRecibo;
   };
   dadosRdc?: {
     numero: string;
@@ -34,6 +35,14 @@ export interface PrintItem {
     data_emissao: string;
     usuario_nome?: string;
     detalhes: DadosReciboMedico;
+  };
+  dadosRelatorioFinanceiro?: {
+    empresaNome: string;
+    periodoFormatado: string;
+    dataGeracaoFormatada: string;
+    usuarioGeradorNome: string;
+    resumo: any;
+    itens: any[];
   };
 }
 

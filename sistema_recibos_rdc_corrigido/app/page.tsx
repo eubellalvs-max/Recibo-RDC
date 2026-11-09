@@ -14,6 +14,7 @@ import { ConfiguracoesView } from '@/components/admin/ConfiguracoesView';
 import { EmissorDashboard } from '@/components/emissor/EmissorDashboard';
 import { MeusDocumentosView } from '@/components/documents/MeusDocumentosView';
 import { RecibosMedicosView } from '@/components/documents/RecibosMedicosView';
+import { RelatorioFinanceiroView } from '@/components/financeiro/RelatorioFinanceiroView';
 import { NovoReciboModal } from '@/components/documents/NovoReciboModal';
 import { NovoRdcModal } from '@/components/documents/NovoRdcModal';
 import { NovoReciboMedicoModal } from '@/components/documents/NovoReciboMedicoModal';
@@ -186,6 +187,7 @@ export default function Home() {
  onEditarDocumento={handleEditarDocumento}
  onVerTodosDocumentos={() => setCurrentTab('meus-documentos')}
  onIrParaEmpresas={() => setCurrentTab('empresas')}
+ onIrParaRelatorioFinanceiro={() => setCurrentTab('relatorio-financeiro')}
  />
  )
  )}
@@ -195,6 +197,15 @@ export default function Home() {
  currentUser={currentUser}
  onVisualizar={(doc) => setDocVisualizando(doc)}
  onEditar={handleEditarDocumento}
+ onNovoReciboMedico={handleAbrirNovoReciboMedico}
+ onIrParaRelatorioFinanceiro={() => setCurrentTab('relatorio-financeiro')}
+ />
+ )}
+
+ {currentTab === 'relatorio-financeiro' && (
+ <RelatorioFinanceiroView
+ currentUser={currentUser}
+ onVisualizarDocumento={(doc) => setDocVisualizando(doc)}
  onNovoReciboMedico={handleAbrirNovoReciboMedico}
  />
  )}

@@ -83,7 +83,15 @@ export function MeusDocumentosView({
  empDestinataria?.cnpj.includes(q) ||
  false;
 
- return numMatch || refMatch || compMatch || emissoraMatch || destinatariaMatch;
+ const solicitanteMatch =
+ doc.tipo === 'rdc' && doc.rdc_detalhes?.nome_solicitante
+ ? doc.rdc_detalhes.nome_solicitante.toLowerCase().includes(q) ||
+ (doc.rdc_detalhes.cpf_solicitante && doc.rdc_detalhes.cpf_solicitante.includes(q)) ||
+ (doc.rdc_detalhes.numero_pedido && doc.rdc_detalhes.numero_pedido.toLowerCase().includes(q)) ||
+ false
+ : false;
+
+ return numMatch || refMatch || compMatch || emissoraMatch || destinatariaMatch || solicitanteMatch;
  }
 
  return true;
@@ -313,16 +321,29 @@ export function MeusDocumentosView({
  {doc.recibo_medico_detalhes?.pagador_nome ||
  getNomeEmpresa(doc.empresa_destinataria_id)}
  </td>
- <td className="px-4 py-3 text-slate-700 font-medium max-w-[180px] truncate">
- {doc.recibo_medico_detalhes
- ? 'ABEAS - Assistência Social'
- : getNomeEmpresa(doc.empresa_emissora_id)}
+ <td className="px-4 py-3 text-slate-700 font-medium max-w-[200px]">
+ {doc.tipo === 'rdc' ? (
+ <div className="font-semibold text-slate-900 truncate" title={`Solicitante: ${doc.rdc_detalhes?.nome_solicitante || doc.usuario_nome || 'Solicitante'}`}>
+ {doc.rdc_detalhes?.nome_solicitante || doc.usuario_nome || 'Solicitante'}
+ </div>
+ ) : doc.recibo_medico_detalhes ? (
+ <span className="truncate block">ABEAS - Assistência Social</span>
+ ) : (
+ <span className="truncate block">{getNomeEmpresa(doc.empresa_emissora_id)}</span>
+ )}
  </td>
  <td className="px-4 py-3 text-slate-700 font-medium whitespace-nowrap">
  {formatarDataBr(doc.data_emissao)}
  </td>
- <td className="px-4 py-3 text-right font-black text-slate-950 tabular-nums whitespace-nowrap">
+ <td className="px-4 py-3 text-right whitespace-nowrap">
+ <div className="font-black text-slate-950 tabular-nums">
  {formatarMoeda(doc.valor)}
+ </div>
+ {doc.retencao_impostos?.possui_retencao && (
+ <div className="text-[10px] text-blue-700 font-semibold" title={`Valor Bruto: ${formatarMoeda(doc.retencao_impostos.valor_bruto)} | IRRF: ${formatarMoeda(doc.retencao_impostos.valor_irrf)}`}>
+ Líq (IRRF: {formatarMoeda(doc.retencao_impostos.valor_irrf)})
+ </div>
+ )}
  </td>
  <td className="px-4 py-3 text-center">
  <span

@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Documento, Empresa, TipoGastoConfig, TipoDocConfig } from '@/lib/types';
 import { StorageService } from '@/lib/storage';
-import { formatarDataBr } from '@/lib/masks';
+import { formatarDataBr, formatarMoeda } from '@/lib/masks';
 import { AlertCircle } from 'lucide-react';
 import { usePrint } from '@/lib/printContext';
 import { UnifiedPrintToolbar } from './unified/UnifiedPrintToolbar';
@@ -57,6 +57,19 @@ export function DocumentViewerModal({
  ? 'RECIBO DE PRESTAÇÃO DE SERVIÇOS MÉDICOS'
  : 'RECIBO';
 
+ const partesSubtitulo = useMemo(() => {
+   if (!documento) return '';
+   if (isRdc && rdc) {
+     const solicitante = rdc.nome_solicitante || documento.usuario_nome || 'Solicitante';
+     const pagador = destinataria?.nome_fantasia || destinataria?.razao_social || 'ABEAS';
+     return `Nº ${documento.numero} • Emissor (Recebedor): ${solicitante} • Destinatário: ${pagador}`;
+   }
+   if (documento.retencao_impostos?.possui_retencao) {
+     return `Nº ${documento.numero} • Emitido em ${formatarDataBr(documento.data_emissao)} • Com Retenção de IRRF (Líquido: ${formatarMoeda(documento.retencao_impostos.valor_liquido)})`;
+   }
+   return `Nº ${documento.numero} • Emitido em ${formatarDataBr(documento.data_emissao)}`;
+ }, [isRdc, rdc, documento, destinataria]);
+
  useEffect(() => {
  if (!isOpen || !documento) {
  setActivePrintItem(null);
@@ -67,6 +80,7 @@ export function DocumentViewerModal({
  setActivePrintItem({
  tipo: 'rdc',
  numero: documento.numero,
+ via,
  dadosRdc: {
  numero: documento.numero,
  detalhes: rdc,
@@ -105,6 +119,7 @@ export function DocumentViewerModal({
  emissora,
  destinataria,
  config,
+ retencao_impostos: documento.retencao_impostos,
  },
  });
  }
@@ -118,6 +133,15 @@ export function DocumentViewerModal({
  documento?.numero,
  via,
  setActivePrintItem,
+ isRdc,
+ rdc,
+ isReciboMedico,
+ med,
+ tiposGasto,
+ tiposDoc,
+ emissora,
+ destinataria,
+ config,
  ]);
 
  if (!isOpen || !documento) return null;
@@ -129,14 +153,14 @@ export function DocumentViewerModal({
  <div className="no-print relative">
  <UnifiedPrintToolbar
  titulo={tituloDocumento}
- subtitulo={`Nº ${documento.numero} • Emitido em ${formatarDataBr(documento.data_emissao)}`}
+ subtitulo={partesSubtitulo}
  isPreVisualizacao={false}
  onFechar={onClose}
  onEditar={documento.status !== 'cancelado' && onEditar ? () => onEditar(documento) : undefined}
  documentoNumero={documento.numero}
  tipoDocumento={tituloDocumento}
- viaAtual={!isRdc && !isReciboMedico ? via : undefined}
- onChangeVia={!isRdc && !isReciboMedico ? setVia : undefined}
+ viaAtual={!isReciboMedico ? via : undefined}
+ onChangeVia={!isReciboMedico ? setVia : undefined}
  />
  </div>
 
@@ -190,6 +214,7 @@ export function DocumentViewerModal({
  tiposGasto,
  tiposDoc,
  }}
+ via={via}
  />
  ) : isReciboMedico && med ? (
  <UnifiedReciboMedicoPrint
@@ -216,6 +241,7 @@ export function DocumentViewerModal({
  usuario_nome: documento.usuario_nome,
  emissora,
  destinataria,
+ retencao_impostos: documento.retencao_impostos,
  }}
  config={config}
  via={via}

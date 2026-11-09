@@ -14,6 +14,7 @@ import {
  FolderOpen,
  Search,
  HeartPulse,
+ FileSpreadsheet,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -94,6 +95,18 @@ export function Sidebar({
  >
  <HeartPulse className="w-4 h-4 text-emerald-600 " />
  <span>Recibos Médicos</span>
+ </button>
+
+ <button
+ onClick={() => onSelectTab('relatorio-financeiro')}
+ className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-lg transition-colors ${
+ currentTab === 'relatorio-financeiro'
+ ? 'bg-slate-200/70 text-slate-900 font-semibold '
+ : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 '
+ }`}
+ >
+ <FileSpreadsheet className="w-4 h-4 text-emerald-600 " />
+ <span>Relatório Financeiro</span>
  </button>
 
  {!isAdmin && (
@@ -187,6 +200,18 @@ export function Sidebar({
  >
  <HeartPulse className="w-4 h-4 text-emerald-600 " />
  <span>Recibos Médicos</span>
+ </button>
+
+ <button
+ onClick={() => onSelectTab('relatorio-financeiro')}
+ className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-lg transition-colors ${
+ currentTab === 'relatorio-financeiro'
+ ? 'bg-slate-200/70 text-slate-900 font-semibold '
+ : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 '
+ }`}
+ >
+ <FileSpreadsheet className="w-4 h-4 text-emerald-600 " />
+ <span>Relatório Financeiro</span>
  </button>
 
  <button

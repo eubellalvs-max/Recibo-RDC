@@ -4,7 +4,7 @@ import React from 'react';
 import { Usuario, Documento, Empresa } from '@/lib/types';
 import { StorageService } from '@/lib/storage';
 import { formatarMoeda, formatarDataBr, mascaraCnpj } from '@/lib/masks';
-import { FileText, PlusCircle, ArrowUpRight, Eye, Printer, FolderOpen, Building2, HeartPulse, Edit3 } from 'lucide-react';
+import { FileText, PlusCircle, ArrowUpRight, Eye, Printer, FolderOpen, Building2, HeartPulse, Edit3, FileSpreadsheet } from 'lucide-react';
 
 interface EmissorDashboardProps {
  currentUser: Usuario;
@@ -15,6 +15,7 @@ interface EmissorDashboardProps {
  onEditarDocumento?: (doc: Documento) => void;
  onVerTodosDocumentos: () => void;
  onIrParaEmpresas?: () => void;
+ onIrParaRelatorioFinanceiro?: () => void;
 }
 
 export function EmissorDashboard({
@@ -26,6 +27,7 @@ export function EmissorDashboard({
  onEditarDocumento,
  onVerTodosDocumentos,
  onIrParaEmpresas,
+ onIrParaRelatorioFinanceiro,
 }: EmissorDashboardProps) {
  const todosDocs = StorageService.getDocumentos();
  const empresas = StorageService.getEmpresas();
@@ -63,7 +65,18 @@ export function EmissorDashboard({
  </p>
  </div>
 
- <div className="flex items-center gap-2.5">
+ <div className="flex flex-wrap items-center gap-2.5">
+ {onIrParaRelatorioFinanceiro && (
+ <button
+ onClick={onIrParaRelatorioFinanceiro}
+ className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-colors shadow-2xs"
+ title="Conferir Relatório Financeiro e Planilha Analítica das suas emissões"
+ >
+ <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+ <span>Relatório Financeiro</span>
+ </button>
+ )}
+
  {onIrParaEmpresas && (
  <button
  onClick={onIrParaEmpresas}
@@ -254,8 +267,8 @@ export function EmissorDashboard({
  <tr>
  <th className="px-4 py-3">Nº</th>
  <th className="px-4 py-3">Tipo</th>
- <th className="px-4 py-3">Destinatário</th>
- <th className="px-4 py-3">Emissor</th>
+ <th className="px-4 py-3">Destinatário (Pagador)</th>
+ <th className="px-4 py-3">Emissor (Recebedor)</th>
  <th className="px-4 py-3">Data</th>
  <th className="px-4 py-3 text-right">Valor</th>
  <th className="px-4 py-3 text-center">Ações</th>
@@ -284,10 +297,20 @@ export function EmissorDashboard({
  </span>
  </td>
  <td className="px-4 py-3 font-medium text-slate-800 truncate max-w-[180px]">
- {getNomeEmpresa(doc.empresa_destinataria_id)}
+ {doc.tipo === 'recibo_medico' && doc.recibo_medico_detalhes?.pagador_nome
+ ? doc.recibo_medico_detalhes.pagador_nome
+ : getNomeEmpresa(doc.empresa_destinataria_id)}
  </td>
- <td className="px-4 py-3 text-slate-600 truncate max-w-[180px]">
- {getNomeEmpresa(doc.empresa_emissora_id)}
+ <td className="px-4 py-3 text-slate-700 max-w-[180px]">
+ {doc.tipo === 'rdc' ? (
+ <div className="font-semibold text-slate-900 truncate" title={`Solicitante: ${doc.rdc_detalhes?.nome_solicitante || doc.usuario_nome || 'Solicitante'}`}>
+ {doc.rdc_detalhes?.nome_solicitante || doc.usuario_nome || 'Solicitante'}
+ </div>
+ ) : isReciboMedico ? (
+ <span className="truncate block">ABEAS - Assistência Social</span>
+ ) : (
+ <span className="truncate block">{getNomeEmpresa(doc.empresa_emissora_id)}</span>
+ )}
  </td>
  <td className="px-4 py-3 text-slate-500 whitespace-nowrap">
  {formatarDataBr(doc.data_emissao)}

@@ -27,6 +27,7 @@ import {
  Printer,
  Sparkles,
  RotateCcw,
+ Plus,
 } from 'lucide-react';
 import { usePrint } from '@/lib/printContext';
 import { UnifiedPrintToolbar } from './unified/UnifiedPrintToolbar';
@@ -84,12 +85,12 @@ export function NovoReciboMedicoModal({
 
  // Detalhes do Atendimento
  const [servicoPrestado, setServicoPrestado] = useState(
- () => med?.servico_prestado || initialData?.servico_prestado || 'Consulta médica em ginecologia'
+ () => med?.servico_prestado || initialData?.servico_prestado || 'Consultas médicas'
  );
  const [medicoAssistente, setMedicoAssistente] = useState(
- () => med?.medico_assistente || initialData?.medico_assistente || 'Dr(a). Morena Ciclano de Tal'
+ () => med?.medico_assistente || initialData?.medico_assistente || ''
  );
- const [crm, setCrm] = useState(() => med?.crm || initialData?.crm || '0000/GO');
+ const [crm, setCrm] = useState(() => med?.crm || initialData?.crm || '');
  const [dataAtendimento, setDataAtendimento] = useState(
  () => med?.data_atendimento || initialData?.data_atendimento || dataHojeIso()
  );
@@ -123,9 +124,9 @@ export function NovoReciboMedicoModal({
  setPacienteCpf('');
  setPacienteTelefone('');
  setPacienteEndereco('');
- setServicoPrestado('Consulta médica em ginecologia');
- setMedicoAssistente('Dr(a). Morena Ciclano de Tal');
- setCrm('0000/GO');
+ setServicoPrestado('Consultas médicas');
+ setMedicoAssistente('');
+ setCrm('');
  setDataAtendimento(dataHojeIso());
  setFormaPagamento('Pix');
  setErro(null);
@@ -285,14 +286,75 @@ export function NovoReciboMedicoModal({
  }
  };
 
- const servicosSugeridos = [
- 'Consulta médica em ginecologia',
- 'Consulta médica clínica geral',
- 'Consulta médica pediátrica',
- 'Consulta médica cardiológica',
- 'Exame ultrassonografia obstétrica',
- 'Exames laboratoriais e complementares',
+ const CATEGORIAS_SERVICOS_MEDICOS = [
+ {
+ categoria: 'EXAMES',
+ corBadge: 'bg-blue-100 text-blue-900 border-blue-200',
+ corBtnAtivo: 'bg-blue-600 text-white border-blue-700 shadow-2xs font-semibold',
+ corBtnInativo: 'bg-white text-slate-700 border-slate-300 hover:bg-blue-50 hover:text-blue-900 hover:border-blue-300',
+ itens: [
+ 'Exames laboratoriais',
+ 'Exames de raio-X',
+ 'Exames de tomografia',
+ 'Exames de ultrassonografia',
+ 'Eletrocardiograma (ECG)',
+ 'MAPA',
+ 'Holter',
+ ],
+ },
+ {
+ categoria: 'ATENDIMENTO',
+ corBadge: 'bg-emerald-100 text-emerald-900 border-emerald-200',
+ corBtnAtivo: 'bg-emerald-600 text-white border-emerald-700 shadow-2xs font-semibold',
+ corBtnInativo: 'bg-white text-slate-700 border-slate-300 hover:bg-emerald-50 hover:text-emerald-900 hover:border-emerald-300',
+ itens: [
+ 'Consultas médicas',
+ 'Procedimentos médicos',
+ 'Internações hospitalares',
+ 'Cirurgias',
+ 'Administração de medicamentos',
+ ],
+ },
+ {
+ categoria: 'OUTRAS COBRANÇAS',
+ corBadge: 'bg-purple-100 text-purple-900 border-purple-200',
+ corBtnAtivo: 'bg-purple-600 text-white border-purple-700 shadow-2xs font-semibold',
+ corBtnInativo: 'bg-white text-slate-700 border-slate-300 hover:bg-purple-50 hover:text-purple-900 hover:border-purple-300',
+ itens: [
+ 'Mensalidade de associado',
+ 'Caução para internação',
+ 'Aluguel de salas',
+ ],
+ },
  ];
+
+ const isServicoSelecionado = (sugestao: string): boolean => {
+ if (!servicoPrestado) return false;
+ const partes = servicoPrestado.split(/[,;\n]+/).map((p) => p.trim().toLowerCase());
+ return partes.includes(sugestao.toLowerCase());
+ };
+
+ const handleToggleServico = (sugestao: string) => {
+ const atual = servicoPrestado.trim();
+ if (!atual) {
+ setServicoPrestado(sugestao);
+ return;
+ }
+ const partes = atual.split(/[,;\n]+/).map((p) => p.trim()).filter(Boolean);
+ const index = partes.findIndex((p) => p.toLowerCase() === sugestao.toLowerCase());
+ if (index >= 0) {
+ partes.splice(index, 1);
+ setServicoPrestado(partes.join(', '));
+ } else {
+ setServicoPrestado(`${atual}, ${sugestao}`);
+ }
+ };
+
+ const handleRemoverItemServico = (itemRemover: string) => {
+ const partes = servicoPrestado.split(/[,;\n]+/).map((p) => p.trim()).filter(Boolean);
+ const filtrados = partes.filter((p) => p.toLowerCase() !== itemRemover.toLowerCase());
+ setServicoPrestado(filtrados.join(', '));
+ };
 
  const formasPagamentoSugeridas = ['Pix', 'Dinheiro', 'Cartão de Débito', 'Cartão de Crédito', 'Transferência'];
 
@@ -761,34 +823,100 @@ export function NovoReciboMedicoModal({
  </div>
 
  <div>
- <div className="flex items-center justify-between mb-1">
- <label className="block text-xs font-bold text-slate-900 ">
- Serviço prestado *
+ <div className="flex items-center justify-between mb-1.5">
+ <div>
+ <label className="block text-xs font-bold text-slate-900">
+ Serviços prestados *
  </label>
- <span className="text-[10px] text-slate-600 font-medium">Sugestões rápidas abaixo</span>
+ <span className="text-[11px] text-slate-500">
+ Digite livremente ou use as sugestões categorizadas abaixo (seleção múltipla)
+ </span>
  </div>
- <input
- type="text"
+ {servicoPrestado.trim() && (
+ <button
+ type="button"
+ onClick={() => setServicoPrestado('')}
+ className="text-[11px] text-rose-600 hover:text-rose-800 hover:underline font-medium"
+ >
+ Limpar campo
+ </button>
+ )}
+ </div>
+
+ <textarea
+ rows={2}
  required
  value={servicoPrestado}
  onChange={(e) => setServicoPrestado(e.target.value)}
- placeholder="Ex: Consulta médica em ginecologia"
- className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg text-slate-950 font-medium focus:bg-white focus:border-slate-900 outline-none"
+ placeholder="Ex: Consultas médicas, Exames laboratoriais"
+ className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg text-slate-950 font-medium focus:bg-white focus:border-slate-900 outline-none resize-y"
  />
- <div className="flex flex-wrap gap-1.5 mt-2">
- {servicosSugeridos.map((sugestao) => (
- <button
- key={sugestao}
- type="button"
- onClick={() => setServicoPrestado(sugestao)}
- className={`text-[10px] px-2 py-0.5 rounded border transition-colors ${
- servicoPrestado === sugestao
- ? 'bg-slate-900 text-white border-slate-900 font-bold'
- : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 font-medium'
- }`}
+
+ {/* Tags dos itens atualmente preenchidos com botão de remoção */}
+ {servicoPrestado.trim() && (
+ <div className="flex flex-wrap items-center gap-1.5 mt-2">
+ <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Itens inclusos:</span>
+ {servicoPrestado
+ .split(/[,;\n]+/)
+ .map((s) => s.trim())
+ .filter(Boolean)
+ .map((item, idx) => (
+ <span
+ key={`${item}-${idx}`}
+ className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-800 border border-emerald-200"
  >
- {sugestao}
+ <span>{item}</span>
+ <button
+ type="button"
+ onClick={() => handleRemoverItemServico(item)}
+ title={`Remover ${item}`}
+ className="hover:bg-emerald-200 rounded-full p-0.5 text-emerald-700 hover:text-emerald-900"
+ >
+ <X className="w-3 h-3" />
  </button>
+ </span>
+ ))}
+ </div>
+ )}
+
+ {/* Sugestões rápidas organizadas por categoria */}
+ <div className="mt-3 p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
+ <div className="flex items-center justify-between text-xs font-bold text-slate-800 pb-1 border-b border-slate-200/80">
+ <span>Sugestões rápidas de serviços</span>
+ <span className="text-[10px] text-slate-500 font-normal">Clique para adicionar / alternar</span>
+ </div>
+
+ {CATEGORIAS_SERVICOS_MEDICOS.map((cat) => (
+ <div key={cat.categoria} className="space-y-1.5">
+ <div className="flex items-center gap-1.5">
+ <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border tracking-wider uppercase ${cat.corBadge}`}>
+ {cat.categoria}
+ </span>
+ </div>
+ <div className="flex flex-wrap gap-1.5">
+ {cat.itens.map((item) => {
+ const ativo = isServicoSelecionado(item);
+ return (
+ <button
+ key={item}
+ type="button"
+ onClick={() => handleToggleServico(item)}
+ className={`inline-flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-md border transition-all ${
+ ativo ? cat.corBtnAtivo : cat.corBtnInativo
+ }`}
+ title={ativo ? `Remover ${item}` : `Adicionar ${item}`}
+ >
+ {ativo ? (
+ <Check className="w-3 h-3 text-white" />
+ ) : (
+ <Plus className="w-3 h-3 text-slate-400 group-hover:text-slate-600" />
+ )}
+ <span>{item}</span>
+ </button>
+ );
+ })}
+ </div>
+ </div>
  ))}
  </div>
  </div>
@@ -803,7 +931,7 @@ export function NovoReciboMedicoModal({
  required
  value={medicoAssistente}
  onChange={(e) => setMedicoAssistente(e.target.value)}
- placeholder="Ex: Dr(a). Morena Ciclano de Tal"
+ placeholder="Ex: Dr(a). Nome do Médico"
  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg text-slate-950 font-medium focus:bg-white focus:border-slate-900 outline-none"
  />
  </div>
@@ -817,7 +945,7 @@ export function NovoReciboMedicoModal({
  required
  value={crm}
  onChange={(e) => setCrm(e.target.value)}
- placeholder="Ex: 0000/GO"
+ placeholder="Ex: 00000/GO"
  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg text-slate-950 font-bold focus:bg-white focus:border-slate-900 outline-none font-mono"
  />
  </div>

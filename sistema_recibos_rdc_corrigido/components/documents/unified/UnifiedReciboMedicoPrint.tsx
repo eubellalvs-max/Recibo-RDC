@@ -3,7 +3,7 @@
 import React from 'react';
 import { DadosReciboMedico } from '@/lib/types';
 import { ABEAS_FIXA } from '@/lib/storage';
-import { formatarMoeda, dataPorExtenso } from '@/lib/masks';
+import { formatarMoeda, formatarDataBr, dataPorExtenso } from '@/lib/masks';
 
 export interface UnifiedReciboMedicoData {
   numero: string;
@@ -142,7 +142,7 @@ export const UnifiedReciboMedicoPrint: React.FC<UnifiedReciboMedicoPrintProps> =
           <div className="med-card-body p-2 space-y-0.5 text-[11px] text-slate-950 bg-white">
             <div>
               <span className="font-bold text-black">Serviço prestado: </span>
-              <span className="font-semibold text-slate-950">{med.servico_prestado}</span>
+              <span className="font-semibold text-slate-950 whitespace-pre-line">{med.servico_prestado}</span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-0.5 pt-0.5 border-t border-slate-200">
               <div>
@@ -157,7 +157,7 @@ export const UnifiedReciboMedicoPrint: React.FC<UnifiedReciboMedicoPrintProps> =
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-0.5 pt-0.5 border-t border-slate-200">
               <div>
                 <span className="font-bold text-black">Data do atendimento: </span>
-                <span className="font-semibold text-slate-950">{med.data_atendimento.split('-').reverse().join('/')}</span>
+                <span className="font-semibold text-slate-950">{formatarDataBr(med.data_atendimento)}</span>
               </div>
               <div>
                 <span className="font-bold text-black">Forma de pagamento: </span>

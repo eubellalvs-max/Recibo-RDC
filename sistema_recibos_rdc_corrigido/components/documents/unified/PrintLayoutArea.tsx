@@ -5,6 +5,7 @@ import { usePrint } from '@/lib/printContext';
 import { UnifiedReciboPrint } from './UnifiedReciboPrint';
 import { UnifiedRdcPrint } from './UnifiedRdcPrint';
 import { UnifiedReciboMedicoPrint } from './UnifiedReciboMedicoPrint';
+import { UnifiedRelatorioFinanceiroPrint } from '@/components/financeiro/UnifiedRelatorioFinanceiroPrint';
 
 export const PrintLayoutArea: React.FC = () => {
   const { activePrintItem } = usePrint();
@@ -29,11 +30,15 @@ export const PrintLayoutArea: React.FC = () => {
         )}
 
         {activePrintItem.tipo === 'rdc' && activePrintItem.dadosRdc && (
-          <UnifiedRdcPrint dados={activePrintItem.dadosRdc} />
+          <UnifiedRdcPrint dados={activePrintItem.dadosRdc} via={activePrintItem.via || '1'} />
         )}
 
         {activePrintItem.tipo === 'recibo_medico' && activePrintItem.dadosReciboMedico && (
           <UnifiedReciboMedicoPrint dados={activePrintItem.dadosReciboMedico} />
+        )}
+
+        {activePrintItem.tipo === 'relatorio_financeiro' && activePrintItem.dadosRelatorioFinanceiro && (
+          <UnifiedRelatorioFinanceiroPrint dados={activePrintItem.dadosRelatorioFinanceiro} />
         )}
       </div>
     </div>

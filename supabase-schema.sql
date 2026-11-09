@@ -66,6 +66,7 @@ CREATE TABLE IF NOT EXISTS public.documentos (
     logo_url TEXT,
     rdc_detalhes JSONB,
     recibo_medico_detalhes JSONB,
+    retencao_impostos JSONB,
     data_cancelamento TIMESTAMPTZ,
     usuario_cancelamento_id TEXT,
     usuario_cancelamento_nome TEXT,

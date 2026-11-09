@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Usuario, Empresa, Documento } from '@/lib/types';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Usuario, Empresa, Documento, RetencaoImpostosRecibo } from '@/lib/types';
 import { StorageService } from '@/lib/storage';
 import { mascaraCnpj, mascaraCpf, formatarMoeda, dataHojeIso } from '@/lib/masks';
 import { valorPorExtenso } from '@/lib/extenso';
-import { X, Check, AlertCircle, Upload, Eye, RotateCcw } from 'lucide-react';
+import { calcularIrrfProgressivo, recalcularIrrfManual } from '@/lib/tributos';
+import { X, Check, AlertCircle, Upload, Eye, RotateCcw, Calculator, Info } from 'lucide-react';
 import { usePrint } from '@/lib/printContext';
 import { UnifiedPrintToolbar } from './unified/UnifiedPrintToolbar';
 import { UnifiedReciboPrint } from './unified/UnifiedReciboPrint';
@@ -89,7 +90,7 @@ export function NovoReciboModal({
  return '';
  });
  const [referente, setReferente] = useState(() => {
- return documentoEmEdicao?.referente || 'Prestação de serviços especializados em assessoria técnica e consultoria.';
+ return documentoEmEdicao?.referente || '';
  });
  const [dataEmissao, setDataEmissao] = useState(() => documentoEmEdicao?.data_emissao || dataHojeIso());
  const [cidadeEmissao, setCidadeEmissao] = useState(() => {
@@ -103,15 +104,104 @@ export function NovoReciboModal({
  const [modoPreVisualizar, setModoPreVisualizar] = useState(false);
  const [viaPrevia, setViaPrevia] = useState<'1' | '2'>('1');
  const { setActivePrintItem } = usePrint();
- 
+
+ // Controle de Retenção de Imposto de Renda (IRRF)
+ const retencaoOrig = documentoEmEdicao?.retencao_impostos;
+ const [possuiRetencao, setPossuiRetencao] = useState<boolean>(() => retencaoOrig?.possui_retencao ?? false);
+ const [modoCalculo, setModoCalculo] = useState<'automatico' | 'manual'>(() => retencaoOrig?.modo_calculo ?? 'automatico');
+ const [regraTributaria, setRegraTributaria] = useState<'aluguel_pf' | 'tabela_progressiva' | 'manual'>(() => retencaoOrig?.regra_tributaria ?? 'tabela_progressiva');
+
+ // Valores da Retenção
+ const [baseCalculo, setBaseCalculo] = useState<number>(() => retencaoOrig?.base_calculo_irrf ?? (documentoEmEdicao?.valor ?? 0));
+ const [aliquotaIr, setAliquotaIr] = useState<number>(() => retencaoOrig?.aliquota_ir ?? 0);
+ const [parcelaDeduzir, setParcelaDeduzir] = useState<number>(() => retencaoOrig?.parcela_deduzir_ir ?? 0);
+ const [valorIrrf, setValorIrrf] = useState<number>(() => retencaoOrig?.valor_irrf ?? 0);
+ const [outrasDeducoes, setOutrasDeducoes] = useState<number>(() => retencaoOrig?.outras_deducoes ?? 0);
+ const [descricaoOutrasDeducoes, setDescricaoOutrasDeducoes] = useState<string>(() => retencaoOrig?.descricao_outras_deducoes ?? '');
+ const [totalDeducoes, setTotalDeducoes] = useState<number>(() => retencaoOrig?.total_deducoes ?? 0);
+ const [valorLiquido, setValorLiquido] = useState<number>(() => retencaoOrig?.valor_liquido ?? (documentoEmEdicao?.valor ?? 0));
+
+ // Funções de recálculo tributário controladas por evento
+ const aplicarCalculoAutomatico = (bruto: number, ded: number, regra: 'tabela_progressiva' | 'aluguel_pf' | 'manual') => {
+   const forcar27 = regra === 'aluguel_pf' && (bruto - ded) > 4664.68;
+   const res = calcularIrrfProgressivo(bruto, ded, forcar27);
+   setBaseCalculo(res.baseCalculo);
+   setAliquotaIr(res.aliquota);
+   setParcelaDeduzir(res.parcelaDeduzir);
+   setValorIrrf(res.valorIrrf);
+   setTotalDeducoes(res.totalDeducoes);
+   setValorLiquido(res.valorLiquido);
+ };
+
+ const aplicarRecalculoManual = (
+   bruto: number,
+   base: number,
+   aliq: number,
+   parcela: number,
+   ded: number,
+   irrf: number
+ ) => {
+   const res = recalcularIrrfManual(bruto, base, aliq, parcela, ded, irrf);
+   setTotalDeducoes(res.totalDeducoes);
+   setValorLiquido(res.valorLiquido);
+ };
+
+ const retencaoObj: RetencaoImpostosRecibo | undefined = useMemo(() => {
+   if (!possuiRetencao) return undefined;
+   return {
+     possui_retencao: true,
+     valor_bruto: valorNumerico,
+     base_calculo_irrf: baseCalculo,
+     aliquota_ir: aliquotaIr,
+     parcela_deduzir_ir: parcelaDeduzir,
+     valor_irrf: valorIrrf,
+     outras_deducoes: outrasDeducoes,
+     descricao_outras_deducoes: descricaoOutrasDeducoes.trim() || undefined,
+     total_deducoes: totalDeducoes,
+     valor_liquido: valorLiquido,
+     modo_calculo: modoCalculo,
+     regra_tributaria: regraTributaria,
+   };
+ }, [
+   possuiRetencao,
+   valorNumerico,
+   baseCalculo,
+   aliquotaIr,
+   parcelaDeduzir,
+   valorIrrf,
+   outrasDeducoes,
+   descricaoOutrasDeducoes,
+   totalDeducoes,
+   valorLiquido,
+   modoCalculo,
+   regraTributaria,
+ ]);
+
+ const valorFinal = possuiRetencao ? valorLiquido : valorNumerico;
+ const valorExtensoFinal = possuiRetencao
+   ? (valorPorExtenso(valorLiquido) || valorExtenso)
+   : valorExtenso;
+
  const resetForm = () => {
   setValorRaw('0,00');
   setValorNumerico(0);
   setValorExtenso('');
+  setReferente('');
   setObservacoes('');
   setErro(null);
   setSalvando(false);
   setModoPreVisualizar(false);
+  setPossuiRetencao(false);
+  setModoCalculo('automatico');
+  setRegraTributaria('tabela_progressiva');
+  setBaseCalculo(0);
+  setAliquotaIr(0);
+  setParcelaDeduzir(0);
+  setValorIrrf(0);
+  setOutrasDeducoes(0);
+  setDescricaoOutrasDeducoes('');
+  setTotalDeducoes(0);
+  setValorLiquido(0);
  };
 
  const config = StorageService.getConfig();
@@ -150,8 +240,8 @@ export function NovoReciboModal({
  via: viaPrevia,
  dadosRecibo: {
  numero: numeroReciboAuto,
- valor: valorNumerico,
- valor_extenso: valorExtenso,
+ valor: valorFinal,
+ valor_extenso: valorExtensoFinal,
  referente: referente.trim(),
  data_emissao: dataEmissao,
  cidade_emissao: cidadeEmissao.trim() || 'Brasília/DF',
@@ -161,6 +251,7 @@ export function NovoReciboModal({
  emissora: empresaEmissoraObj,
  destinataria: empresaDestinatariaObj,
  config,
+ retencao_impostos: retencaoObj,
  },
  });
 
@@ -172,8 +263,8 @@ export function NovoReciboModal({
  modoPreVisualizar,
  viaPrevia,
  numeroReciboAuto,
- valorNumerico,
- valorExtenso,
+ valorFinal,
+ valorExtensoFinal,
  referente,
  dataEmissao,
  cidadeEmissao,
@@ -183,6 +274,10 @@ export function NovoReciboModal({
  empresaDestinatariaId,
  currentUser.nome,
  setActivePrintItem,
+ config,
+ empresaEmissoraObj,
+ empresaDestinatariaObj,
+ retencaoObj,
  ]);
 
  if (!isOpen) return null;
@@ -222,6 +317,13 @@ export function NovoReciboModal({
  if (!clean) {
  setValorNumerico(0);
  setValorExtenso('');
+ if (possuiRetencao) {
+ if (modoCalculo === 'automatico') {
+ aplicarCalculoAutomatico(0, outrasDeducoes, regraTributaria);
+ } else {
+ aplicarRecalculoManual(0, baseCalculo, aliquotaIr, parcelaDeduzir, outrasDeducoes, valorIrrf);
+ }
+ }
  return;
  }
 
@@ -238,6 +340,14 @@ export function NovoReciboModal({
  } else {
  setValorNumerico(0);
  setValorExtenso('');
+ }
+
+ if (possuiRetencao) {
+ if (modoCalculo === 'automatico') {
+ aplicarCalculoAutomatico(num, outrasDeducoes, regraTributaria);
+ } else {
+ aplicarRecalculoManual(num, baseCalculo, aliquotaIr, parcelaDeduzir, outrasDeducoes, valorIrrf);
+ }
  }
  };
 
@@ -295,13 +405,14 @@ export function NovoReciboModal({
  ...documentoEmEdicao,
  empresa_emissora_id: empresaEmissoraId,
  empresa_destinataria_id: empresaDestinatariaId,
- valor: valorNumerico,
- valor_extenso: valorExtenso || valorPorExtenso(valorNumerico),
+ valor: valorFinal,
+ valor_extenso: valorExtensoFinal || valorPorExtenso(valorFinal),
  referente: referente.trim(),
  data_emissao: dataEmissao,
  cidade_emissao: cidadeEmissao.trim() || 'Brasília/DF',
  observacoes: observacoes.trim() || undefined,
  logo_url: logoUrl.trim() || undefined,
+ retencao_impostos: retencaoObj,
  };
 
  const docSalvo = StorageService.updateDocumento(docAtualizado, currentUser, detalhes);
@@ -315,13 +426,15 @@ export function NovoReciboModal({
  tipo: 'recibo',
  empresa_emissora_id: empresaEmissoraId,
  empresa_destinataria_id: empresaDestinatariaId,
- valor: valorNumerico,
+ valor: valorFinal,
+ valor_extenso: valorExtensoFinal,
  referente: referente.trim(),
  data_emissao: dataEmissao,
  cidade_emissao: cidadeEmissao.trim() || 'Brasília/DF',
  observacoes: observacoes.trim() || undefined,
  usuario: currentUser,
  logo_url: logoUrl.trim() || undefined,
+ retencao_impostos: retencaoObj,
  });
 
  if (onDocumentCreated) {
@@ -418,8 +531,8 @@ export function NovoReciboModal({
  <UnifiedReciboPrint
  dados={{
  numero: numeroReciboAuto,
- valor: valorNumerico,
- valor_extenso: valorExtenso,
+ valor: valorFinal,
+ valor_extenso: valorExtensoFinal,
  referente: referente.trim(),
  data_emissao: dataEmissao,
  cidade_emissao: cidadeEmissao.trim() || 'Brasília/DF',
@@ -428,6 +541,7 @@ export function NovoReciboModal({
  usuario_nome: currentUser.nome,
  emissora: empresaEmissoraObj,
  destinataria: empresaDestinatariaObj,
+ retencao_impostos: retencaoObj,
  }}
  config={config}
  via={viaPrevia}
@@ -596,6 +710,316 @@ export function NovoReciboModal({
  {valorExtenso || <span className="text-slate-400 font-normal not-italic text-[11px]">Informe o valor acima para gerar o extenso...</span>}
  </div>
  </div>
+ </div>
+
+ {/* SEÇÃO: CONTROLE DE RETENÇÃO DE IMPOSTO DE RENDA (IRRF) */}
+ <div className="p-4 bg-slate-50 border border-slate-300 rounded-xl space-y-3.5 transition-all">
+ <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+ <div>
+ <span className="block text-xs font-bold text-slate-900 tracking-tight">
+ Possui retenção de Imposto de Renda (IRRF)?
+ </span>
+ <p className="text-[11px] text-slate-600 mt-0.5">
+ Selecione SIM para calcular e exibir o demonstrativo de IRRF e deduções no recibo e PDF.
+ </p>
+ </div>
+
+ {/* Seleção SIM / NÃO */}
+ <div className="flex items-center gap-2 shrink-0">
+ <button
+ type="button"
+ onClick={() => setPossuiRetencao(false)}
+ className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all border ${
+ !possuiRetencao
+ ? 'bg-slate-900 text-white border-slate-900 shadow-sm ring-2 ring-slate-900/20'
+ : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100 hover:text-slate-900'
+ }`}
+ >
+ NÃO
+ </button>
+ <button
+ type="button"
+ onClick={() => {
+ setPossuiRetencao(true);
+ if (modoCalculo === 'automatico') {
+ aplicarCalculoAutomatico(valorNumerico, outrasDeducoes, regraTributaria);
+ } else {
+ aplicarRecalculoManual(valorNumerico, baseCalculo, aliquotaIr, parcelaDeduzir, outrasDeducoes, valorIrrf);
+ }
+ }}
+ className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all border ${
+ possuiRetencao
+ ? 'bg-blue-600 text-white border-blue-700 shadow-sm ring-2 ring-blue-600/20'
+ : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100 hover:text-slate-900'
+ }`}
+ >
+ SIM
+ </button>
+ </div>
+ </div>
+
+ {/* DEMONSTRATIVO DE IMPOSTOS E DEDUÇÕES (EXIBIDO APENAS QUANDO SIM) */}
+ {possuiRetencao && (
+ <div className="pt-3.5 border-t border-slate-200 space-y-3.5 animate-in fade-in duration-200">
+ <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-blue-50/80 p-3 rounded-lg border border-blue-200">
+ <div className="flex items-center gap-2">
+ <Calculator className="w-4 h-4 text-blue-700 shrink-0" />
+ <div>
+ <span className="text-xs font-bold text-blue-950 uppercase tracking-wide">
+ DEMONSTRATIVO DE IMPOSTOS E DEDUÇÕES
+ </span>
+ <p className="text-[10px] text-blue-700">
+ Tabela Progressiva Mensal do IRPF vigente e regras para aluguel de pessoa física
+ </p>
+ </div>
+ </div>
+
+ {/* Alternância: Cálculo Automático vs Ajuste Manual */}
+ <div className="flex items-center gap-1 bg-white p-1 rounded-lg border border-blue-200 shrink-0">
+ <button
+ type="button"
+ onClick={() => {
+ setModoCalculo('automatico');
+ aplicarCalculoAutomatico(valorNumerico, outrasDeducoes, regraTributaria);
+ }}
+ className={`px-2.5 py-1 text-[11px] font-bold rounded transition-colors ${
+ modoCalculo === 'automatico'
+ ? 'bg-blue-600 text-white shadow-2xs'
+ : 'text-slate-600 hover:text-slate-900'
+ }`}
+ >
+ Cálculo Automático
+ </button>
+ <button
+ type="button"
+ onClick={() => setModoCalculo('manual')}
+ className={`px-2.5 py-1 text-[11px] font-bold rounded transition-colors ${
+ modoCalculo === 'manual'
+ ? 'bg-blue-600 text-white shadow-2xs'
+ : 'text-slate-600 hover:text-slate-900'
+ }`}
+ >
+ Ajuste Manual
+ </button>
+ </div>
+ </div>
+
+ {/* Opção de Regra Tributária */}
+ <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+ <div>
+ <label className="block text-[11px] font-bold text-slate-800 mb-1">
+ Regra Tributária Aplicada
+ </label>
+ <select
+ value={regraTributaria}
+ onChange={(e) => {
+ const regra = e.target.value as 'tabela_progressiva' | 'aluguel_pf' | 'manual';
+ setRegraTributaria(regra);
+ if (regra !== 'manual') {
+ aplicarCalculoAutomatico(valorNumerico, outrasDeducoes, regra);
+ }
+ }}
+ className="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-300 rounded-lg text-slate-900 font-semibold focus:border-slate-800 outline-none"
+ >
+ <option value="tabela_progressiva">Tabela Progressiva IRPF (Padrão Oficial Geral)</option>
+ <option value="aluguel_pf">Aluguel de Pessoa Física (Tabela Progressiva com dedução legal)</option>
+ <option value="manual">Personalizado / Manual</option>
+ </select>
+ </div>
+
+ <div className="flex items-start gap-2 p-2 bg-amber-50/80 border border-amber-200 rounded-lg text-amber-900 text-[11px] leading-snug">
+ <Info className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+ <span>
+ {regraTributaria === 'aluguel_pf'
+ ? 'Aluguel PF: Aplica alíquotas progressivas (até 27,5%) deduzindo R$ 896,00 da parcela legalmente permitida. O cálculo não aplica 27,5% direto sobre o bruto.'
+ : 'Tabela Progressiva Oficial: Isenção até R$ 2.259,20; 7,5% (deduz 169,44); 15% (deduz 381,44); 22,5% (deduz 662,77); 27,5% (deduz 896,00).'}
+ </span>
+ </div>
+ </div>
+
+ {/* Grid dos Campos do Demonstrativo */}
+ <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 bg-white p-3.5 border border-slate-200 rounded-lg">
+ {/* Valor Bruto */}
+ <div>
+ <label className="block text-[11px] font-bold text-slate-700 mb-1">
+ Valor Bruto (R$)
+ </label>
+ <div className="px-2.5 py-1.5 bg-slate-100 border border-slate-300 rounded-lg text-xs font-bold text-slate-900 tabular-nums">
+ {formatarMoeda(valorNumerico)}
+ </div>
+ <span className="text-[10px] text-slate-500">Valor original do recibo</span>
+ </div>
+
+ {/* Base de Cálculo do IRRF */}
+ <div>
+ <label className="block text-[11px] font-bold text-slate-700 mb-1">
+ Base de Cálculo IRRF (R$) *
+ </label>
+ <input
+ type="number"
+ step="0.01"
+ min="0"
+ disabled={modoCalculo === 'automatico'}
+ value={baseCalculo}
+ onChange={(e) => {
+ const val = parseFloat(e.target.value) || 0;
+ setBaseCalculo(val);
+ aplicarRecalculoManual(valorNumerico, val, aliquotaIr, parcelaDeduzir, outrasDeducoes, valorIrrf);
+ }}
+ className={`w-full px-2.5 py-1.5 text-xs border rounded-lg font-bold tabular-nums outline-none ${
+ modoCalculo === 'automatico'
+ ? 'bg-slate-100 border-slate-300 text-slate-900'
+ : 'bg-white border-blue-400 text-blue-950 focus:ring-1 focus:ring-blue-500'
+ }`}
+ />
+ <span className="text-[10px] text-slate-500">Bruto menos outras deduções</span>
+ </div>
+
+ {/* Alíquota do IR */}
+ <div>
+ <label className="block text-[11px] font-bold text-slate-700 mb-1">
+ Alíquota do IR (%) *
+ </label>
+ <div className="relative">
+ <input
+ type="number"
+ step="0.1"
+ min="0"
+ max="100"
+ disabled={modoCalculo === 'automatico'}
+ value={aliquotaIr}
+ onChange={(e) => {
+ const val = parseFloat(e.target.value) || 0;
+ setAliquotaIr(val);
+ const irrfCalc = Math.max(0, Number(((baseCalculo * (val / 100)) - parcelaDeduzir).toFixed(2)));
+ setValorIrrf(irrfCalc);
+ aplicarRecalculoManual(valorNumerico, baseCalculo, val, parcelaDeduzir, outrasDeducoes, irrfCalc);
+ }}
+ className={`w-full px-2.5 py-1.5 text-xs border rounded-lg font-bold tabular-nums outline-none pr-7 ${
+ modoCalculo === 'automatico'
+ ? 'bg-slate-100 border-slate-300 text-slate-900'
+ : 'bg-white border-blue-400 text-blue-950 focus:ring-1 focus:ring-blue-500'
+ }`}
+ />
+ <span className="absolute right-2.5 top-1.5 text-xs text-slate-500 font-bold">%</span>
+ </div>
+ <span className="text-[10px] text-slate-500">0%, 7,5%, 15%, 22,5%, 27,5%</span>
+ </div>
+
+ {/* Parcela a Deduzir */}
+ <div>
+ <label className="block text-[11px] font-bold text-slate-700 mb-1">
+ Parcela a Deduzir (R$)
+ </label>
+ <input
+ type="number"
+ step="0.01"
+ min="0"
+ disabled={modoCalculo === 'automatico'}
+ value={parcelaDeduzir}
+ onChange={(e) => {
+ const val = parseFloat(e.target.value) || 0;
+ setParcelaDeduzir(val);
+ const irrfCalc = Math.max(0, Number(((baseCalculo * (aliquotaIr / 100)) - val).toFixed(2)));
+ setValorIrrf(irrfCalc);
+ aplicarRecalculoManual(valorNumerico, baseCalculo, aliquotaIr, val, outrasDeducoes, irrfCalc);
+ }}
+ className={`w-full px-2.5 py-1.5 text-xs border rounded-lg font-bold tabular-nums outline-none ${
+ modoCalculo === 'automatico'
+ ? 'bg-slate-100 border-slate-300 text-slate-900'
+ : 'bg-white border-blue-400 text-blue-950 focus:ring-1 focus:ring-blue-500'
+ }`}
+ />
+ <span className="text-[10px] text-slate-500">Ex: R$ 896,00 na faixa de 27,5%</span>
+ </div>
+
+ {/* Valor do IRRF */}
+ <div>
+ <label className="block text-[11px] font-bold text-slate-700 mb-1">
+ Valor do IRRF (R$) *
+ </label>
+ <input
+ type="number"
+ step="0.01"
+ min="0"
+ disabled={modoCalculo === 'automatico'}
+ value={valorIrrf}
+ onChange={(e) => {
+ const val = parseFloat(e.target.value) || 0;
+ setValorIrrf(val);
+ aplicarRecalculoManual(valorNumerico, baseCalculo, aliquotaIr, parcelaDeduzir, outrasDeducoes, val);
+ }}
+ className={`w-full px-2.5 py-1.5 text-xs border rounded-lg font-bold tabular-nums outline-none ${
+ modoCalculo === 'automatico'
+ ? 'bg-slate-100 border-slate-300 text-red-700 font-extrabold'
+ : 'bg-white border-blue-400 text-red-700 focus:ring-1 focus:ring-blue-500 font-extrabold'
+ }`}
+ />
+ <span className="text-[10px] text-slate-500">(Base × Alíquota) − Parcela</span>
+ </div>
+
+ {/* Outras Deduções Permitidas */}
+ <div>
+ <label className="block text-[11px] font-bold text-slate-700 mb-1">
+ Outras Deduções Permitidas (R$)
+ </label>
+ <input
+ type="number"
+ step="0.01"
+ min="0"
+ value={outrasDeducoes}
+ onChange={(e) => {
+ const val = parseFloat(e.target.value) || 0;
+ setOutrasDeducoes(val);
+ if (modoCalculo === 'automatico') {
+ aplicarCalculoAutomatico(valorNumerico, val, regraTributaria);
+ } else {
+ aplicarRecalculoManual(valorNumerico, baseCalculo, aliquotaIr, parcelaDeduzir, val, valorIrrf);
+ }
+ }}
+ placeholder="0,00"
+ className="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-300 rounded-lg text-slate-900 font-bold tabular-nums outline-none focus:border-slate-800"
+ />
+ <span className="text-[10px] text-slate-500">Ex: taxa adm imobiliária, condomínio</span>
+ </div>
+
+ {/* Descrição de Outras Deduções */}
+ <div className="sm:col-span-2">
+ <label className="block text-[11px] font-bold text-slate-700 mb-1">
+ Identificação de Outras Deduções <span className="font-normal text-slate-500">(opcional)</span>
+ </label>
+ <input
+ type="text"
+ value={descricaoOutrasDeducoes}
+ onChange={(e) => setDescricaoOutrasDeducoes(e.target.value)}
+ placeholder="Ex: Taxa de administração de aluguel / IPTU / Condomínio"
+ className="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-300 rounded-lg text-slate-900 placeholder:text-slate-400 outline-none focus:border-slate-800"
+ />
+ <span className="text-[10px] text-slate-500">Aparecerá detalhada no demonstrativo do recibo</span>
+ </div>
+ </div>
+
+ {/* Resumo Consolidado de Deduções e Valor Líquido */}
+ <div className="p-3 bg-slate-100 border border-slate-300 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+ <div className="text-xs">
+ <span className="text-slate-600 font-medium">Total de Deduções: </span>
+ <b className="text-red-700 font-bold tabular-nums">{formatarMoeda(totalDeducoes)}</b>
+ <span className="text-[11px] text-slate-500 ml-1">
+ (IRRF: {formatarMoeda(valorIrrf)}{outrasDeducoes > 0 ? ` + Outras: ${formatarMoeda(outrasDeducoes)}` : ''})
+ </span>
+ </div>
+
+ <div className="flex items-center gap-2">
+ <span className="text-xs font-bold text-slate-900 uppercase tracking-wide">
+ Valor Líquido a Receber:
+ </span>
+ <span className="px-3 py-1 bg-emerald-600 text-white rounded-lg text-sm font-extrabold tabular-nums shadow-xs">
+ {formatarMoeda(valorLiquido)}
+ </span>
+ </div>
+ </div>
+ </div>
+ )}
  </div>
 
  {/* Referente a */}

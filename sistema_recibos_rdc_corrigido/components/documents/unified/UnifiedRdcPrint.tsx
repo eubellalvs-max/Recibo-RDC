@@ -13,9 +13,10 @@ export interface UnifiedRdcData {
 
 interface UnifiedRdcPrintProps {
   dados: UnifiedRdcData;
+  via?: '1' | '2';
 }
 
-export const UnifiedRdcPrint: React.FC<UnifiedRdcPrintProps> = ({ dados }) => {
+export const UnifiedRdcPrint: React.FC<UnifiedRdcPrintProps> = ({ dados, via }) => {
   const { numero, detalhes: rdc, tiposGasto, tiposDoc } = dados;
 
   // Calcula totais por código de gasto
@@ -56,14 +57,19 @@ export const UnifiedRdcPrint: React.FC<UnifiedRdcPrintProps> = ({ dados }) => {
         </div>
 
         <div className="text-right text-xs font-mono font-bold text-slate-900 shrink-0">
-          Nº {numero}
+          <div>Nº {numero}</div>
+          {via && (
+            <div className="text-[9px] font-sans font-semibold text-slate-600 uppercase tracking-wider mt-0.5">
+              {via === '1' ? '1ª Via - Contábil / Financeiro' : '2ª Via - Solicitante / Emissor'}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* SEÇÃO 1: Informações do Solicitante da Viagem ou Despesas Corporativas */}
+      {/* SEÇÃO 1: Informações do Solicitante (Emissor / Recebedor) da Viagem ou Despesas Corporativas */}
       <div className="border border-slate-900 mb-2.5">
         <div className="bg-slate-100/90 px-2 py-0.5 flex items-center justify-between font-bold text-[10px] sm:text-[11px] border-b border-slate-900 uppercase tracking-wide">
-          <span>Informações do Solicitante da Viagem ou Despesas Corporativas:</span>
+          <span>Informações do Solicitante (Emissor / Recebedor) da Viagem ou Despesas Corporativas:</span>
           <span className="text-[9px] sm:text-[10px] font-semibold text-slate-700 bg-white px-1.5 py-0.2 border border-slate-400 rounded">
             {rdc.linha_gasto === 'corporativa'
               ? 'Despesas Corporativas'
@@ -101,8 +107,8 @@ export const UnifiedRdcPrint: React.FC<UnifiedRdcPrintProps> = ({ dados }) => {
 
           <div className="grid grid-cols-3 gap-2">
             <div className="col-span-1">
-              <span className="font-semibold">Nome - Solicitante: </span>
-              <span className="underline decoration-slate-400">{rdc.nome_solicitante}</span>
+              <span className="font-semibold">Nome - Solicitante (Emissor / Recebedor): </span>
+              <span className="underline decoration-slate-400 font-semibold">{rdc.nome_solicitante}</span>
             </div>
             <div>
               <span className="font-semibold">Nº CPF: </span>
@@ -309,7 +315,7 @@ export const UnifiedRdcPrint: React.FC<UnifiedRdcPrintProps> = ({ dados }) => {
         <div className="grid grid-cols-3 gap-3 text-center text-[9px] sm:text-[10px]">
           <div>
             <div className="border-t border-slate-500 pt-0.5 font-semibold">
-              Assinatura do profissional:
+              Assinatura do Solicitante / Emissor:
             </div>
             <div className="text-[9px] text-slate-600 truncate mt-0.5">
               {rdc.assinatura_profissional || rdc.nome_solicitante}
