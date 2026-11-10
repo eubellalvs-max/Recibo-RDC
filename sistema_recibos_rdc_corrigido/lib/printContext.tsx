@@ -43,6 +43,7 @@ export interface PrintItem {
     usuarioGeradorNome: string;
     resumo: any;
     itens: any[];
+    orientacao?: 'retrato' | 'paisagem';
   };
 }
 

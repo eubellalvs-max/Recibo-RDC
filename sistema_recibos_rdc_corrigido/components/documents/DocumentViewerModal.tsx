@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Documento, Empresa, TipoGastoConfig, TipoDocConfig } from '@/lib/types';
+import { Documento, Empresa, TipoGastoConfig, TipoDocConfig, DadosRdc } from '@/lib/types';
 import { StorageService } from '@/lib/storage';
 import { formatarDataBr, formatarMoeda } from '@/lib/masks';
 import { AlertCircle } from 'lucide-react';
@@ -42,7 +42,7 @@ export function DocumentViewerModal({
  const rdc = documento?.rdc_detalhes;
  const med = documento?.recibo_medico_detalhes;
  const retencaoEfetiva = documento?.retencao_impostos ||
-   (documento?.rdc_detalhes as Record<string, unknown> | undefined)?.__retencao_impostos as Documento['retencao_impostos'];
+   (documento?.rdc_detalhes as unknown as Record<string, unknown> | undefined)?.__retencao_impostos as Documento['retencao_impostos'];
 
  const tiposGasto: TipoGastoConfig[] = useMemo(
    () => config.tipos_gasto || StorageService.getTiposGasto(),
@@ -85,7 +85,7 @@ export function DocumentViewerModal({
  via,
  dadosRdc: {
  numero: documento.numero,
- detalhes: rdc,
+ detalhes: rdc as DadosRdc,
  tiposGasto,
  tiposDoc,
  },
@@ -213,7 +213,7 @@ export function DocumentViewerModal({
  <UnifiedRdcPrint
  dados={{
  numero: documento.numero,
- detalhes: rdc,
+ detalhes: rdc as DadosRdc,
  tiposGasto,
  tiposDoc,
  }}

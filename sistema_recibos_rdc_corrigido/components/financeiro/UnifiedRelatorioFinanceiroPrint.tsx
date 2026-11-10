@@ -11,6 +11,7 @@ export interface DadosRelatorioFinanceiroPrint {
   usuarioGeradorNome: string;
   resumo: ResumoFinanceiro;
   itens: ItemRelatorioAnalitico[];
+  orientacao?: 'retrato' | 'paisagem';
 }
 
 interface UnifiedRelatorioFinanceiroPrintProps {
@@ -27,10 +28,15 @@ export const UnifiedRelatorioFinanceiroPrint: React.FC<UnifiedRelatorioFinanceir
     usuarioGeradorNome,
     resumo,
     itens,
+    orientacao = 'retrato',
   } = dados;
 
+  const isPaisagem = orientacao === 'paisagem';
+
   return (
-    <div className="w-full max-w-[190mm] mx-auto p-3 sm:p-4 bg-white text-black font-sans text-xs print:p-0 print:max-w-none print:w-full">
+    <div className={`w-full ${
+      isPaisagem ? 'max-w-[275mm] receipt-relatorio-paisagem' : 'max-w-[190mm] receipt-relatorio'
+    } mx-auto p-3 sm:p-4 bg-white text-black font-sans text-xs print:p-0 print:max-w-none print:w-full`}>
       {/* Cabeçalho Oficial Timbrado */}
       <div className="border-b-2 border-slate-900 pb-2.5 mb-3 evitar-quebra">
         <div className="flex items-center justify-between gap-3">
@@ -38,7 +44,7 @@ export const UnifiedRelatorioFinanceiroPrint: React.FC<UnifiedRelatorioFinanceir
             <img
               src="/abeas_logo.png"
               alt="ABEAS"
-              className="h-11 w-auto object-contain"
+              className="h-10 sm:h-12 w-auto object-contain"
             />
             <div>
               <div className="text-[9px] uppercase font-bold text-slate-600 tracking-wider">
@@ -47,12 +53,12 @@ export const UnifiedRelatorioFinanceiroPrint: React.FC<UnifiedRelatorioFinanceir
               <h1 className="text-sm sm:text-base font-black text-slate-950 uppercase tracking-tight">
                 RELATÓRIO FINANCEIRO DIÁRIO • RECIBOS MÉDICOS
               </h1>
-              <div className="text-[10px] text-slate-700 font-medium">
-                Conferência e Prestação de Contas de Movimentação Financeira
+              <div className="text-[9.5px] text-slate-700 font-medium">
+                Conferência e Prestação de Contas de Movimentação Financeira {isPaisagem ? '• Formato Paisagem' : '• Formato Retrato'}
               </div>
             </div>
           </div>
-          <div className="text-right text-[9.5px] text-slate-700 leading-tight">
+          <div className="text-right text-[9px] sm:text-[9.5px] text-slate-700 leading-tight shrink-0">
             <div>
               <span className="font-bold">Gerado em:</span> {dataGeracaoFormatada}
             </div>
@@ -75,7 +81,7 @@ export const UnifiedRelatorioFinanceiroPrint: React.FC<UnifiedRelatorioFinanceir
           1. RESUMO FINANCEIRO POR FORMA DE PAGAMENTO
         </div>
         <div className="border border-slate-900 border-t-0 p-2.5 bg-slate-50/50">
-          <div className="grid grid-cols-4 gap-2 mb-2">
+          <div className={`grid ${isPaisagem ? 'grid-cols-4 sm:grid-cols-8' : 'grid-cols-4'} gap-2 mb-2`}>
             <div className="bg-white border border-slate-300 rounded p-1.5">
               <div className="text-[8.5px] uppercase font-bold text-slate-500">PIX</div>
               <div className="text-xs sm:text-sm font-black text-slate-900 tabular-nums">
@@ -123,42 +129,76 @@ export const UnifiedRelatorioFinanceiroPrint: React.FC<UnifiedRelatorioFinanceir
                   : '0%'}
               </div>
             </div>
-          </div>
 
-          <div className="grid grid-cols-4 gap-2 pt-2 border-t border-slate-200">
-            <div className="bg-white border border-slate-300 rounded p-1.5">
-              <div className="text-[8.5px] uppercase font-bold text-slate-500">Outras Formas</div>
-              <div className="text-xs sm:text-sm font-black text-slate-900 tabular-nums">
-                {formatarMoeda(resumo.totalOutras)}
-              </div>
-            </div>
-
-            <div className="bg-white border border-slate-300 rounded p-1.5">
-              <div className="text-[8.5px] uppercase font-bold text-slate-500">Recibos Emitidos</div>
-              <div className="text-xs sm:text-sm font-black text-slate-900 tabular-nums">
-                {resumo.quantidadeEmitidos}
-              </div>
-              {resumo.quantidadeCancelados > 0 && (
-                <div className="text-[8px] text-rose-600 font-semibold">
-                  ({resumo.quantidadeCancelados} cancelados)
+            {isPaisagem && (
+              <>
+                <div className="bg-white border border-slate-300 rounded p-1.5">
+                  <div className="text-[8.5px] uppercase font-bold text-slate-500">Outras Formas</div>
+                  <div className="text-xs sm:text-sm font-black text-slate-900 tabular-nums">
+                    {formatarMoeda(resumo.totalOutras)}
+                  </div>
                 </div>
-              )}
-            </div>
 
-            <div className="bg-white border border-slate-300 rounded p-1.5">
-              <div className="text-[8.5px] uppercase font-bold text-slate-500">Ticket Médio / Recibo</div>
-              <div className="text-xs sm:text-sm font-black text-slate-900 tabular-nums">
-                {formatarMoeda(resumo.valorMedioPorRecibo)}
-              </div>
-            </div>
+                <div className="bg-white border border-slate-300 rounded p-1.5">
+                  <div className="text-[8.5px] uppercase font-bold text-slate-500">Recibos Emitidos</div>
+                  <div className="text-xs sm:text-sm font-black text-slate-900 tabular-nums">
+                    {resumo.quantidadeEmitidos}
+                  </div>
+                </div>
 
-            <div className="bg-slate-900 text-white rounded p-1.5 border border-slate-950">
-              <div className="text-[8.5px] uppercase font-bold text-slate-300">Total Geral Recebido</div>
-              <div className="text-xs sm:text-sm font-black text-emerald-300 tabular-nums">
-                {formatarMoeda(resumo.valorTotalGeral)}
-              </div>
-            </div>
+                <div className="bg-white border border-slate-300 rounded p-1.5">
+                  <div className="text-[8.5px] uppercase font-bold text-slate-500">Ticket Médio</div>
+                  <div className="text-xs sm:text-sm font-black text-slate-900 tabular-nums">
+                    {formatarMoeda(resumo.valorMedioPorRecibo)}
+                  </div>
+                </div>
+
+                <div className="bg-slate-900 text-white rounded p-1.5 border border-slate-950">
+                  <div className="text-[8.5px] uppercase font-bold text-slate-300">Total Geral</div>
+                  <div className="text-xs sm:text-sm font-black text-emerald-300 tabular-nums">
+                    {formatarMoeda(resumo.valorTotalGeral)}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
+
+          {!isPaisagem && (
+            <div className="grid grid-cols-4 gap-2 pt-2 border-t border-slate-200">
+              <div className="bg-white border border-slate-300 rounded p-1.5">
+                <div className="text-[8.5px] uppercase font-bold text-slate-500">Outras Formas</div>
+                <div className="text-xs sm:text-sm font-black text-slate-900 tabular-nums">
+                  {formatarMoeda(resumo.totalOutras)}
+                </div>
+              </div>
+
+              <div className="bg-white border border-slate-300 rounded p-1.5">
+                <div className="text-[8.5px] uppercase font-bold text-slate-500">Recibos Emitidos</div>
+                <div className="text-xs sm:text-sm font-black text-slate-900 tabular-nums">
+                  {resumo.quantidadeEmitidos}
+                </div>
+                {resumo.quantidadeCancelados > 0 && (
+                  <div className="text-[8px] text-rose-600 font-semibold">
+                    ({resumo.quantidadeCancelados} cancelados)
+                  </div>
+                )}
+              </div>
+
+              <div className="bg-white border border-slate-300 rounded p-1.5">
+                <div className="text-[8.5px] uppercase font-bold text-slate-500">Ticket Médio / Recibo</div>
+                <div className="text-xs sm:text-sm font-black text-slate-900 tabular-nums">
+                  {formatarMoeda(resumo.valorMedioPorRecibo)}
+                </div>
+              </div>
+
+              <div className="bg-slate-900 text-white rounded p-1.5 border border-slate-950">
+                <div className="text-[8.5px] uppercase font-bold text-slate-300">Total Geral Recebido</div>
+                <div className="text-xs sm:text-sm font-black text-emerald-300 tabular-nums">
+                  {formatarMoeda(resumo.valorTotalGeral)}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -170,16 +210,16 @@ export const UnifiedRelatorioFinanceiroPrint: React.FC<UnifiedRelatorioFinanceir
             {itens.length} registro(s) listado(s)
           </span>
         </div>
-        <table className="table-fixed w-full text-left text-[9.5px] border border-slate-900 border-collapse">
+        <table className="table-fixed w-full text-left text-[9px] sm:text-[9.5px] border border-slate-900 border-collapse">
           <thead>
             <tr className="bg-slate-200 text-slate-900 border-b border-slate-900 font-bold">
-              <th className="p-1.5 border-r border-slate-400 w-[13%]">Nº Recibo</th>
-              <th className="p-1.5 border-r border-slate-400 w-[10%]">Data</th>
-              <th className="p-1.5 border-r border-slate-400 w-[23%]">Paciente / Pagador</th>
-              <th className="p-1.5 border-r border-slate-400 w-[22%]">Serviço Prestado</th>
-              <th className="p-1.5 border-r border-slate-400 w-[14%]">Forma Pagto</th>
-              <th className="p-1.5 border-r border-slate-400 text-right w-[10%]">Valor (R$)</th>
-              <th className="p-1.5 w-[8%]">Emissor</th>
+              <th className={`p-1.5 border-r border-slate-400 ${isPaisagem ? 'w-[11%]' : 'w-[12%]'}`}>Nº Recibo</th>
+              <th className={`p-1.5 border-r border-slate-400 ${isPaisagem ? 'w-[9%]' : 'w-[9%]'}`}>Data</th>
+              <th className={`p-1.5 border-r border-slate-400 ${isPaisagem ? 'w-[24%]' : 'w-[24%]'}`}>Paciente / Pagador</th>
+              <th className={`p-1.5 border-r border-slate-400 ${isPaisagem ? 'w-[26%]' : 'w-[23%]'}`}>Serviço Prestado</th>
+              <th className={`p-1.5 border-r border-slate-400 ${isPaisagem ? 'w-[13%]' : 'w-[14%]'}`}>Forma Pagto</th>
+              <th className={`p-1.5 border-r border-slate-400 text-right ${isPaisagem ? 'w-[9%]' : 'w-[10%]'}`}>Valor (R$)</th>
+              <th className={`p-1.5 ${isPaisagem ? 'w-[8%]' : 'w-[8%]'}`}>Emissor</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-300">
@@ -260,7 +300,7 @@ export const UnifiedRelatorioFinanceiroPrint: React.FC<UnifiedRelatorioFinanceir
       </div>
 
       {/* Bloco de Assinaturas e Conferência */}
-      <div className="pt-6 mt-4 border-t border-slate-300 grid grid-cols-2 gap-8 text-center text-[9.5px] evitar-quebra break-inside-avoid">
+      <div className="pt-6 mt-4 border-t border-slate-300 grid grid-cols-2 gap-8 text-center text-[9px] sm:text-[9.5px] evitar-quebra break-inside-avoid">
         <div>
           <div className="border-t border-slate-900 pt-1 font-bold">
             {usuarioGeradorNome}

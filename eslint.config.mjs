@@ -6,6 +6,16 @@ import { fileURLToPath } from "node:url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-export default defineConfig([{
+export default defineConfig([
+  {
+    ignores: [
+      ".next/**",
+      "sistema_recibos_rdc_corrigido/**",
+      "scripts/**",
+      "dist/**"
+    ],
+  },
+  {
     extends: [...next],
-}]);
+  },
+]);

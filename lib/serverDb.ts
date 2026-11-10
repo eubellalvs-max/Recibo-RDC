@@ -83,10 +83,11 @@ export const ServerDb = {
 
     // Restaura retencao_impostos caso tenha sido persistido na camada de contingência (rdc_detalhes.__retencao_impostos)
     const documentos = ((docRes.data as Documento[]) || []).map((d) => {
-      if (!d.retencao_impostos && d.rdc_detalhes && (d.rdc_detalhes as Record<string, unknown>).__retencao_impostos) {
+      const detalhesObj = d.rdc_detalhes as unknown as Record<string, unknown> | undefined;
+      if (!d.retencao_impostos && detalhesObj && detalhesObj.__retencao_impostos) {
         return {
           ...d,
-          retencao_impostos: (d.rdc_detalhes as Record<string, unknown>).__retencao_impostos as Documento['retencao_impostos'],
+          retencao_impostos: detalhesObj.__retencao_impostos as Documento['retencao_impostos'],
         };
       }
       return d;
@@ -118,8 +119,9 @@ export const ServerDb = {
     }
     if (data) {
       const doc = data as Documento;
-      if (!doc.retencao_impostos && doc.rdc_detalhes && (doc.rdc_detalhes as Record<string, unknown>).__retencao_impostos) {
-        doc.retencao_impostos = (doc.rdc_detalhes as Record<string, unknown>).__retencao_impostos as Documento['retencao_impostos'];
+      const detalhesObj = doc.rdc_detalhes as unknown as Record<string, unknown> | undefined;
+      if (!doc.retencao_impostos && detalhesObj && detalhesObj.__retencao_impostos) {
+        doc.retencao_impostos = detalhesObj.__retencao_impostos as Documento['retencao_impostos'];
       }
       return doc;
     }

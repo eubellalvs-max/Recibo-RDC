@@ -133,6 +133,21 @@ export interface ModeloDespesa {
   updated_at?: string;
 }
 
+export interface RetencaoImpostosRecibo {
+  possui_retencao: boolean;
+  valor_bruto: number;
+  base_calculo_irrf: number;
+  aliquota_ir: number; // Ex: 27.5, 22.5, 15, 7.5, 0 ou personalizada
+  parcela_deduzir_ir: number; // Ex: 896.00
+  valor_irrf: number;
+  outras_deducoes: number;
+  descricao_outras_deducoes?: string;
+  total_deducoes: number;
+  valor_liquido: number;
+  modo_calculo?: 'automatico' | 'manual';
+  regra_tributaria?: 'aluguel_pf' | 'tabela_progressiva' | 'manual';
+}
+
 export interface DadosRdc {
   // Modelo de Despesa de Origem
   modelo_despesa_id?: string;
@@ -173,6 +188,9 @@ export interface DadosRdc {
   assinatura_profissional?: string;
   diretoria_direta?: string;
   contabil_financeiro?: string;
+
+  // Camada de contingência para persistência universal de retencao_impostos em recibos
+  __retencao_impostos?: RetencaoImpostosRecibo;
 }
 
 export interface Documento {
@@ -194,7 +212,7 @@ export interface Documento {
   status: StatusDocumento;
   created_at: string;
   logo_url?: string; // Logo específico da empresa emissora vinculado ao documento
-  rdc_detalhes?: DadosRdc; // Dados estruturados da RDC oficial
+  rdc_detalhes?: DadosRdc | (Partial<DadosRdc> & { __retencao_impostos?: RetencaoImpostosRecibo; [key: string]: unknown }); // Dados estruturados da RDC ou backup de contingência de retenção
   recibo_medico_detalhes?: DadosReciboMedico; // Dados específicos do Recibo Médico
   data_cancelamento?: string; // Data ISO de quando o documento foi cancelado
   usuario_cancelamento_id?: string; // ID do usuário que efetuou o cancelamento
@@ -209,21 +227,6 @@ export interface Documento {
     usuario_nome: string;
     detalhes?: string;
   }[];
-}
-
-export interface RetencaoImpostosRecibo {
-  possui_retencao: boolean;
-  valor_bruto: number;
-  base_calculo_irrf: number;
-  aliquota_ir: number; // Ex: 27.5, 22.5, 15, 7.5, 0 ou personalizada
-  parcela_deduzir_ir: number; // Ex: 896.00
-  valor_irrf: number;
-  outras_deducoes: number;
-  descricao_outras_deducoes?: string;
-  total_deducoes: number;
-  valor_liquido: number;
-  modo_calculo?: 'automatico' | 'manual';
-  regra_tributaria?: 'aluguel_pf' | 'tabela_progressiva' | 'manual';
 }
 
 export interface SistemaConfig {

@@ -12,6 +12,8 @@ import {
   exportarRelatorioExcel,
 } from '@/lib/financeiro';
 import { usePrint } from '@/lib/printContext';
+import { UnifiedRelatorioFinanceiroPrint } from './UnifiedRelatorioFinanceiroPrint';
+import { UnifiedPrintToolbar } from '../documents/unified/UnifiedPrintToolbar';
 import {
   FileSpreadsheet,
   Printer,
@@ -85,6 +87,8 @@ export function RelatorioFinanceiroView({
   const [emissorFiltro, setEmissorFiltro] = useState<string>(isAdmin ? 'TODOS' : currentUser.id);
   const [empresaFiltro, setEmpresaFiltro] = useState<string>('TODAS');
   const [incluirCancelados, setIncluirCancelados] = useState<boolean>(false);
+  const [orientacao, setOrientacao] = useState<'retrato' | 'paisagem'>('retrato');
+  const [modalPreviaAberto, setModalPreviaAberto] = useState(false);
 
   const recarregar = () => {
     setDocumentos(StorageService.getDocumentos().filter((d) => d.tipo === 'recibo_medico'));
@@ -259,18 +263,33 @@ export function RelatorioFinanceiroView({
     });
   };
 
+  const dadosRelatorio = useMemo(() => ({
+    empresaNome: nomeEmpresaRelatorio,
+    periodoFormatado,
+    dataGeracaoFormatada: dataHoraGeracaoFormatada,
+    usuarioGeradorNome: currentUser.nome,
+    resumo,
+    itens: itensFiltrados,
+    orientacao,
+  }), [nomeEmpresaRelatorio, periodoFormatado, dataHoraGeracaoFormatada, currentUser.nome, resumo, itensFiltrados, orientacao]);
+
+  useEffect(() => {
+    if (!modalPreviaAberto) return;
+    setActivePrintItem({
+      tipo: 'relatorio_financeiro',
+      numero: 'REL-MED-FIN',
+      dadosRelatorioFinanceiro: dadosRelatorio,
+    });
+    return () => {
+      setActivePrintItem(null);
+    };
+  }, [modalPreviaAberto, dadosRelatorio, setActivePrintItem]);
+
   const handleImprimirRelatorio = () => {
     setActivePrintItem({
       tipo: 'relatorio_financeiro',
       numero: 'REL-MED-FIN',
-      dadosRelatorioFinanceiro: {
-        empresaNome: nomeEmpresaRelatorio,
-        periodoFormatado,
-        dataGeracaoFormatada: dataHoraGeracaoFormatada,
-        usuarioGeradorNome: currentUser.nome,
-        resumo,
-        itens: itensFiltrados,
-      },
+      dadosRelatorioFinanceiro: dadosRelatorio,
     });
 
     setTimeout(() => {
@@ -310,6 +329,45 @@ export function RelatorioFinanceiroView({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          {/* Seletor de Orientação para Impressão */}
+          <div className="inline-flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-300 text-xs">
+            <button
+              type="button"
+              onClick={() => setOrientacao('retrato')}
+              className={`px-2.5 py-1.5 rounded-md font-semibold transition-colors ${
+                orientacao === 'retrato'
+                  ? 'bg-white text-slate-900 shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+              title="Configurar impressão em formato A4 Retrato (Vertical)"
+            >
+              📄 Retrato
+            </button>
+            <button
+              type="button"
+              onClick={() => setOrientacao('paisagem')}
+              className={`px-2.5 py-1.5 rounded-md font-semibold transition-colors ${
+                orientacao === 'paisagem'
+                  ? 'bg-white text-slate-900 shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+              title="Configurar impressão em formato A4 Paisagem (Horizontal)"
+            >
+              📑 Paisagem
+            </button>
+          </div>
+
+          {/* Botão Pré-visualizar Impressão */}
+          <button
+            type="button"
+            onClick={() => setModalPreviaAberto(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-800 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg shadow-2xs transition-colors"
+            title="Conferir a prévia exata do relatório antes de imprimir"
+          >
+            <Eye className="w-4 h-4 text-blue-600" />
+            <span>Pré-visualizar</span>
+          </button>
+
           {/* Botão Exportar Excel */}
           <button
             type="button"
@@ -851,6 +909,56 @@ export function RelatorioFinanceiroView({
           </div>
         </div>
       </div>
+
+      {/* Modal de Pré-Visualização Fiel do Relatório */}
+      {modalPreviaAberto && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-y-auto print-modal-overlay">
+          <div className={`bg-white border border-slate-200 rounded-xl shadow-2xl ${
+            orientacao === 'paisagem' ? 'max-w-6xl' : 'max-w-4xl'
+          } w-full my-4 flex flex-col max-h-[94vh] transition-colors print-modal-content`}>
+            <div className="no-print">
+              <UnifiedPrintToolbar
+                titulo="PRÉ-VISUALIZAÇÃO • RELATÓRIO FINANCEIRO"
+                subtitulo={`${nomeEmpresaRelatorio} • Período: ${periodoFormatado} • Modo: ${
+                  orientacao === 'paisagem' ? 'Paisagem (Horizontal)' : 'Retrato (Vertical)'
+                }`}
+                isPreVisualizacao={false}
+                onFechar={() => setModalPreviaAberto(false)}
+                documentoNumero="REL-MED-FIN"
+                tipoDocumento="relatorio_financeiro"
+              />
+              <div className="bg-slate-50 border-b border-slate-200 px-6 py-2 flex items-center justify-between text-xs">
+                <span className="font-semibold text-slate-700">Formato da Folha A4:</span>
+                <div className="flex items-center gap-1 bg-white p-0.5 rounded border border-slate-300">
+                  <button
+                    type="button"
+                    onClick={() => setOrientacao('retrato')}
+                    className={`px-3 py-1 rounded text-xs font-semibold transition-colors ${
+                      orientacao === 'retrato' ? 'bg-slate-900 text-white shadow-2xs' : 'text-slate-700 hover:bg-slate-100'
+                    }`}
+                  >
+                    📄 Retrato (Vertical)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setOrientacao('paisagem')}
+                    className={`px-3 py-1 rounded text-xs font-semibold transition-colors ${
+                      orientacao === 'paisagem' ? 'bg-slate-900 text-white shadow-2xs' : 'text-slate-700 hover:bg-slate-100'
+                    }`}
+                  >
+                    📑 Paisagem (Horizontal)
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 md:p-8 bg-slate-100 flex justify-center">
+              <div className="bg-white shadow border border-slate-300 p-4 w-full flex justify-center">
+                <UnifiedRelatorioFinanceiroPrint dados={dadosRelatorio} />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

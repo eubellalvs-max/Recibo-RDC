@@ -31,6 +31,11 @@ html, body {
     margin: 8mm 10mm 8mm 10mm;
   }
 
+  @page landscape-page {
+    size: A4 landscape;
+    margin: 8mm 10mm 8mm 10mm;
+  }
+
   html, body {
     background: #ffffff !important;
     color: #000000 !important;
@@ -184,7 +189,7 @@ html, body {
     box-shadow: none !important;
   }
 
-  /* 6. RELATÓRIO FINANCEIRO (TABELA ANALÍTICA MULTI-PÁGINAS FLUIDA) */
+  /* 6. RELATÓRIO FINANCEIRO (TABELA ANALÍTICA MULTI-PÁGINAS FLUIDA - RETRATO E PAISAGEM) */
   #print-receipt.receipt-relatorio,
   .receipt.receipt-relatorio {
     max-width: 190mm !important;
@@ -193,32 +198,44 @@ html, body {
     overflow: visible !important;
   }
 
-  .receipt-relatorio table {
+  #print-receipt.receipt-relatorio-paisagem,
+  .receipt.receipt-relatorio-paisagem {
+    page: landscape-page !important;
+    max-width: 275mm !important;
     page-break-inside: auto !important;
     break-inside: auto !important;
+    overflow: visible !important;
   }
 
-  .receipt-relatorio thead {
+  .receipt-relatorio table,
+  .receipt-relatorio-paisagem table {
+    width: 100% !important;
+    page-break-inside: auto !important;
+    break-inside: auto !important;
+    border-collapse: collapse !important;
+  }
+
+  .receipt-relatorio thead,
+  .receipt-relatorio-paisagem thead {
     display: table-header-group !important;
   }
 
-  .receipt-relatorio tfoot {
+  .receipt-relatorio tfoot,
+  .receipt-relatorio-paisagem tfoot {
     display: table-footer-group !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
   }
 
-  .receipt-relatorio tr {
+  .receipt-relatorio tr,
+  .receipt-relatorio-paisagem tr {
     page-break-inside: avoid !important;
     break-inside: avoid !important;
   }
 
   .receipt-relatorio .evitar-quebra,
-  .evitar-quebra {
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
-  }
-
+  .receipt-relatorio-paisagem .evitar-quebra,
+  .evitar-quebra,
   .avoid-page-break {
     page-break-inside: avoid !important;
     break-inside: avoid !important;

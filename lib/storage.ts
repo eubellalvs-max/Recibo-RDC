@@ -455,8 +455,9 @@ export const StorageService = {
         const mergedDocs = (data.documentos as Documento[]).map((srvDoc) => {
           const doc = { ...srvDoc };
           // Restaura da camada de contingência rdc_detalhes.__retencao_impostos se disponível
-          if (!doc.retencao_impostos && doc.rdc_detalhes && (doc.rdc_detalhes as Record<string, unknown>).__retencao_impostos) {
-            doc.retencao_impostos = (doc.rdc_detalhes as Record<string, unknown>).__retencao_impostos as RetencaoImpostosRecibo;
+          const det = doc.rdc_detalhes as unknown as Record<string, unknown> | undefined;
+          if (!doc.retencao_impostos && det && det.__retencao_impostos) {
+            doc.retencao_impostos = det.__retencao_impostos as RetencaoImpostosRecibo;
           }
           // Preserva retencao_impostos local caso o servidor tenha retornado nulo/indefinido
           if (!doc.retencao_impostos) {
@@ -714,8 +715,9 @@ export const StorageService = {
     );
     let mudou = docs.length !== rawDocs.length;
     docs.forEach((doc) => {
-      if (!doc.retencao_impostos && doc.rdc_detalhes && (doc.rdc_detalhes as Record<string, unknown>).__retencao_impostos) {
-        doc.retencao_impostos = (doc.rdc_detalhes as Record<string, unknown>).__retencao_impostos as RetencaoImpostosRecibo;
+      const det = doc.rdc_detalhes as unknown as Record<string, unknown> | undefined;
+      if (!doc.retencao_impostos && det && det.__retencao_impostos) {
+        doc.retencao_impostos = det.__retencao_impostos as RetencaoImpostosRecibo;
         mudou = true;
       }
       if (doc.rdc_detalhes?.itens) {

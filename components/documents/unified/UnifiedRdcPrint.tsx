@@ -31,35 +31,35 @@ export const UnifiedRdcPrint: React.FC<UnifiedRdcPrintProps> = ({ dados, via }) 
     });
   }
 
-  // Preencher linhas vazias para visual idêntico à folha de modelo impressa oficial (14 linhas)
-  const qtdLinhasTotais = 14;
+  // Preenchimento equilibrado de linhas: evita 14 linhas fixas que empurravam o documento para a página 2
   const itensAtuais = rdc?.itens || [];
-  const linhasVaziasCount = Math.max(0, qtdLinhasTotais - itensAtuais.length);
+  const maxLinhasDesejadas = itensAtuais.length <= 4 ? 5 : itensAtuais.length;
+  const linhasVaziasCount = Math.max(0, maxLinhasDesejadas - itensAtuais.length);
 
   return (
-    <div className="receipt-sheet-rdc receipt-sheet print-document print-sheet-rdc print-sheet bg-white border border-slate-900 shadow-sm p-4 sm:p-6 max-w-3xl w-full text-slate-900 font-sans leading-tight text-xs mx-auto">
-      {/* CABEÇALHO DO MODELO ABEAS COM LOGO AO LADO E DEPOIS OS TEXTOS */}
-      <div className="flex items-center justify-between gap-3 pb-2.5 border-b-2 border-slate-900 mb-2.5">
-        <div className="flex items-center gap-3 flex-1">
+    <div className="receipt-sheet-rdc receipt-sheet print-document print-sheet-rdc print-sheet bg-white border border-slate-900 shadow-sm p-3.5 sm:p-5 print:p-2.5 max-w-3xl w-full text-slate-900 font-sans leading-tight text-xs mx-auto">
+      {/* CABEÇALHO DO MODELO ABEAS COM LOGO AO LADO E TEXTOS */}
+      <div className="flex items-center justify-between gap-3 pb-2 border-b-2 border-slate-900 mb-2">
+        <div className="flex items-center gap-2.5 flex-1">
           <img
             src="/abeas_logo.png"
             alt="ABEAS"
-            className="h-12 sm:h-14 w-auto object-contain shrink-0"
+            className="h-10 sm:h-12 print:h-9 w-auto object-contain shrink-0"
           />
           <div>
-            <h1 className="text-xs sm:text-sm font-bold tracking-tight text-slate-900 leading-tight">
+            <h1 className="text-xs sm:text-sm print:text-xs font-bold tracking-tight text-slate-900 leading-tight">
               Associação Brasileira de Entidades de Assistência Social
             </h1>
-            <h2 className="text-[11px] sm:text-xs font-bold text-slate-800 tracking-tight mt-0.5 underline leading-tight">
+            <h2 className="text-[10.5px] sm:text-xs print:text-[10px] font-bold text-slate-800 tracking-tight mt-0.5 underline leading-tight">
               Prestação de Contas e Reembolso de Despesas Corporativa - RDC
             </h2>
           </div>
         </div>
 
-        <div className="text-right text-xs font-mono font-bold text-slate-900 shrink-0">
+        <div className="text-right text-xs print:text-[11px] font-mono font-bold text-slate-900 shrink-0">
           <div>Nº {numero}</div>
           {via && (
-            <div className="text-[9px] font-sans font-semibold text-slate-600 uppercase tracking-wider mt-0.5">
+            <div className="text-[8.5px] print:text-[8px] font-sans font-semibold text-slate-600 uppercase tracking-wider mt-0.5">
               {via === '1' ? '1ª Via - Contábil / Financeiro' : '2ª Via - Solicitante / Emissor'}
             </div>
           )}
@@ -67,10 +67,10 @@ export const UnifiedRdcPrint: React.FC<UnifiedRdcPrintProps> = ({ dados, via }) 
       </div>
 
       {/* SEÇÃO 1: Informações do Solicitante (Emissor / Recebedor) da Viagem ou Despesas Corporativas */}
-      <div className="border border-slate-900 mb-2.5">
-        <div className="bg-slate-100/90 px-2 py-0.5 flex items-center justify-between font-bold text-[10px] sm:text-[11px] border-b border-slate-900 uppercase tracking-wide">
+      <div className="border border-slate-900 mb-2">
+        <div className="bg-slate-100/90 px-2 py-0.5 flex items-center justify-between font-bold text-[9.5px] sm:text-[10.5px] print:text-[9px] border-b border-slate-900 uppercase tracking-wide">
           <span>Informações do Solicitante (Emissor / Recebedor) da Viagem ou Despesas Corporativas:</span>
-          <span className="text-[9px] sm:text-[10px] font-semibold text-slate-700 bg-white px-1.5 py-0.2 border border-slate-400 rounded">
+          <span className="text-[8.5px] sm:text-[9.5px] font-semibold text-slate-700 bg-white px-1.5 py-0.2 border border-slate-400 rounded">
             {rdc.linha_gasto === 'corporativa'
               ? 'Despesas Corporativas'
               : rdc.linha_gasto === 'ambas'
@@ -78,7 +78,7 @@ export const UnifiedRdcPrint: React.FC<UnifiedRdcPrintProps> = ({ dados, via }) 
               : 'Despesas de Viagem'}
           </span>
         </div>
-        <div className="p-2 space-y-1 text-[10px] sm:text-[11px]">
+        <div className="p-1.5 space-y-0.5 text-[9.5px] sm:text-[10.5px] print:text-[8.5px]">
           <div className="grid grid-cols-2 gap-3">
             <div>
               <span className="font-semibold">Data do pedido: </span>
@@ -130,11 +130,11 @@ export const UnifiedRdcPrint: React.FC<UnifiedRdcPrintProps> = ({ dados, via }) 
       </div>
 
       {/* SEÇÃO 2: Informações bancária e financeira */}
-      <div className="border border-slate-900 mb-2.5">
-        <div className="bg-slate-100/90 px-2 py-0.5 text-center font-bold text-[10px] sm:text-[11px] border-b border-slate-900 uppercase tracking-wide">
+      <div className="border border-slate-900 mb-2">
+        <div className="bg-slate-100/90 px-2 py-0.5 text-center font-bold text-[9.5px] sm:text-[10.5px] print:text-[9px] border-b border-slate-900 uppercase tracking-wide">
           Informações bancária e financeira:
         </div>
-        <div className="p-2 space-y-1 text-[10px] sm:text-[11px]">
+        <div className="p-1.5 space-y-0.5 text-[9.5px] sm:text-[10.5px] print:text-[8.5px]">
           <div className="grid grid-cols-4 gap-2">
             <div>
               <span className="font-semibold">Valor solicitado: </span>
@@ -168,58 +168,58 @@ export const UnifiedRdcPrint: React.FC<UnifiedRdcPrintProps> = ({ dados, via }) 
       </div>
 
       {/* SEÇÃO 3: Descrição dos gastos */}
-      <div className="border border-slate-900 mb-2.5">
+      <div className="border border-slate-900 mb-2">
         <div className="flex items-center justify-between px-2 py-0.5 bg-slate-100/90 border-b border-slate-900">
-          <div className="text-[9px] sm:text-[10px]">
+          <div className="text-[8.5px] sm:text-[9.5px] print:text-[8px]">
             <span className="font-bold">Data entrega - RDC: </span>
             <span className="underline font-mono">{formatarDataBr(rdc.data_entrega_rdc)}</span>
           </div>
-          <div className="font-bold text-[10px] sm:text-[11px] uppercase tracking-wide">
+          <div className="font-bold text-[9.5px] sm:text-[10.5px] print:text-[9px] uppercase tracking-wide">
             Descrição dos gastos:
           </div>
           <div className="w-16" />
         </div>
 
         {/* Tabela dos Itens */}
-        <table className="w-full text-left text-[9px] sm:text-[10px] border-collapse">
+        <table className="table-fixed w-full text-left text-[8.5px] sm:text-[9.5px] print:text-[8px] border-collapse">
           <thead>
             <tr className="border-b border-slate-900 text-center font-bold bg-slate-50">
-              <th className="border-r border-slate-900 px-1 py-0.5 w-16">Data</th>
-              <th className="border-r border-slate-900 px-1.5 py-0.5 w-16">Tipo Gastos</th>
-              <th className="border-r border-slate-900 px-1.5 py-0.5 w-20">Tipo Doc. - Rec/NF</th>
-              <th className="border-r border-slate-900 px-2 py-0.5 text-left">Fornecedor - observação das despesas - número documento</th>
-              <th className="px-2 py-0.5 w-24 text-right">Valor</th>
+              <th className="border-r border-slate-900 px-1 py-0.5 w-[12%]">Data</th>
+              <th className="border-r border-slate-900 px-1 py-0.5 w-[11%]">Tipo Gastos</th>
+              <th className="border-r border-slate-900 px-1 py-0.5 w-[14%]">Tipo Doc. - Rec/NF</th>
+              <th className="border-r border-slate-900 px-1.5 py-0.5 text-left w-[48%]">Fornecedor - observação das despesas - número documento</th>
+              <th className="px-1.5 py-0.5 w-[15%] text-right">Valor</th>
             </tr>
           </thead>
           <tbody>
             {rdc.itens.map((it) => (
-              <tr key={it.id} className="border-b border-slate-300">
+              <tr key={it.id} className="border-b border-slate-300 break-inside-avoid">
                 <td className="border-r border-slate-900 px-1 py-0.5 text-center font-mono whitespace-nowrap">
                   {it.data ? formatarDataBr(it.data) : (rdc.data_entrega_rdc ? formatarDataBr(rdc.data_entrega_rdc) : '-')}
                 </td>
-                <td className="border-r border-slate-900 px-1.5 py-0.5 text-center font-bold">
+                <td className="border-r border-slate-900 px-1 py-0.5 text-center font-bold">
                   {it.tipo_gasto}
                 </td>
-                <td className="border-r border-slate-900 px-1.5 py-0.5 text-center font-semibold">
+                <td className="border-r border-slate-900 px-1 py-0.5 text-center font-semibold">
                   {it.tipo_doc === 'Nf' ? 'NF' : it.tipo_doc}
                 </td>
-                <td className="border-r border-slate-900 px-2 py-0.5">
+                <td className="border-r border-slate-900 px-1.5 py-0.5 break-words">
                   {it.descricao}
                 </td>
-                <td className="px-2 py-0.5 text-right font-mono font-medium whitespace-nowrap">
+                <td className="px-1.5 py-0.5 text-right font-mono font-bold whitespace-nowrap">
                   {formatarMoeda(it.valor)}
                 </td>
               </tr>
             ))}
 
-            {/* Linhas vazias para preservar a estrutura estética padrão da folha */}
+            {/* Linhas vazias estéticas (controladas dinamicamente) */}
             {Array.from({ length: linhasVaziasCount }).map((_, idx) => (
-              <tr key={`empty-${idx}`} className="border-b border-slate-200 h-5">
+              <tr key={`empty-${idx}`} className="border-b border-slate-200 h-4 sm:h-5">
                 <td className="border-r border-slate-900 px-1 py-0.5 text-center text-slate-300">-</td>
-                <td className="border-r border-slate-900 px-1.5 py-0.5 text-center text-slate-300">-</td>
-                <td className="border-r border-slate-900 px-1.5 py-0.5 text-center text-slate-300">-</td>
-                <td className="border-r border-slate-900 px-2 py-0.5">&nbsp;</td>
-                <td className="px-2 py-0.5 text-right text-slate-300 font-mono">-</td>
+                <td className="border-r border-slate-900 px-1 py-0.5 text-center text-slate-300">-</td>
+                <td className="border-r border-slate-900 px-1 py-0.5 text-center text-slate-300">-</td>
+                <td className="border-r border-slate-900 px-1.5 py-0.5">&nbsp;</td>
+                <td className="px-1.5 py-0.5 text-right text-slate-300 font-mono">-</td>
               </tr>
             ))}
           </tbody>
@@ -227,13 +227,13 @@ export const UnifiedRdcPrint: React.FC<UnifiedRdcPrintProps> = ({ dados, via }) 
       </div>
 
       {/* SEÇÃO 4: Legenda, Natureza dos gastos e Total gastos (Tabela Inferior) */}
-      <div className="border border-slate-900 mb-2.5">
-        <table className="w-full text-[9px] sm:text-[10px] border-collapse">
+      <div className="border border-slate-900 mb-2 avoid-page-break break-inside-avoid">
+        <table className="table-fixed w-full text-[8.5px] sm:text-[9.5px] print:text-[8px] border-collapse">
           <thead>
             <tr className="border-b border-slate-900 font-bold bg-slate-100/80 text-center">
-              <th className="border-r border-slate-900 px-2 py-0.5 w-24">Legenda</th>
-              <th className="border-r border-slate-900 px-2 py-0.5 text-left">Natureza dos gastos</th>
-              <th className="px-2 py-0.5 w-28 text-right">Total gastos</th>
+              <th className="border-r border-slate-900 px-1.5 py-0.5 w-[22%]">Legenda</th>
+              <th className="border-r border-slate-900 px-1.5 py-0.5 text-left w-[58%]">Natureza dos gastos</th>
+              <th className="px-1.5 py-0.5 w-[20%] text-right">Total gastos</th>
             </tr>
           </thead>
           <tbody>
@@ -246,13 +246,13 @@ export const UnifiedRdcPrint: React.FC<UnifiedRdcPrintProps> = ({ dados, via }) 
                   key={tg ? `tg-${tg.id || tg.codigo}` : `td-${td.id || td.codigo}`}
                   className={isLast ? 'border-b border-slate-900' : 'border-b border-slate-300'}
                 >
-                  <td className="border-r border-slate-900 px-2 py-0.5 text-center font-semibold">
+                  <td className="border-r border-slate-900 px-1.5 py-0.2 text-center font-semibold">
                     {td ? `${td.codigo}: ${td.nome}` : <span className="text-slate-400">-</span>}
                   </td>
-                  <td className="border-r border-slate-900 px-2 py-0.5">
+                  <td className="border-r border-slate-900 px-1.5 py-0.2 truncate">
                     {tg ? `${tg.codigo} ${tg.nome}` : <span className="text-slate-400">-</span>}
                   </td>
-                  <td className="px-2 py-0.5 text-right font-mono">
+                  <td className="px-1.5 py-0.2 text-right font-mono font-medium">
                     {tg ? (
                       formatarMoeda(totalPorNatureza[tg.codigo] || 0)
                     ) : (
@@ -265,35 +265,35 @@ export const UnifiedRdcPrint: React.FC<UnifiedRdcPrintProps> = ({ dados, via }) 
 
             {/* Linhas de Fechamento Financeiro */}
             <tr className="border-b border-slate-900 font-bold bg-slate-50">
-              <td colSpan={2} className="border-r border-slate-900 px-2 py-0.5 text-left uppercase">
+              <td colSpan={2} className="border-r border-slate-900 px-1.5 py-0.5 text-left uppercase">
                 Total das Despesas
               </td>
-              <td className="px-2 py-0.5 text-right font-mono text-xs">
+              <td className="px-1.5 py-0.5 text-right font-mono font-bold text-[9px] sm:text-[10px]">
                 {formatarMoeda(rdc.total_despesas)}
               </td>
             </tr>
             <tr className="border-b border-slate-900">
-              <td colSpan={2} className="border-r border-slate-900 px-2 py-0.5 text-left">
+              <td colSpan={2} className="border-r border-slate-900 px-1.5 py-0.5 text-left">
                 Valor recebido de adiantamento
               </td>
-              <td className="px-2 py-0.5 text-right font-mono font-medium">
+              <td className="px-1.5 py-0.5 text-right font-mono font-medium">
                 {formatarMoeda(rdc.valor_adiantamento)}
               </td>
             </tr>
-            <tr className="border-b border-slate-900 text-[9px] sm:text-[10px]">
-              <td colSpan={2} className="border-r border-slate-900 px-2 py-0.5 text-left">
+            <tr className="border-b border-slate-900 text-[8px] sm:text-[9px]">
+              <td colSpan={2} className="border-r border-slate-900 px-1.5 py-0.5 text-left">
                 <span className="font-semibold">Valor de devolução/ressarcimento </span>
                 <span className="text-slate-500">(Saldo negativo, a receber. Saldo positivo, devolver na conta de origem)</span>
               </td>
-              <td className="px-2 py-0.5 text-right font-mono font-bold">
+              <td className="px-1.5 py-0.5 text-right font-mono font-bold">
                 {formatarMoeda(rdc.saldo_devolucao_ressarcimento)}
               </td>
             </tr>
             <tr className="font-bold bg-slate-100">
-              <td colSpan={2} className="border-r border-slate-900 px-2 py-0.5 text-left">
+              <td colSpan={2} className="border-r border-slate-900 px-1.5 py-0.5 text-left">
                 Valor a ressarcir na conta do solicitante
               </td>
-              <td className="px-2 py-0.5 text-right font-mono text-xs text-blue-900">
+              <td className="px-1.5 py-0.5 text-right font-mono font-bold text-[9px] sm:text-[10px] text-blue-900">
                 {formatarMoeda(rdc.valor_ressarcir_solicitante)}
               </td>
             </tr>
@@ -302,22 +302,22 @@ export const UnifiedRdcPrint: React.FC<UnifiedRdcPrintProps> = ({ dados, via }) 
       </div>
 
       {/* AVISO REGULAMENTAR */}
-      <div className="border border-red-600 bg-red-50 text-red-700 font-bold text-[8.5px] sm:text-[9.5px] text-center py-0.5 px-2 uppercase tracking-wide mb-2.5">
+      <div className="border border-red-600 bg-red-50 text-red-700 font-bold text-[8px] sm:text-[9px] text-center py-0.5 px-2 uppercase tracking-wide mb-2 avoid-page-break">
         DESPESAS COM BEBIDAS ALCOÓLICAS, GASTOS NÃO PRÉ ACORDADOS COM DIRETORIA, NÃO SERÃO REEMBOLSADOS.
       </div>
 
       {/* SEÇÃO 5: Assinaturas e aprovação das despesas */}
-      <div className="border border-slate-900 p-2 avoid-page-break">
-        <div className="text-center font-bold text-[9px] sm:text-[10px] uppercase border-b border-slate-900 pb-0.5 mb-5">
+      <div className="border border-slate-900 p-1.5 avoid-page-break break-inside-avoid">
+        <div className="text-center font-bold text-[8.5px] sm:text-[9.5px] uppercase border-b border-slate-900 pb-0.5 mb-3 sm:mb-4">
           Assinaturas e aprovação das despesas:
         </div>
 
-        <div className="grid grid-cols-3 gap-3 text-center text-[9px] sm:text-[10px]">
+        <div className="grid grid-cols-3 gap-2.5 text-center text-[8.5px] sm:text-[9.5px]">
           <div>
             <div className="border-t border-slate-500 pt-0.5 font-semibold">
               Assinatura do Solicitante / Emissor:
             </div>
-            <div className="text-[9px] text-slate-600 truncate mt-0.5">
+            <div className="text-[8px] text-slate-600 truncate mt-0.5">
               {rdc.assinatura_profissional || rdc.nome_solicitante}
             </div>
           </div>
@@ -326,7 +326,7 @@ export const UnifiedRdcPrint: React.FC<UnifiedRdcPrintProps> = ({ dados, via }) 
             <div className="border-t border-slate-500 pt-0.5 font-semibold">
               Diretoria direta:
             </div>
-            <div className="text-[9px] text-slate-600 truncate mt-0.5">
+            <div className="text-[8px] text-slate-600 truncate mt-0.5">
               {rdc.diretoria_direta || 'Diretoria Executiva'}
             </div>
           </div>
@@ -335,7 +335,7 @@ export const UnifiedRdcPrint: React.FC<UnifiedRdcPrintProps> = ({ dados, via }) 
             <div className="border-t border-slate-500 pt-0.5 font-semibold">
               Contábil / Financeiro:
             </div>
-            <div className="text-[9px] text-slate-600 truncate mt-0.5">
+            <div className="text-[8px] text-slate-600 truncate mt-0.5">
               {rdc.contabil_financeiro || 'Setor Financeiro'}
             </div>
           </div>
