@@ -34,6 +34,21 @@ export function MeusDocumentosView({
  );
  const [docParaCancelar, setDocParaCancelar] = useState<Documento | null>(null);
 
+ // Atualiza a lista quando houver sincronização de background com o servidor ou retorno à janela
+ useEffect(() => {
+   const atualizar = () => {
+     setDocumentos(StorageService.getDocumentos());
+   };
+   window.addEventListener('storage_sync_updated', atualizar);
+   window.addEventListener('storage', atualizar);
+   window.addEventListener('focus', atualizar);
+   return () => {
+     window.removeEventListener('storage_sync_updated', atualizar);
+     window.removeEventListener('storage', atualizar);
+     window.removeEventListener('focus', atualizar);
+   };
+ }, []);
+
  const empresas = StorageService.getEmpresas();
 
  // Filtragem dos documentos

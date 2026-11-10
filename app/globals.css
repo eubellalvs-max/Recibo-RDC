@@ -106,7 +106,7 @@ html, body {
     break-inside: avoid !important;
   }
 
-  /* 3. FOLHA DO RECIBO COM BORDAS PRESERVADAS E SEM CORTE */
+  /* 3. FOLHA DO RECIBO COM BORDAS PRESERVADAS E SEM CORTE (ESTRITAMENTE 1 PÁGINA A4) */
   .receipt-sheet,
   .print-sheet {
     display: block !important;
@@ -114,13 +114,17 @@ html, body {
     width: 100% !important;
     max-width: 185mm !important;
     margin: 0 auto !important;
-    padding: 6mm 8mm !important;
+    padding: 5mm 7mm !important;
     background: #ffffff !important;
     color: #0f172a !important;
     border: 1.5px solid #000000 !important;
     border-radius: 4px !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+    page-break-before: avoid !important;
+    break-before: avoid !important;
     box-shadow: none !important;
     transform: none !important;
     overflow: visible !important;
@@ -178,6 +182,41 @@ html, body {
 
   .print-sheet-medico * {
     box-shadow: none !important;
+  }
+
+  /* 6. RELATÓRIO FINANCEIRO (TABELA ANALÍTICA MULTI-PÁGINAS FLUIDA) */
+  #print-receipt.receipt-relatorio,
+  .receipt.receipt-relatorio {
+    max-width: 190mm !important;
+    page-break-inside: auto !important;
+    break-inside: auto !important;
+    overflow: visible !important;
+  }
+
+  .receipt-relatorio table {
+    page-break-inside: auto !important;
+    break-inside: auto !important;
+  }
+
+  .receipt-relatorio thead {
+    display: table-header-group !important;
+  }
+
+  .receipt-relatorio tfoot {
+    display: table-footer-group !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .receipt-relatorio tr {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .receipt-relatorio .evitar-quebra,
+  .evitar-quebra {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
 
   .avoid-page-break {

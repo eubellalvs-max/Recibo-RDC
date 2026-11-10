@@ -451,7 +451,24 @@ export const StorageService = {
       if (writeFailed || revisionAtFetch !== writeRevision) return false;
 
       if (data && data.documentos && data.empresas) {
-        setLocalStorageItem(STORAGE_KEYS.DOCUMENTOS, data.documentos);
+        const rawLocal = getLocalStorageItem<Documento[]>(STORAGE_KEYS.DOCUMENTOS, []);
+        const mergedDocs = (data.documentos as Documento[]).map((srvDoc) => {
+          const doc = { ...srvDoc };
+          // Restaura da camada de contingência rdc_detalhes.__retencao_impostos se disponível
+          if (!doc.retencao_impostos && doc.rdc_detalhes && (doc.rdc_detalhes as Record<string, unknown>).__retencao_impostos) {
+            doc.retencao_impostos = (doc.rdc_detalhes as Record<string, unknown>).__retencao_impostos as RetencaoImpostosRecibo;
+          }
+          // Preserva retencao_impostos local caso o servidor tenha retornado nulo/indefinido
+          if (!doc.retencao_impostos) {
+            const local = rawLocal.find((l) => l.id === doc.id);
+            if (local?.retencao_impostos) {
+              doc.retencao_impostos = local.retencao_impostos;
+            }
+          }
+          return doc;
+        });
+
+        setLocalStorageItem(STORAGE_KEYS.DOCUMENTOS, mergedDocs);
         setLocalStorageItem(STORAGE_KEYS.EMPRESAS, data.empresas);
         if (Array.isArray(data.usuarios)) {
           setLocalStorageItem(STORAGE_KEYS.USUARIOS, data.usuarios);
@@ -697,6 +714,10 @@ export const StorageService = {
     );
     let mudou = docs.length !== rawDocs.length;
     docs.forEach((doc) => {
+      if (!doc.retencao_impostos && doc.rdc_detalhes && (doc.rdc_detalhes as Record<string, unknown>).__retencao_impostos) {
+        doc.retencao_impostos = (doc.rdc_detalhes as Record<string, unknown>).__retencao_impostos as RetencaoImpostosRecibo;
+        mudou = true;
+      }
       if (doc.rdc_detalhes?.itens) {
         doc.rdc_detalhes.itens.forEach((it) => {
           if (it.tipo_doc === 'Nf') {
@@ -874,6 +895,13 @@ export const StorageService = {
       retencao_impostos: params.retencao_impostos,
     };
 
+    if (params.retencao_impostos) {
+      novoDoc.rdc_detalhes = {
+        ...(novoDoc.rdc_detalhes || {}),
+        __retencao_impostos: params.retencao_impostos,
+      };
+    }
+
     const docs = this.getDocumentos();
     docs.unshift(novoDoc);
     setLocalStorageItem(STORAGE_KEYS.DOCUMENTOS, docs);
@@ -909,6 +937,20 @@ export const StorageService = {
       docAtualizado.numero_sequencial = docOriginal.numero_sequencial;
       docAtualizado.tipo = docOriginal.tipo;
       docAtualizado.created_at = docOriginal.created_at;
+
+      // Preserva e sincroniza retencao_impostos
+      if (docAtualizado.retencao_impostos) {
+        docAtualizado.rdc_detalhes = {
+          ...(docAtualizado.rdc_detalhes || {}),
+          __retencao_impostos: docAtualizado.retencao_impostos,
+        };
+      } else if (docOriginal.retencao_impostos && docAtualizado.retencao_impostos === undefined) {
+        docAtualizado.retencao_impostos = docOriginal.retencao_impostos;
+        docAtualizado.rdc_detalhes = {
+          ...(docAtualizado.rdc_detalhes || {}),
+          __retencao_impostos: docOriginal.retencao_impostos,
+        };
+      }
 
       // Metadados de Auditoria da Edição
       docAtualizado.updated_at = new Date().toISOString();

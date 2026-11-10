@@ -106,7 +106,8 @@ export function NovoReciboModal({
  const { setActivePrintItem } = usePrint();
 
  // Controle de Retenção de Imposto de Renda (IRRF)
- const retencaoOrig = documentoEmEdicao?.retencao_impostos;
+ const retencaoOrig = documentoEmEdicao?.retencao_impostos ||
+   (documentoEmEdicao?.rdc_detalhes as Record<string, unknown> | undefined)?.__retencao_impostos as RetencaoImpostosRecibo | undefined;
  const [possuiRetencao, setPossuiRetencao] = useState<boolean>(() => retencaoOrig?.possui_retencao ?? false);
  const [modoCalculo, setModoCalculo] = useState<'automatico' | 'manual'>(() => retencaoOrig?.modo_calculo ?? 'automatico');
  const [regraTributaria, setRegraTributaria] = useState<'aluguel_pf' | 'tabela_progressiva' | 'manual'>(() => retencaoOrig?.regra_tributaria ?? 'tabela_progressiva');
@@ -228,6 +229,59 @@ export function NovoReciboModal({
 
  const empresaEmissoraObj = empresas.find((e) => e.id === empresaEmissoraId);
  const empresaDestinatariaObj = empresas.find((e) => e.id === empresaDestinatariaId);
+
+ // Sincroniza formulário sempre que o documento em edição mudar ou o modal for aberto
+ useEffect(() => {
+   if (!isOpen) return;
+
+   if (documentoEmEdicao) {
+     if (documentoEmEdicao.empresa_emissora_id) {
+       setEmpresaEmissoraId(documentoEmEdicao.empresa_emissora_id);
+     }
+     setLogoUrl(documentoEmEdicao.logo_url || '');
+     if (documentoEmEdicao.empresa_destinataria_id) {
+       setEmpresaDestinatariaId(documentoEmEdicao.empresa_destinataria_id);
+     }
+
+     const ret = documentoEmEdicao.retencao_impostos ||
+       (documentoEmEdicao.rdc_detalhes as Record<string, unknown> | undefined)?.__retencao_impostos as RetencaoImpostosRecibo | undefined;
+     
+     const valorBase = ret?.possui_retencao ? ret.valor_bruto : (documentoEmEdicao.valor ?? 0);
+     setValorNumerico(valorBase);
+     setValorRaw(valorBase > 0 ? valorBase.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0,00');
+     setValorExtenso(documentoEmEdicao.valor_extenso || (valorBase > 0 ? valorPorExtenso(valorBase) : ''));
+     setReferente(documentoEmEdicao.referente || '');
+     setDataEmissao(documentoEmEdicao.data_emissao || dataHojeIso());
+     setCidadeEmissao(documentoEmEdicao.cidade_emissao || config.cidade_padrao || 'Brasília/DF');
+     setObservacoes(documentoEmEdicao.observacoes || '');
+
+     if (ret?.possui_retencao) {
+       setPossuiRetencao(true);
+       setModoCalculo(ret.modo_calculo || 'automatico');
+       setRegraTributaria(ret.regra_tributaria || 'tabela_progressiva');
+       setBaseCalculo(ret.base_calculo_irrf ?? valorBase);
+       setAliquotaIr(ret.aliquota_ir ?? 0);
+       setParcelaDeduzir(ret.parcela_deduzir_ir ?? 0);
+       setValorIrrf(ret.valor_irrf ?? 0);
+       setOutrasDeducoes(ret.outras_deducoes ?? 0);
+       setDescricaoOutrasDeducoes(ret.descricao_outras_deducoes ?? '');
+       setTotalDeducoes(ret.total_deducoes ?? 0);
+       setValorLiquido(ret.valor_liquido ?? (valorBase - (ret.total_deducoes ?? 0)));
+     } else {
+       setPossuiRetencao(false);
+       setModoCalculo('automatico');
+       setRegraTributaria('tabela_progressiva');
+       setBaseCalculo(0);
+       setAliquotaIr(0);
+       setParcelaDeduzir(0);
+       setValorIrrf(0);
+       setOutrasDeducoes(0);
+       setDescricaoOutrasDeducoes('');
+       setTotalDeducoes(0);
+       setValorLiquido(valorBase);
+     }
+   }
+ }, [isOpen, documentoEmEdicao, config.cidade_padrao]);
 
  useEffect(() => {
  if (!isOpen || !modoPreVisualizar) {

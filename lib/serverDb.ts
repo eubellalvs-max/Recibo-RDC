@@ -81,12 +81,23 @@ export const ServerDb = {
       }
     }
 
+    // Restaura retencao_impostos caso tenha sido persistido na camada de contingência (rdc_detalhes.__retencao_impostos)
+    const documentos = ((docRes.data as Documento[]) || []).map((d) => {
+      if (!d.retencao_impostos && d.rdc_detalhes && (d.rdc_detalhes as Record<string, unknown>).__retencao_impostos) {
+        return {
+          ...d,
+          retencao_impostos: (d.rdc_detalhes as Record<string, unknown>).__retencao_impostos as Documento['retencao_impostos'],
+        };
+      }
+      return d;
+    });
+
     // Nunca recriar cadastros ou credenciais automaticamente em consultas.
     return {
       source: 'supabase',
       empresas: empRes.data as Empresa[],
       usuarios: usrRes.data as Usuario[],
-      documentos: docRes.data as Documento[],
+      documentos,
       config: (cfgRes.data?.config as SistemaConfig) || INITIAL_CONFIG,
       modelos_despesa: modRes.data as ModeloDespesa[],
       last_updated: new Date().toISOString(),
@@ -105,21 +116,38 @@ export const ServerDb = {
     if (error) {
       throw new Error(`Erro ao consultar documento ${id} no Supabase: ${error.message}`);
     }
-    return (data as Documento) || null;
+    if (data) {
+      const doc = data as Documento;
+      if (!doc.retencao_impostos && doc.rdc_detalhes && (doc.rdc_detalhes as Record<string, unknown>).__retencao_impostos) {
+        doc.retencao_impostos = (doc.rdc_detalhes as Record<string, unknown>).__retencao_impostos as Documento['retencao_impostos'];
+      }
+      return doc;
+    }
+    return null;
   },
 
   async saveDocumento(doc: Documento): Promise<Documento> {
     const supabase = requireDatabase();
-    const { error } = await supabase.from('documentos').upsert(doc);
+
+    // Assegura backup de contingência de retencao_impostos em rdc_detalhes (coluna JSONB universal do Supabase)
+    const docToSave = { ...doc };
+    if (doc.retencao_impostos) {
+      docToSave.rdc_detalhes = {
+        ...(doc.rdc_detalhes || {}),
+        __retencao_impostos: doc.retencao_impostos,
+      };
+    }
+
+    const { error } = await supabase.from('documentos').upsert(docToSave);
     if (error) {
       // Tratamento de erros e tentativa de regravação:
-      // Se falhar devido à coluna 'retencao_impostos' (código PGRST204 ou menção no erro),
-      // regrava sem essa coluna para garantir compatibilidade com versões anteriores da tabela.
+      // Se falhar devido à coluna 'retencao_impostos' no primeiro nível (ex: erro PGRST204),
+      // regrava sem essa coluna no topo, mas preservando __retencao_impostos dentro de rdc_detalhes.
       if (
         (error.message && error.message.includes('retencao_impostos')) ||
         error.code === 'PGRST204'
       ) {
-        const docSemRetencao = { ...doc };
+        const docSemRetencao = { ...docToSave };
         delete (docSemRetencao as Record<string, unknown>).retencao_impostos;
         const retry = await supabase.from('documentos').upsert(docSemRetencao);
         if (retry.error) {

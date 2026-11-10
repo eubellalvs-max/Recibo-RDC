@@ -20,7 +20,10 @@ export const PrintLayoutArea: React.FC = () => {
 
   return (
     <div id="print-area" className="print-area">
-      <div id="print-receipt" className="receipt">
+      <div
+        id="print-receipt"
+        className={`receipt ${activePrintItem.tipo === 'relatorio_financeiro' ? 'receipt-relatorio' : ''}`}
+      >
         {activePrintItem.tipo === 'recibo' && activePrintItem.dadosRecibo && (
           <UnifiedReciboPrint
             dados={activePrintItem.dadosRecibo}

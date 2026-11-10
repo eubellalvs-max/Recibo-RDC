@@ -41,6 +41,8 @@ export function DocumentViewerModal({
  const isReciboMedico = documento?.tipo === 'recibo_medico';
  const rdc = documento?.rdc_detalhes;
  const med = documento?.recibo_medico_detalhes;
+ const retencaoEfetiva = documento?.retencao_impostos ||
+   (documento?.rdc_detalhes as Record<string, unknown> | undefined)?.__retencao_impostos as Documento['retencao_impostos'];
 
  const tiposGasto: TipoGastoConfig[] = useMemo(
    () => config.tipos_gasto || StorageService.getTiposGasto(),
@@ -64,11 +66,11 @@ export function DocumentViewerModal({
      const pagador = destinataria?.nome_fantasia || destinataria?.razao_social || 'ABEAS';
      return `Nº ${documento.numero} • Emissor (Recebedor): ${solicitante} • Destinatário: ${pagador}`;
    }
-   if (documento.retencao_impostos?.possui_retencao) {
-     return `Nº ${documento.numero} • Emitido em ${formatarDataBr(documento.data_emissao)} • Com Retenção de IRRF (Líquido: ${formatarMoeda(documento.retencao_impostos.valor_liquido)})`;
+   if (retencaoEfetiva?.possui_retencao) {
+     return `Nº ${documento.numero} • Emitido em ${formatarDataBr(documento.data_emissao)} • Com Retenção de IRRF (Líquido: ${formatarMoeda(retencaoEfetiva.valor_liquido)})`;
    }
    return `Nº ${documento.numero} • Emitido em ${formatarDataBr(documento.data_emissao)}`;
- }, [isRdc, rdc, documento, destinataria]);
+ }, [isRdc, rdc, documento, destinataria, retencaoEfetiva]);
 
  useEffect(() => {
  if (!isOpen || !documento) {
@@ -119,7 +121,7 @@ export function DocumentViewerModal({
  emissora,
  destinataria,
  config,
- retencao_impostos: documento.retencao_impostos,
+ retencao_impostos: retencaoEfetiva,
  },
  });
  }
@@ -142,6 +144,7 @@ export function DocumentViewerModal({
  emissora,
  destinataria,
  config,
+ retencaoEfetiva,
  ]);
 
  if (!isOpen || !documento) return null;
@@ -241,7 +244,7 @@ export function DocumentViewerModal({
  usuario_nome: documento.usuario_nome,
  emissora,
  destinataria,
- retencao_impostos: documento.retencao_impostos,
+ retencao_impostos: retencaoEfetiva,
  }}
  config={config}
  via={via}
