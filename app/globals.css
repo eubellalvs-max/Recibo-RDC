@@ -18,10 +18,17 @@ html, body {
    ========================================================================= */
 
 @media screen {
-  /* Em tela normal, a área física de impressão fica 100% oculta */
+  /* Em tela normal, a área física de impressão fica pré-renderizada fora da visão para cálculo e decodificação de imagens */
   #print-area,
   .print-area {
-    display: none !important;
+    position: fixed !important;
+    left: -99999px !important;
+    top: 0 !important;
+    width: 210mm !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    visibility: hidden !important;
+    z-index: -9999 !important;
   }
 }
 
@@ -55,7 +62,8 @@ html, body {
   #system-app-root *,
   header,
   nav,
-  aside,
+  aside:not(#print-area),
+  section:not(#print-area),
   main,
   footer,
   .sidebar,
@@ -83,7 +91,10 @@ html, body {
   .print-area {
     display: block !important;
     visibility: visible !important;
+    opacity: 1 !important;
     position: static !important;
+    left: auto !important;
+    top: auto !important;
     width: 100% !important;
     max-width: 100% !important;
     margin: 0 auto !important;
@@ -92,6 +103,12 @@ html, body {
     border: none !important;
     box-shadow: none !important;
     overflow: visible !important;
+    z-index: auto !important;
+  }
+
+  #print-area *,
+  .print-area * {
+    visibility: visible !important;
   }
 
   #print-receipt,

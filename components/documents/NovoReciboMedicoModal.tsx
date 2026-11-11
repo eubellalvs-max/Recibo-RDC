@@ -394,10 +394,6 @@ export function NovoReciboMedicoModal({
  },
  },
  });
-
- return () => {
- setActivePrintItem(null);
- };
  }, [
  isOpen,
  modoPreVisualizar,

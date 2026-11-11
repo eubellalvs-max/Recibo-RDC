@@ -4,12 +4,12 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Documento, Empresa, TipoGastoConfig, TipoDocConfig, DadosRdc } from '@/lib/types';
 import { StorageService } from '@/lib/storage';
 import { formatarDataBr, formatarMoeda } from '@/lib/masks';
-import { AlertCircle } from 'lucide-react';
-import { usePrint } from '@/lib/printContext';
+import { usePrint, buildPrintItemFromDocumento } from '@/lib/printContext';
 import { UnifiedPrintToolbar } from './unified/UnifiedPrintToolbar';
 import { UnifiedReciboPrint } from './unified/UnifiedReciboPrint';
 import { UnifiedReciboMedicoPrint } from './unified/UnifiedReciboMedicoPrint';
 import { UnifiedRdcPrint } from './unified/UnifiedRdcPrint';
+import { AlertCircle } from 'lucide-react';
 
 interface DocumentViewerModalProps {
  documento: Documento | null;
@@ -73,79 +73,13 @@ export function DocumentViewerModal({
  }, [isRdc, rdc, documento, destinataria, retencaoEfetiva]);
 
  useEffect(() => {
- if (!isOpen || !documento) {
- setActivePrintItem(null);
- return;
- }
-
- if (isRdc && rdc) {
- setActivePrintItem({
- tipo: 'rdc',
- numero: documento.numero,
- via,
- dadosRdc: {
- numero: documento.numero,
- detalhes: rdc as DadosRdc,
- tiposGasto,
- tiposDoc,
- },
- });
- } else if (isReciboMedico && med) {
- setActivePrintItem({
- tipo: 'recibo_medico',
- numero: documento.numero,
- dadosReciboMedico: {
- numero: documento.numero,
- valor: documento.valor,
- valor_extenso: documento.valor_extenso,
- data_emissao: documento.data_emissao,
- usuario_nome: documento.usuario_nome,
- detalhes: med,
- },
- });
- } else {
- setActivePrintItem({
- tipo: 'recibo',
- numero: documento.numero,
- via,
- dadosRecibo: {
- numero: documento.numero,
- valor: documento.valor,
- valor_extenso: documento.valor_extenso,
- referente: documento.referente,
- data_emissao: documento.data_emissao,
- cidade_emissao: documento.cidade_emissao,
- observacoes: documento.observacoes,
- logo_url: documento.logo_url,
- usuario_nome: documento.usuario_nome,
- emissora,
- destinataria,
- config,
- retencao_impostos: retencaoEfetiva,
- },
- });
- }
-
- return () => {
- setActivePrintItem(null);
- };
- }, [
- isOpen,
- documento?.id,
- documento?.numero,
- via,
- setActivePrintItem,
- isRdc,
- rdc,
- isReciboMedico,
- med,
- tiposGasto,
- tiposDoc,
- emissora,
- destinataria,
- config,
- retencaoEfetiva,
- ]);
+   if (!isOpen || !documento) {
+     setActivePrintItem(null);
+     return;
+   }
+   const item = buildPrintItemFromDocumento(documento, via, empresas, config);
+   setActivePrintItem(item);
+ }, [isOpen, documento?.id, documento?.numero, via, setActivePrintItem]);
 
  if (!isOpen || !documento) return null;
 

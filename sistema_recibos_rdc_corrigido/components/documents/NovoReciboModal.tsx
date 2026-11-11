@@ -312,10 +312,6 @@ export function NovoReciboModal({
  retencao_impostos: retencaoObj,
  },
  });
-
- return () => {
- setActivePrintItem(null);
- };
  }, [
  isOpen,
  modoPreVisualizar,

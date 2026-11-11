@@ -433,10 +433,6 @@ export function NovoRdcModal({
  tiposDoc,
  },
  });
-
- return () => {
- setActivePrintItem(null);
- };
  }, [
  isOpen,
  modoPreVisualizar,

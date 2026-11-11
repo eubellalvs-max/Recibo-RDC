@@ -20,7 +20,7 @@ import { NovoRdcModal } from '@/components/documents/NovoRdcModal';
 import { NovoReciboMedicoModal } from '@/components/documents/NovoReciboMedicoModal';
 import { DocumentSuccessModal } from '@/components/documents/DocumentSuccessModal';
 import { DocumentViewerModal } from '@/components/documents/DocumentViewerModal';
-import { PrintProvider } from '@/lib/printContext';
+import { PrintProvider, buildPrintItemFromDocumento, dispararImpressaoUniversal } from '@/lib/printContext';
 import { PrintLayoutArea } from '@/components/documents/unified/PrintLayoutArea';
 
 export default function Home() {
@@ -110,10 +110,9 @@ export default function Home() {
  };
 
  const handleImprimirDocumento = (doc: Documento) => {
- setDocVisualizando(doc);
- setTimeout(() => {
- window.print();
- }, 300);
+   setDocVisualizando(doc);
+   const item = buildPrintItemFromDocumento(doc, '1');
+   dispararImpressaoUniversal(item);
  };
 
  if (!isMounted) {

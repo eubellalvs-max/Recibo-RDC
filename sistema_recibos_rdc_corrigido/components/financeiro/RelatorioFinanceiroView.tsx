@@ -49,7 +49,7 @@ export function RelatorioFinanceiroView({
   onNovoReciboMedico,
 }: RelatorioFinanceiroViewProps) {
   const isAdmin = currentUser.perfil === 'admin';
-  const { setActivePrintItem } = usePrint();
+  const { setActivePrintItem, imprimirItem } = usePrint();
 
   // Dados do storage
   const [documentos, setDocumentos] = useState<Documento[]>(() =>
@@ -280,21 +280,17 @@ export function RelatorioFinanceiroView({
       numero: 'REL-MED-FIN',
       dadosRelatorioFinanceiro: dadosRelatorio,
     });
-    return () => {
-      setActivePrintItem(null);
-    };
   }, [modalPreviaAberto, dadosRelatorio, setActivePrintItem]);
 
-  const handleImprimirRelatorio = () => {
-    setActivePrintItem({
-      tipo: 'relatorio_financeiro',
-      numero: 'REL-MED-FIN',
-      dadosRelatorioFinanceiro: dadosRelatorio,
-    });
-
-    setTimeout(() => {
-      window.print();
-    }, 300);
+  const handleImprimirRelatorio = async () => {
+    await imprimirItem(
+      {
+        tipo: 'relatorio_financeiro',
+        numero: 'REL-MED-FIN',
+        dadosRelatorioFinanceiro: dadosRelatorio,
+      },
+      'Relatorio_Financeiro_Medico'
+    );
   };
 
   const handleAbrirDocumento = (docId: string) => {

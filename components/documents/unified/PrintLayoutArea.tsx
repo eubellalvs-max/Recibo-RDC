@@ -11,20 +11,23 @@ export const PrintLayoutArea: React.FC = () => {
   const { activePrintItem } = usePrint();
 
   if (!activePrintItem) {
-    return (
-      <div id="print-area" className="print-area" aria-hidden="true">
-        <div id="print-receipt" className="receipt" />
-      </div>
-    );
+    return null;
   }
 
+  const isRelatorio = activePrintItem.tipo === 'relatorio_financeiro';
+  const isPaisagem = isRelatorio && activePrintItem.dadosRelatorioFinanceiro?.orientacao === 'paisagem';
+
   return (
-    <div id="print-area" className="print-area">
+    <section
+      id="print-area"
+      className={`print-area ${isPaisagem ? 'print-area-paisagem' : 'print-area-retrato'}`}
+      aria-label="Área de Impressão Exclusiva"
+    >
       <div
         id="print-receipt"
         className={`receipt ${
-          activePrintItem.tipo === 'relatorio_financeiro'
-            ? activePrintItem.dadosRelatorioFinanceiro?.orientacao === 'paisagem'
+          isRelatorio
+            ? isPaisagem
               ? 'receipt-relatorio-paisagem'
               : 'receipt-relatorio'
             : ''
@@ -50,6 +53,6 @@ export const PrintLayoutArea: React.FC = () => {
           <UnifiedRelatorioFinanceiroPrint dados={activePrintItem.dadosRelatorioFinanceiro} />
         )}
       </div>
-    </div>
+    </section>
   );
 };

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Usuario, Documento } from '@/lib/types';
 import { StorageService } from '@/lib/storage';
 import { formatarMoeda, formatarDataBr } from '@/lib/masks';
+import { usePrint, buildPrintItemFromDocumento } from '@/lib/printContext';
 import { CancelarDocumentoModal } from './CancelarDocumentoModal';
 import {
  HeartPulse,
@@ -41,6 +42,7 @@ export function RecibosMedicosView({
  const [documentos, setDocumentos] = useState<Documento[]>(() =>
  StorageService.getDocumentos().filter((d) => d.tipo === 'recibo_medico')
  );
+ const { imprimirDocumento } = usePrint();
 
  const [busca, setBusca] = useState('');
  const [filtroStatus, setFiltroStatus] = useState<'todos' | 'emitido' | 'cancelado'>('todos');
@@ -72,10 +74,7 @@ export function RecibosMedicosView({
  };
 
  const handleImprimir = (doc: Documento) => {
- onVisualizar(doc);
- setTimeout(() => {
- window.print();
- }, 400);
+ imprimirDocumento(doc, '1');
  };
 
  // Filtragem
